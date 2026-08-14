@@ -45,6 +45,9 @@ services:
     depends_on:
       - postgres
       - redis
+    links:
+      - postgres:postgres
+      - redis:redis
     ports:
       - "3001:3001"
     networks:
@@ -65,6 +68,8 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.quazlink.site}
     depends_on:
       - api
+    links:
+      - api:api
     ports:
       - "3000:3000"
     networks:
