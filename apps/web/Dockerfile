@@ -1,15 +1,16 @@
 # Multi-stage production Dockerfile for Next.js 16 Web Application
-FROM node:20-alpine AS deps
+FROM node:20-alpine AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
+# Copy root and web manifests
 COPY package*.json ./
 COPY apps/web/package*.json ./apps/web/
+
+# Install all workspace dependencies cleanly
 RUN npm install
 
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Copy application source code
 COPY . .
 
 # Pass build-time environment variable for Next.js API client
