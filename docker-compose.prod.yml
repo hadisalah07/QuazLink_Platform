@@ -1,5 +1,9 @@
 version: '3.8'
 
+networks:
+  quazlink_net:
+    driver: bridge
+
 services:
   postgres:
     image: postgres:15-alpine
@@ -10,12 +14,20 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-saas_automation}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      quazlink_net:
+        aliases:
+          - postgres
 
   redis:
     image: redis:7-alpine
     restart: always
     volumes:
       - redis_data:/data
+    networks:
+      quazlink_net:
+        aliases:
+          - redis
 
   api:
     build:
@@ -35,6 +47,10 @@ services:
       - redis
     ports:
       - "3001:3001"
+    networks:
+      quazlink_net:
+        aliases:
+          - api
 
   web:
     build:
@@ -51,6 +67,10 @@ services:
       - api
     ports:
       - "3000:3000"
+    networks:
+      quazlink_net:
+        aliases:
+          - web
 
 volumes:
   postgres_data:

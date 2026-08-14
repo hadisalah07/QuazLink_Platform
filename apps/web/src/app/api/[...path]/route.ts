@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import http from "http";
 
-const CANDIDATE_HOSTS = [
-  process.env.INTERNAL_API_HOST,
-  "api",
-  "127.0.0.1",
-  "localhost",
-].filter(Boolean) as string[];
+const CANDIDATE_HOSTS = [process.env.INTERNAL_API_HOST || "api", "127.0.0.1"];
 
 const API_PORT = 3001;
 
