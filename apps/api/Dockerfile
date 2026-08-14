@@ -1,6 +1,6 @@
 # Multi-stage production Dockerfile for QuazLink API & WSS Gateway
 FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 # Copy root and api manifests
@@ -18,6 +18,7 @@ RUN cd apps/api && npm run build
 
 # Production runtime image
 FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
 ENV NODE_ENV=production
