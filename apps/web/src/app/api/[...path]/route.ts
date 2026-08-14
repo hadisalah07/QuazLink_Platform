@@ -1,10 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import http from "http";
-import dns from "dns";
-
-try {
-  dns.setDefaultResultOrder("ipv4first");
-} catch {}
 
 const CANDIDATE_HOSTS = [
   process.env.INTERNAL_API_HOST || "api",
@@ -14,93 +8,58 @@ const CANDIDATE_HOSTS = [
 
 const API_PORT = 3001;
 
-function forwardToHost(
-  host: string,
-  targetPath: string,
-  method: string,
-  reqHeaders: Record<string, string>,
-  bodyData?: string
-): Promise<NextResponse> {
-  return new Promise((resolve, reject) => {
-    const proxyReq = http.request(
-      {
-        host,
-        port: API_PORT,
-        path: targetPath,
-        method,
-        headers: reqHeaders,
-        timeout: 15000,
-      },
-      (proxyRes) => {
-        const chunks: Buffer[] = [];
-        proxyRes.on("data", (chunk) => chunks.push(chunk));
-        proxyRes.on("end", () => {
-          const body = Buffer.concat(chunks);
-          const resHeaders = new Headers();
-
-          Object.entries(proxyRes.headers).forEach(([key, value]) => {
-            if (!value) return;
-            if (Array.isArray(value)) {
-              value.forEach((v) => resHeaders.append(key, v));
-            } else {
-              resHeaders.set(key, value);
-            }
-          });
-
-          resolve(
-            new NextResponse(body, {
-              status: proxyRes.statusCode || 200,
-              statusText: proxyRes.statusMessage,
-              headers: resHeaders,
-            })
-          );
-        });
-      }
-    );
-
-    proxyReq.on("error", (err) => {
-      reject(err);
-    });
-
-    proxyReq.on("timeout", () => {
-      proxyReq.destroy(new Error(`Timeout connecting to ${host}:${API_PORT}`));
-    });
-
-    if (bodyData) {
-      proxyReq.write(bodyData);
-    }
-    proxyReq.end();
-  });
-}
-
 async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
   const targetPath = `/api/${path.join("/")}${req.nextUrl.search}`;
 
-  const reqHeaders: Record<string, string> = {};
-  req.headers.forEach((value, key) => {
+  const headers = new Headers();
+  req.headers.forEach((val, key) => {
     const lower = key.toLowerCase();
-    if (lower !== "host" && lower !== "connection" && lower !== "content-length") {
-      reqHeaders[lower] = value;
+    if (
+      lower !== "host" &&
+      lower !== "connection" &&
+      lower !== "content-length" &&
+      lower !== "transfer-encoding"
+    ) {
+      headers.set(key, val);
     }
   });
 
   const bodyData =
     req.method !== "GET" && req.method !== "HEAD" ? await req.text() : undefined;
 
-  if (bodyData) {
-    reqHeaders["content-length"] = Buffer.byteLength(bodyData).toString();
-    if (!reqHeaders["content-type"]) {
-      reqHeaders["content-type"] = "application/json";
-    }
-  }
-
   const errors: string[] = [];
 
   for (const host of CANDIDATE_HOSTS) {
+    const targetUrl = `http://${host}:${API_PORT}${targetPath}`;
     try {
-      const response = await forwardToHost(host, targetPath, req.method, reqHeaders, bodyData);
-      return response;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+      const res = await fetch(targetUrl, {
+        method: req.method,
+        headers,
+        body: bodyData,
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const resHeaders = new Headers();
+      res.headers.forEach((val, key) => {
+        const lower = key.toLowerCase();
+        if (lower !== "content-encoding" && lower !== "transfer-encoding") {
+          resHeaders.set(key, val);
+        }
+      });
+
+      const resBody = await res.arrayBuffer();
+      return new NextResponse(resBody, {
+        status: res.status,
+        statusText: res.statusText,
+        headers: resHeaders,
+      });
     } catch (err: any) {
       errors.push(`${host}: ${err.message}`);
     }
