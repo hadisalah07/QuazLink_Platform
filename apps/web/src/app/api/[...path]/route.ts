@@ -61,7 +61,8 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
         headers: resHeaders,
       });
     } catch (err: any) {
-      errors.push(`${host}: ${err.message}`);
+      const cause = err.cause ? ` [cause: ${err.cause.code || err.cause.message || err.cause}]` : "";
+      errors.push(`${host}: ${err.message}${cause}`);
     }
   }
 
