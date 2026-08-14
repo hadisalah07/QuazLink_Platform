@@ -3,8 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy root and package manifests for caching
+# Copy root and package manifests
 COPY package*.json ./
+COPY tsconfig.base.json* ./
 COPY apps/api/package*.json ./apps/api/
 COPY apps/api/prisma ./apps/api/prisma/
 
