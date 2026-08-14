@@ -11,10 +11,12 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
 
   const headers = new Headers(req.headers);
   headers.delete("host");
+  headers.delete("content-length");
+  headers.delete("connection");
 
   try {
     const body =
-      req.method !== "GET" && req.method !== "HEAD" ? await req.blob() : undefined;
+      req.method !== "GET" && req.method !== "HEAD" ? await req.text() : undefined;
 
     const response = await fetch(targetUrl.toString(), {
       method: req.method,
@@ -24,12 +26,15 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
     });
 
     const resHeaders = new Headers(response.headers);
-    return new NextResponse(response.body, {
+    const data = await response.text();
+
+    return new NextResponse(data, {
       status: response.status,
       statusText: response.statusText,
       headers: resHeaders,
     });
   } catch (err: any) {
+    console.error("API PROXY ERROR:", err);
     return NextResponse.json(
       { error: "API unreachable: " + (err?.message || "unknown") },
       { status: 502 }
