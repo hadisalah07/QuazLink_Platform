@@ -43,6 +43,6 @@ app.use('/api', apiRoutes);
 const server = http.createServer(app);
 setupWebSocketGateway(server);
 
-server.listen(port, () => {
-  console.log(`🚀 API Server & WSS Gateway running on http://localhost:${port}`);
+server.listen(Number(port), '0.0.0.0', () => {
+  console.log(`🚀 API Server & WSS Gateway running on http://0.0.0.0:${port}`);
 });
