@@ -6,7 +6,11 @@ try {
   dns.setDefaultResultOrder("ipv4first");
 } catch {}
 
-const CANDIDATE_HOSTS = [process.env.INTERNAL_API_HOST || "api", "127.0.0.1"];
+const CANDIDATE_HOSTS = [
+  process.env.INTERNAL_API_HOST || "api",
+  "10.166.0.2",
+  "127.0.0.1",
+];
 
 const API_PORT = 3001;
 

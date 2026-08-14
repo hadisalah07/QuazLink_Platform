@@ -5,12 +5,13 @@ import http from 'http';
 import 'dotenv/config';
 import apiRoutes from './routes';
 import { setupWebSocketGateway } from './ws/gateway';
+import prisma from './prisma';
 
 process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION:', err);
+  console.error('UNCAUGHT EXCEPTION (non-fatal):', err);
 });
 process.on('unhandledRejection', (reason) => {
-  console.error('UNHANDLED REJECTION:', reason);
+  console.error('UNHANDLED REJECTION (non-fatal):', reason);
 });
 
 const app = express();
@@ -26,11 +27,7 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.quazlink.site')) {
-        callback(null, true);
-      } else {
-        callback(null, true);
-      }
+      callback(null, true);
     },
     credentials: true,
   })
@@ -52,4 +49,7 @@ setupWebSocketGateway(server);
 
 server.listen(Number(port), '0.0.0.0', () => {
   console.log(`🚀 API Server & WSS Gateway running on http://0.0.0.0:${port}`);
+  prisma.$connect()
+    .then(() => console.log('✅ PostgreSQL Database Connected via Prisma.'))
+    .catch((err) => console.warn('PostgreSQL Connect Notice (non-fatal):', err.message));
 });
