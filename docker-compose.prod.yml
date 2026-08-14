@@ -39,7 +39,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       JWT_SECRET: ${JWT_SECRET}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      WEB_ORIGIN: ${WEB_ORIGIN:-https://app.yourdomain.com}
+      WEB_ORIGIN: ${WEB_ORIGIN:-https://app.quazlink.site}
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,11 +53,11 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.yourdomain.com}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.quazlink.site}
     restart: always
     environment:
       PORT: 3000
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.yourdomain.com}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.quazlink.site}
     depends_on:
       - api
     ports:

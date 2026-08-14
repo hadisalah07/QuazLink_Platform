@@ -9,11 +9,25 @@ import { setupWebSocketGateway } from './ws/gateway';
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Credentialed CORS: a wildcard origin ('*') is INCOMPATIBLE with cookies, so
-// the browser would silently drop the session cookie. Echo the exact web
-// origin and allow credentials instead.
-const webOrigin = process.env.WEB_ORIGIN || 'http://localhost:3000';
-app.use(cors({ origin: webOrigin, credentials: true }));
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://app.quazlink.site',
+  'https://quazlink.site',
+  process.env.WEB_ORIGIN,
+].filter(Boolean) as string[];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.quazlink.site')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(cookieParser());
 app.use(express.json());
 

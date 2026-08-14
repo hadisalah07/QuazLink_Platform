@@ -59,12 +59,13 @@ const isProd = process.env.NODE_ENV === 'production';
 // setting). httpOnly keeps it out of reach of JS/XSS; sameSite 'lax' is fine
 // because web + api live on the same registrable domain.
 export function sessionCookieOptions(): CookieOptions {
+  const cookieDomain = process.env.COOKIE_DOMAIN || '.quazlink.site';
   return {
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: isProd ? 'none' : 'lax',
     path: '/',
     secure: isProd,
-    ...(isProd ? { domain: '.quazlink.com' } : {}),
+    ...(isProd ? { domain: cookieDomain } : {}),
   };
 }
 

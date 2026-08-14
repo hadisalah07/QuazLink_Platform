@@ -6,7 +6,11 @@
 // `credentials: "include"`. Server-side callers (layouts) have no cookie jar,
 // so they forward the incoming cookie header explicitly (see getMe).
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname.endsWith('quazlink.site')
+    ? 'https://api.quazlink.site'
+    : 'http://localhost:3001');
 
 // Central fetch wrapper. `credentials` is spread LAST so no caller can
 // accidentally drop the session cookie by passing their own init.
