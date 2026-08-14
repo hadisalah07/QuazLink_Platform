@@ -7,10 +7,10 @@
 // so they forward the incoming cookie header explicitly (see getMe).
 
 const API =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname.endsWith('quazlink.site')
-    ? 'https://api.quazlink.site'
-    : 'http://localhost:3001');
+  typeof window !== 'undefined'
+    ? ''
+    : process.env.INTERNAL_API_URL ||
+      (process.env.NODE_ENV === 'production' ? 'http://api:3001' : 'http://localhost:3001');
 
 // Central fetch wrapper. `credentials` is spread LAST so no caller can
 // accidentally drop the session cookie by passing their own init.
