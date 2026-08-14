@@ -3,7 +3,18 @@ import Redis from 'ioredis';
 import 'dotenv/config';
 
 const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-export const redisConnection = new Redis(redisUrl, { maxRetriesPerRequest: null });
+export const redisConnection = new Redis(redisUrl, {
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+  lazyConnect: false,
+  retryStrategy(times) {
+    return Math.min(times * 200, 2000);
+  },
+});
+
+redisConnection.on('error', (err) => {
+  console.warn('Redis Connection Notice (Non-fatal):', err.message);
+});
 
 export const publishQueue = new Queue('post-publish-queue', {
   connection: redisConnection,

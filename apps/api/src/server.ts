@@ -6,6 +6,13 @@ import 'dotenv/config';
 import apiRoutes from './routes';
 import { setupWebSocketGateway } from './ws/gateway';
 
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
+
 const app = express();
 const port = process.env.PORT || 3001;
 
