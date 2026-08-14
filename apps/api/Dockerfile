@@ -27,11 +27,12 @@ ENV PORT=3001
 # Copy built artifacts and node_modules
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/api/package*.json ./apps/api/
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY apps/api/start.sh ./apps/api/start.sh
 
 WORKDIR /app/apps/api
+RUN chmod +x start.sh
 
 EXPOSE 3001
 
-CMD ["node", "dist/server.js"]
+CMD ["sh", "start.sh"]
