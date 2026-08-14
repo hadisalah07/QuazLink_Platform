@@ -33,4 +33,4 @@ WORKDIR /app/apps/api
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss || true; node dist/server.js"]
+CMD ["node", "dist/server.js"]
