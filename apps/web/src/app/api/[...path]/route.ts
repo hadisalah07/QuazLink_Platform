@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import http from "http";
 
 const API_PORT = 3001;
-const API_HOST = process.env.INTERNAL_API_HOST || "api";
+const API_HOST = process.env.INTERNAL_API_HOST || "10.166.0.2";
 
 async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
