@@ -4,8 +4,6 @@ import http from "http";
 const CANDIDATE_HOSTS = [
   process.env.INTERNAL_API_HOST,
   "api",
-  "172.17.0.1",
-  "10.166.0.2",
   "127.0.0.1",
   "localhost",
 ].filter(Boolean) as string[];
@@ -27,7 +25,7 @@ function forwardToHost(
         path: targetPath,
         method,
         headers: reqHeaders,
-        timeout: 4000,
+        timeout: 15000,
       },
       (proxyRes) => {
         const chunks: Buffer[] = [];

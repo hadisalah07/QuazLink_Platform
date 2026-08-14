@@ -45,7 +45,7 @@ services:
     restart: always
     environment:
       PORT: 3000
-      INTERNAL_API_HOST: 10.166.0.2
+      INTERNAL_API_HOST: api
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://api.quazlink.site}
     depends_on:
       - api

@@ -18,10 +18,8 @@ redisConnection.on('error', (err) => {
 
 export const publishQueue = new Queue('post-publish-queue', {
   connection: redisConnection,
+  skipVersionCheck: true,
   defaultJobOptions: {
-    // Publishing is irreversible. Never auto-retry a publish job: a retry would
-    // re-open the composer and risk posting twice on the client's real page.
-    // The worker also has its own idempotency guard as a second line of defense.
     attempts: 1,
     removeOnComplete: 100,
     removeOnFail: 200,
@@ -30,6 +28,7 @@ export const publishQueue = new Queue('post-publish-queue', {
 
 export const connectQueue = new Queue('account-connect-queue', {
   connection: redisConnection,
+  skipVersionCheck: true,
 });
 
 export async function addJobToQueue(jobData: any) {
