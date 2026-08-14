@@ -29,17 +29,10 @@ function issueSession(res: Response, userId: string) {
   });
 }
 
-// POST /api/auth/signup — invite-only (requires the shared INVITE_CODE).
+// POST /api/auth/signup — open public SaaS registration
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { email, password, name, inviteCode } = req.body ?? {};
-
-    if (!process.env.INVITE_CODE) {
-      return res.status(500).json({ error: 'Signup is not configured (missing INVITE_CODE).' });
-    }
-    if (inviteCode !== process.env.INVITE_CODE) {
-      return res.status(403).json({ error: 'Invalid invite code.' });
-    }
+    const { email, password, name } = req.body ?? {};
     if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'A valid email is required.' });
     }

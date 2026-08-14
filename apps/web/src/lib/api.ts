@@ -68,7 +68,7 @@ export async function signup(input: {
   email: string;
   password: string;
   name?: string;
-  inviteCode: string;
+  inviteCode?: string;
 }): Promise<AuthUser> {
   const res = await apiFetch("/api/auth/signup", {
     method: "POST",

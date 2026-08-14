@@ -17,7 +17,6 @@ export default function SignupPage() {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
-  const [inviteCode, setInviteCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState(false);
 
@@ -26,7 +25,7 @@ export default function SignupPage() {
     setError(null);
     setPending(true);
     try {
-      await signup({ email, password, name: name || undefined, inviteCode });
+      await signup({ email, password, name: name || undefined });
       router.push("/dashboard");
       router.refresh();
     } catch (err: any) {
@@ -43,7 +42,7 @@ export default function SignupPage() {
             Create your account
           </h1>
           <p className="text-sm text-gray-400">
-            Invite-only for now. Enter your invite code to get started.
+            Join QuazLink and start automating your social channels.
           </p>
         </div>
 
@@ -58,7 +57,7 @@ export default function SignupPage() {
               autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ada Lovelace"
+              placeholder="Your Name"
               className={inputClass}
             />
           </div>
@@ -74,7 +73,7 @@ export default function SignupPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="agent@quazlink.com"
+              placeholder="you@company.com"
               className={inputClass}
             />
           </div>
@@ -92,21 +91,6 @@ export default function SignupPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className={inputClass}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="inviteCode" className="text-sm font-medium text-gray-300">
-              Invite code
-            </label>
-            <input
-              id="inviteCode"
-              type="text"
-              required
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              placeholder="QUAZLINK-XXXXXXXX"
               className={inputClass}
             />
           </div>
