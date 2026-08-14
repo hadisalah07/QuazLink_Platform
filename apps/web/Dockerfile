@@ -27,6 +27,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV RES_OPTIONS="ndots:0"
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
