@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@source "../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  --color-quaz-cyan: #22D3EE;
+  --color-quaz-purple: #8B5CF6;
+  --color-quaz-bg: #0A0E1A;
+  --color-quaz-glass: rgba(255, 255, 255, 0.05);
+  
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}
+
+@layer base {
+  :root {
+    --background: var(--color-quaz-bg);
+    --foreground: #ffffff;
+  }
+  
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    scroll-behavior: smooth;
+  }
+}

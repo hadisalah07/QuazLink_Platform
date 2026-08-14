@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QuazLink Desktop Runner</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; }
+    
+    body {
+      background: radial-gradient(circle at 10% 10%, rgba(34, 211, 238, 0.08) 0%, transparent 40%),
+                  radial-gradient(circle at 90% 90%, rgba(168, 85, 247, 0.08) 0%, transparent 40%),
+                  #070a10;
+      color: #f1f5f9;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(34, 211, 238, 0.15);
+      user-select: none;
+    }
+
+    /* Top Bar */
+    .header {
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(10, 14, 23, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-app-region: drag;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.8));
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .brand-title span {
+      background: linear-gradient(135deg, #22d3ee, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 700;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+      transition: all 0.2s ease;
+    }
+
+    .close-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.4);
+      color: #f87171;
+    }
+
+    /* Content Area */
+    .content {
+      padding: 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+    }
+
+    /* Status Hero Card */
+    .status-card {
+      padding: 16px;
+      border-radius: 14px;
+      background: linear-gradient(145deg, rgba(34, 211, 238, 0.06), rgba(0, 0, 0, 0.5));
+      border: 1px solid rgba(34, 211, 238, 0.2);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status-card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .status-pill.online {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .status-pill.offline {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .device-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .device-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .gateway-url {
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      color: #64748b;
+    }
+
+    /* Grid Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* Pairing Form */
+    .pairing-card {
+      padding: 14px;
+      background: rgba(34, 211, 238, 0.05);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #22d3ee;
+      letter-spacing: 0.5px;
+    }
+
+    .input-box {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: #ffffff;
+      font-size: 12px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-box:focus {
+      border-color: #22d3ee;
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.2);
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, #22d3ee, #0284c7);
+      color: #000000;
+      font-weight: 800;
+      font-size: 11.5px;
+      padding: 9px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Toggle Row */
+    .toggle-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 12px;
+    }
+
+    .toggle-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .toggle-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .toggle-desc {
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    /* Switch Style */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 22px;
+    }
+
+    .switch input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(255, 255, 255, 0.1);
+      transition: .3s;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #22d3ee;
+      border-color: #22d3ee;
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.4);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(16px);
+      background-color: #000;
+    }
+
+    /* Terminal Console */
+    .logs-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-height: 120px;
+    }
+
+    .logs-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2px;
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .dot.red { background: #ef4444; }
+    .dot.yellow { background: #f59e0b; }
+    .dot.green { background: #10b981; }
+
+    .logs-box {
+      flex: 1;
+      min-height: 110px;
+      background: #04060a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 10px;
+      font-family: ui-monospace, 'Fira Code', monospace;
+      font-size: 10px;
+      color: #94a3b8;
+      overflow-y: auto;
+      line-height: 1.5;
+    }
+
+    .logs-box .highlight { color: #22d3ee; }
+    .logs-box .success { color: #34d399; }
+    .logs-box .warn { color: #fbbf24; }
+
+    /* Footer link */
+    .footer-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      color: #94a3b8;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .footer-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      border-color: rgba(34, 211, 238, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Bar -->
+  <div class="header">
+    <div class="brand">
+      <img src="../assets/icon.png" class="brand-logo" alt="QuazLink Logo" />
+      <div class="brand-title">QuazLink <span>Runner</span></div>
+    </div>
+    <button class="close-btn" id="closeBtn">&times;</button>
+  </div>
+
+  <!-- Content Body -->
+  <div class="content">
+    <!-- Hero Status Card -->
+    <div class="status-card">
+      <div class="status-header">
+        <span class="status-pill offline" id="statusBadge">
+          <span class="pulse-dot"></span>
+          <span>Connecting...</span>
+        </span>
+        <span style="font-size: 10px; font-weight: 700; color: #22d3ee; letter-spacing: 0.5px;">ZERO-BAN NODE</span>
+      </div>
+
+      <div class="device-info">
+        <div class="device-name" id="deviceName">Local Automation Node</div>
+        <div class="gateway-url" id="gatewayInfo">Gateway: ws://localhost:3001</div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span class="stat-label">Security</span>
+        <span class="stat-value" style="color: #34d399;">Zero-Trust TLS</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Queue</span>
+        <span class="stat-value">FIFO (Max: 1)</span>
+      </div>
+    </div>
+
+    <!-- Pairing Form (shown if unpaired) -->
+    <div class="pairing-card" id="pairingSection" style="display: none;">
+      <span class="section-label">Link Machine to Account</span>
+      <input type="text" id="pairingCodeInput" class="input-box" placeholder="Enter Pairing Code (e.g. QL-42AF9B)">
+      <button class="btn-action" id="pairBtn">Pair Machine Now</button>
+    </div>
+
+    <!-- Power Management Toggle -->
+    <div class="toggle-card">
+      <div class="toggle-info">
+        <div class="toggle-title">Keep System Awake</div>
+        <div class="toggle-desc">Prevents sleep during scheduled posts</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="keepAwakeToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <!-- Terminal Console Stream -->
+    <div class="logs-container">
+      <div class="logs-header">
+        <div class="terminal-dots">
+          <div class="dot red"></div>
+          <div class="dot yellow"></div>
+          <div class="dot green"></div>
+        </div>
+        <span style="font-size: 10px; color: #64748b; font-weight: 700; text-transform: uppercase;">Live Execution Logs</span>
+      </div>
+      <div class="logs-box" id="logsBox">
+        <span class="highlight">[SYSTEM]</span> Runner engine initialized.<br>
+        <span class="highlight">[WS]</span> Listening to cloud gateway...
+      </div>
+    </div>
+
+    <button class="footer-btn" id="openWebBtn">
+      <span>Open Cloud Dashboard</span>
+      <span style="font-size: 12px;">↗</span>
+    </button>
+  </div>
+
+  <script>
+    const { ipcRenderer, shell } = require('electron');
+
+    const statusBadge = document.getElementById('statusBadge');
+    const deviceName = document.getElementById('deviceName');
+    const gatewayInfo = document.getElementById('gatewayInfo');
+    const pairingSection = document.getElementById('pairingSection');
+    const pairingCodeInput = document.getElementById('pairingCodeInput');
+    const pairBtn = document.getElementById('pairBtn');
+    const keepAwakeToggle = document.getElementById('keepAwakeToggle');
+    const closeBtn = document.getElementById('closeBtn');
+    const logsBox = document.getElementById('logsBox');
+    const openWebBtn = document.getElementById('openWebBtn');
+
+    closeBtn.addEventListener('click', () => ipcRenderer.send('close-window'));
+
+    openWebBtn.addEventListener('click', () => {
+      shell.openExternal('http://localhost:3000');
+    });
+
+    keepAwakeToggle.addEventListener('change', (e) => {
+      ipcRenderer.send('toggle-keep-awake', e.target.checked);
+      addLog(`[SETTINGS] Keep-Awake set to ${e.target.checked}`, 'warn');
+    });
+
+    pairBtn.addEventListener('click', () => {
+      const code = pairingCodeInput.value.trim();
+      if (code) {
+        addLog(`[PAIRING] Pairing with code: ${code}...`, 'highlight');
+        ipcRenderer.send('pair-device', code);
+      }
+    });
+
+    ipcRenderer.on('status-updated', (_, { status, info, config }) => {
+      if (status === 'online') {
+        statusBadge.className = 'status-pill online';
+        statusBadge.innerHTML = '<span class="pulse-dot"></span><span>ONLINE &amp; READY</span>';
+        pairingSection.style.display = 'none';
+        deviceName.textContent = info?.deviceName || 'My Local PC';
+        addLog('[WS] Cloud Handshake Verified (Zero-Trust Active)', 'success');
+      } else {
+        statusBadge.className = 'status-pill offline';
+        statusBadge.innerHTML = '<span class="pulse-dot"></span><span>OFFLINE / UNPAIRED</span>';
+        if (!config?.deviceToken) {
+          pairingSection.style.display = 'flex';
+        }
+      }
+
+      if (config?.keepAwake !== undefined) {
+        keepAwakeToggle.checked = config.keepAwake;
+      }
+    });
+
+    function addLog(msg, type = '') {
+      const time = new Date().toLocaleTimeString();
+      const cls = type ? `class="${type}"` : '';
+      logsBox.innerHTML += `<div ${cls}>[${time}] ${msg}</div>`;
+      logsBox.scrollTop = logsBox.scrollHeight;
+    }
+
+    ipcRenderer.send('get-state');
+  </script>
+</body>
+</html>

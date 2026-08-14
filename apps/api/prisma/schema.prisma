@@ -1,0 +1,112 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String?
+  passwordHash   String?         // bcrypt hash; nullable so pre-auth rows/seed still migrate
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  socialAccounts SocialAccount[]
+  campaigns      Campaign[]
+  catalogs       Catalog[]
+  devices        Device[]
+}
+
+model SocialAccount {
+  id                    String    @id @default(uuid())
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id])
+  platform              String    // e.g., 'facebook', 'instagram'
+  status                String    // 'active', 'needs_relogin', 'flagged'
+  encryptedStorageState String?   // Encrypted JSON string of cookies and storage state
+  fingerprint           String?   // JSON representation of browser fingerprint
+  proxyId               String?   // ID of the residential proxy assigned to this account
+  destinations          Json?     // [{ name, url }] — Personal Profile + Pages
+  lastUsedAt            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  jobs                  Job[]
+}
+
+model Campaign {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  status      String   // 'draft', 'active', 'completed'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  posts       Post[]
+}
+
+model Post {
+  id          String   @id @default(uuid())
+  campaignId  String
+  campaign    Campaign @relation(fields: [campaignId], references: [id])
+  content     String?  // Final text to post
+  mediaUrls   String[] // Array of URLs/paths for images/videos
+  status      String   // 'scheduled', 'processing', 'published', 'failed'
+  scheduledAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  jobs        Job[]
+}
+
+model Job {
+  id              String        @id @default(uuid())
+  postId          String
+  post            Post          @relation(fields: [postId], references: [id])
+  socialAccountId String
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id])
+  status          String        // 'pending', 'active', 'completed', 'failed'
+  result          String?       // Any output from the worker, e.g., Post URL or Error Message
+  screenshotUrl   String?       // Proof of publication
+  targetUrl       String?       // Destination URL (Homepage or specific Page URL)
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model Catalog {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  name        String
+  sourceType  String    @default("custom") // 'custom', 'shopify', 'woocommerce'
+  apiUrl      String
+  apiKey      String?   // Encrypted AES-256 string for production
+  authScheme  String    @default("bearer") // 'bearer', 'header', 'query', 'none'
+  authHeader  String?   // Header name if authScheme='header'
+  lastSyncAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Device {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  name           String    @default("My Workstation")
+  platform       String    @default("win32") // 'win32', 'darwin', 'linux'
+  pairingToken   String    @unique
+  deviceToken    String?   @unique
+  status         String    @default("offline") // 'online', 'busy', 'offline'
+  ipAddress      String?
+  appVersion     String?
+  lastHeartbeat  DateTime?
+  keepAwake      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}

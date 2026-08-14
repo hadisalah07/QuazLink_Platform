@@ -1,0 +1,24 @@
+{
+  "name": "@saas/desktop-agent",
+  "version": "1.0.0",
+  "description": "QuazLink Local Desktop Automation Runner",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "dev:gui": "electron .",
+    "build": "tsc",
+    "start": "node dist/cli.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "playwright": "^1.41.0",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.10",
+    "electron": "^31.7.7",
+    "tsx": "^4.7.0",
+    "typescript": "^5.0.0"
+  }
+}
