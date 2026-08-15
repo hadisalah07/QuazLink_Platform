@@ -33,9 +33,12 @@ export function Sidebar({ user }: { user: AuthUser }) {
 
   async function handleLogout() {
     setSigningOut(true);
-    await logout();
-    router.push("/login");
-    router.refresh();
+    try {
+      await logout();
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+    window.location.href = "/login";
   }
 
   return (

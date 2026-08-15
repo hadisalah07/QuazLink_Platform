@@ -54,7 +54,11 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
         }
       });
 
-      const resBody = await res.arrayBuffer();
+      const nullBodyStatuses = [101, 204, 205, 304];
+      const resBody = nullBodyStatuses.includes(res.status)
+        ? null
+        : await res.arrayBuffer();
+
       return new NextResponse(resBody, {
         status: res.status,
         statusText: res.statusText,
