@@ -24,7 +24,7 @@ function loadConfig(): LocalConfig {
     } catch {}
   }
   return {
-    serverUrl: process.env.CLOUD_GATEWAY_URL || 'ws://localhost:3001',
+    serverUrl: process.env.CLOUD_GATEWAY_URL || 'wss://api.quazlink.site',
     keepAwake: true,
   };
 }
