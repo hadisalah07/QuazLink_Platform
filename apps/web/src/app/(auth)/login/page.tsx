@@ -32,11 +32,7 @@ export default function LoginPage() {
   }
 
   return (
-    <motion.div
-      initial="initial"
-      animate="animate"
-      variants={fadeIn}
-    >
+    <div className="w-full animate-fade-in">
       <GlassCard className="flex flex-col p-8 space-y-6">
         <div className="flex flex-col space-y-2 text-center mb-4">
           <h1 className="text-3xl font-bold tracking-tight text-white">
@@ -127,6 +123,6 @@ export default function LoginPage() {
           </Link>
         </p>
       </GlassCard>
-    </motion.div>
+    </div>
   );
 }
