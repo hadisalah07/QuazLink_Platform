@@ -7,6 +7,15 @@ import { RunnerWSClient } from './client/ws-client';
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
+// Register custom protocol 'quazlink'
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('quazlink', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('quazlink');
+}
+
 interface LocalConfig {
   serverUrl: string;
   deviceToken?: string;
@@ -42,6 +51,51 @@ let wsClient: RunnerWSClient | null = null;
 let powerBlockerId: number | null = null;
 let appConfig = loadConfig();
 let currentStatus: 'online' | 'offline' | 'pairing' = 'offline';
+
+function handleDeepLink(urlStr: string) {
+  try {
+    const parsed = new URL(urlStr);
+    const token = parsed.searchParams.get('token') || parsed.searchParams.get('pairingToken');
+    if (token) {
+      console.log('🔑 [DeepLink] Received auto-pairing token:', token);
+      appConfig.pairingToken = token.trim();
+      saveConfig(appConfig);
+      wsClient?.cleanup();
+      initializeRunnerClient();
+    }
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  } catch (e) {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  }
+}
+
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+    const deepLinkUrl = commandLine.find((arg) => arg.startsWith('quazlink://'));
+    if (deepLinkUrl) {
+      handleDeepLink(deepLinkUrl);
+    }
+  });
+
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    handleDeepLink(url);
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({

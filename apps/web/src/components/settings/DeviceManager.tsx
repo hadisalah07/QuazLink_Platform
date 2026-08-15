@@ -117,7 +117,7 @@ export function DeviceManager() {
               Dismiss
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="px-4 py-2 bg-black/60 border border-white/15 rounded-xl font-mono text-xl font-bold text-white tracking-widest">
               {pairingData.pairingToken}
             </div>
@@ -128,9 +128,16 @@ export function DeviceManager() {
               <Copy className="w-3.5 h-3.5 text-cyan-400" />
               <span>{copied ? "Copied!" : "Copy Code"}</span>
             </button>
+            <a
+              href={`quazlink://pair?token=${pairingData.pairingToken}`}
+              className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.4)]"
+            >
+              <Zap className="w-3.5 h-3.5 fill-black" />
+              <span>⚡ Open &amp; Auto-Pair App</span>
+            </a>
           </div>
           <p className="text-[11px] text-gray-400">
-            Open the <strong>QuazLink Desktop Runner</strong> tray app on your computer, paste this code, and your machine will link automatically.
+            Click <strong>Open &amp; Auto-Pair</strong> to launch the Runner app directly on your PC, or copy this code into the desktop app manually.
           </p>
         </SpotlightCard>
       )}
@@ -143,20 +150,20 @@ export function DeviceManager() {
           <p className="text-xs text-gray-500 max-w-sm">
             Pair your computer to let QuazLink automate Facebook, Instagram, and TikTok from your home IP with zero ban risk.
           </p>
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
             <button
               onClick={handleGeneratePairing}
-              className="px-4 py-2 bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-xl text-xs font-semibold hover:bg-cyan-500/30 transition-all cursor-pointer"
+              className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold rounded-xl text-xs hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all cursor-pointer flex items-center gap-1.5"
             >
-              Generate Pairing Code
+              <Key className="w-3.5 h-3.5 text-black" />
+              <span>Generate Pairing Code</span>
             </button>
             <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); alert("Desktop Agent installer package is ready in apps/desktop-agent!"); }}
-              className="px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl text-xs font-semibold hover:bg-white/10 transition-all flex items-center gap-1.5 cursor-pointer"
+              href="quazlink://open"
+              className="px-4 py-2.5 bg-white/10 border border-white/15 text-white rounded-xl text-xs font-semibold hover:bg-white/20 transition-all flex items-center gap-1.5 cursor-pointer"
             >
-              <Download className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Download Runner (.exe)</span>
+              <Laptop className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Open Runner App on PC</span>
             </a>
           </div>
         </div>
