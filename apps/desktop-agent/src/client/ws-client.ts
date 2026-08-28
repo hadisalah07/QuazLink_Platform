@@ -209,7 +209,7 @@ export class RunnerWSClient {
     }
   }
 
-  private send(data: any) {
+  public send(data: any) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }
