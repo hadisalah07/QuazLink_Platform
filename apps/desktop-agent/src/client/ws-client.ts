@@ -94,7 +94,7 @@ export class RunnerWSClient {
           }
         }
 
-        if (msg.type === 'job:dispatch') {
+        if (msg.type === 'job:dispatch' || msg.type === 'job:connect') {
           await this.handleIncomingJob(msg);
         }
       } catch (err: any) {
