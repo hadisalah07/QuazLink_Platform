@@ -235,8 +235,8 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
   }
 
   // Find the first available active socket
-  let targetSocket = null;
-  let targetDeviceId = null;
+  let targetSocket: AuthenticatedSocket | null = null;
+  let targetDeviceId: string | null = null;
   
   for (const [deviceId, socket] of userDevices.entries()) {
     if (socket.readyState === WebSocket.OPEN) {
@@ -246,7 +246,7 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
     }
   }
 
-  if (!targetSocket) {
+  if (!targetSocket || !targetDeviceId) {
     return false;
   }
 
@@ -308,8 +308,8 @@ export async function dispatchConnectJobToLocalRunner(userId: string, accountId:
   }
 
   // Find the first available active socket
-  let targetSocket = null;
-  let targetDeviceId = null;
+  let targetSocket: AuthenticatedSocket | null = null;
+  let targetDeviceId: string | null = null;
   
   for (const [deviceId, socket] of userDevices.entries()) {
     if (socket.readyState === WebSocket.OPEN) {
@@ -319,7 +319,7 @@ export async function dispatchConnectJobToLocalRunner(userId: string, accountId:
     }
   }
 
-  if (!targetSocket) {
+  if (!targetSocket || !targetDeviceId) {
     return false;
   }
 
