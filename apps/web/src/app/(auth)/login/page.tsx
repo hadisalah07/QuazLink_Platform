@@ -22,9 +22,7 @@ export default function LoginPage() {
     setPending(true);
     try {
       await login({ email, password });
-      // Refresh so server components (layout /me) pick up the new session.
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message || "Login failed");
       setPending(false);

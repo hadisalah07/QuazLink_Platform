@@ -26,8 +26,7 @@ export default function SignupPage() {
     setPending(true);
     try {
       await signup({ email, password, name: name || undefined });
-      router.push("/dashboard");
-      router.refresh();
+      window.location.href = "/dashboard";
     } catch (err: any) {
       setError(err.message || "Sign up failed");
       setPending(false);
