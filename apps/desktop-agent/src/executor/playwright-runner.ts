@@ -28,14 +28,14 @@ export class PlaywrightRunner {
     otaSelectors: any,
     onProgress: (msg: string) => void
   ): Promise<ExecutionResult> {
-    const { id: jobId, content, mediaUrls = [], targetUrl, platform = 'facebook' } = jobData;
+    const { id: jobId, content, mediaUrls = [], targetUrl, platform = 'facebook', socialAccountId } = jobData;
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
     let downloadedFiles: string[] = [];
 
     onProgress(`Initializing local browser automation for ${platform.toUpperCase()}...`);
 
-    const sessionFile = path.join(this.storageDir, `${platform}_session.json`);
+    const sessionFile = path.join(this.storageDir, `${socialAccountId}_${platform}_session.json`);
     const storageState = fs.existsSync(sessionFile) ? sessionFile : undefined;
 
     try {
