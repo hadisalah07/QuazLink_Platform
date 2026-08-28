@@ -106,6 +106,7 @@
       gap: 10px;
       position: relative;
       overflow: hidden;
+      flex-shrink: 0;
     }
 
     .status-card::before {
@@ -421,9 +422,12 @@
         <span style="font-size: 10px; font-weight: 700; color: #22d3ee; letter-spacing: 0.5px;">ZERO-BAN NODE</span>
       </div>
 
-      <div class="device-info">
-        <div class="device-name" id="deviceName">Local Automation Node</div>
-        <div class="gateway-url" id="gatewayInfo">Gateway: ws://localhost:3001</div>
+      <div class="device-info" style="display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="device-name" id="deviceName">Local Automation Node</div>
+          <div class="gateway-url" id="gatewayInfo">Gateway: Connecting...</div>
+        </div>
+        <button id="unpairBtn" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: bold; cursor: pointer; display: none; transition: all 0.2s;">Disconnect</button>
       </div>
     </div>
 
@@ -493,6 +497,7 @@
     const closeBtn = document.getElementById('closeBtn');
     const logsBox = document.getElementById('logsBox');
     const openWebBtn = document.getElementById('openWebBtn');
+    const unpairBtn = document.getElementById('unpairBtn');
 
     closeBtn.addEventListener('click', () => ipcRenderer.send('close-window'));
 
@@ -513,7 +518,18 @@
       }
     });
 
+    unpairBtn.addEventListener('click', () => {
+      if (confirm("Are you sure you want to disconnect this node? You will need to pair it again.")) {
+        addLog(`[PAIRING] Unpairing node from cloud...`, 'warn');
+        ipcRenderer.send('unpair-device');
+      }
+    });
+
     ipcRenderer.on('status-updated', (_, { status, info, config }) => {
+      if (config?.serverUrl) {
+        gatewayInfo.textContent = `Gateway: ${config.serverUrl}`;
+      }
+
       if (status === 'online') {
         statusBadge.className = 'status-pill online';
         statusBadge.innerHTML = '<span class="pulse-dot"></span><span>ONLINE &amp; READY</span>';
@@ -525,7 +541,15 @@
         statusBadge.innerHTML = '<span class="pulse-dot"></span><span>OFFLINE / UNPAIRED</span>';
         if (!config?.deviceToken) {
           pairingSection.style.display = 'flex';
+        } else {
+          pairingSection.style.display = 'none';
         }
+      }
+
+      if (config?.deviceToken) {
+        unpairBtn.style.display = 'block';
+      } else {
+        unpairBtn.style.display = 'none';
       }
 
       if (config?.keepAwake !== undefined) {

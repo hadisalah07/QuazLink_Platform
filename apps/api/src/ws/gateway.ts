@@ -136,10 +136,12 @@ export function setupWebSocketGateway(server: HttpServer) {
             console.log(`⏳ Job #${msg.jobId} Progress from Runner: ${msg.message}`);
           }
 
-          if (msg.type === 'job:completed') {
+          if (msg.type === 'job:completed' && typeof msg.jobId === 'string') {
             console.log(`✅ Job #${msg.jobId} Completed by Desktop Runner!`);
-            await prisma.job.update({
-              where: { id: msg.jobId },
+            // Scope the update to jobs THIS device's user owns — a runner must not
+            // be able to mutate another tenant's job by guessing an id.
+            const scoped = await prisma.job.updateMany({
+              where: { id: msg.jobId, post: { campaign: { userId: ws.userId } } },
               data: {
                 status: 'completed',
                 completedAt: new Date(),
@@ -147,18 +149,46 @@ export function setupWebSocketGateway(server: HttpServer) {
                 result: msg.result || 'Published successfully via Local Runner',
               },
             });
+            if (scoped.count === 0) {
+              console.warn(`⚠️ Device ${ws.deviceId} reported completion for job ${msg.jobId} it does not own — ignored.`);
+            }
           }
 
-          if (msg.type === 'job:failed') {
+          if (msg.type === 'job:failed' && typeof msg.jobId === 'string') {
             console.error(`❌ Job #${msg.jobId} Failed on Runner: ${msg.error}`);
-            await prisma.job.update({
-              where: { id: msg.jobId },
-              data: {
-                status: 'failed',
-                completedAt: new Date(),
-                result: msg.error || 'Execution failed on local runner',
-              },
-            });
+            // Check if it's a connect job (accountId instead of jobId)
+            if (msg.isConnectJob) {
+              await prisma.socialAccount.updateMany({
+                where: { id: msg.jobId, userId: ws.userId },
+                data: { status: 'failed' },
+              });
+            } else {
+              const scoped = await prisma.job.updateMany({
+                where: { id: msg.jobId, post: { campaign: { userId: ws.userId } } },
+                data: {
+                  status: 'failed',
+                  completedAt: new Date(),
+                  result: msg.error || 'Execution failed on local runner',
+                },
+              });
+              if (scoped.count === 0) {
+                console.warn(`⚠️ Device ${ws.deviceId} reported failure for job ${msg.jobId} it does not own — ignored.`);
+              }
+            }
+          }
+
+          if (msg.type === 'job:cancelled' && typeof msg.jobId === 'string') {
+            console.error(`🚫 Job #${msg.jobId} Cancelled on Runner: ${msg.error}`);
+            if (msg.isConnectJob) {
+              await prisma.socialAccount.deleteMany({
+                where: { id: msg.jobId, userId: ws.userId },
+              });
+            }
+          }
+
+          if (msg.type === 'job:request_dispatch') {
+            console.log(`🚀 Runner [${ws.deviceId}] requested dispatch of pending jobs.`);
+            await triggerDispatchForUser(ws.userId!, ws.deviceId!);
           }
         } catch (e: any) {
           console.error('Error handling WebSocket message:', e.message);
@@ -210,11 +240,30 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
     return false;
   }
 
+  // ATOMIC CLAIM — flip pending -> dispatched before sending. If the job is no
+  // longer pending (another path already took it, or a duplicate reconnect is
+  // re-dispatching), do NOT send it again — this prevents a double dispatch.
+  const claim = await prisma.job.updateMany({
+    where: { id: jobData.id, status: 'pending' },
+    data: { status: 'dispatched' },
+  });
+  if (claim.count === 0) {
+    console.log(`⏭️ Job ${jobData.id} not pending — skipping runner dispatch (already claimed).`);
+    return false;
+  }
+
   // Security: Generate HMAC signature with timestamp TTL (30 seconds)
   const timestamp = Date.now();
   const nonce = crypto.randomBytes(16).toString('hex');
   const payloadString = JSON.stringify(jobData);
-  const secret = process.env.ENCRYPTION_KEY || 'default_runner_secret_key_32_bytes_len';
+  
+  // Fetch deviceToken directly from DB to sign the payload securely
+  const deviceRecord = await prisma.device.findUnique({ where: { id: deviceId } });
+  const secret = deviceRecord?.deviceToken;
+  if (!secret) {
+    console.error(`❌ Cannot sign runner dispatch: no deviceToken found for device ${deviceId}.`);
+    return false;
+  }
   
   const signature = crypto
     .createHmac('sha256', secret)
@@ -239,8 +288,75 @@ export function isUserDeviceOnline(userId: string): boolean {
   return !!userDevices && userDevices.size > 0;
 }
 
+export async function dispatchConnectJobToLocalRunner(userId: string, accountId: string, platform: string): Promise<boolean> {
+  const userDevices = activeDevices.get(userId);
+  if (!userDevices || userDevices.size === 0) {
+    return false; // No device currently online
+  }
+
+  // Pick the first available active socket
+  const [deviceId, socket] = Array.from(userDevices.entries())[0];
+  if (socket.readyState !== WebSocket.OPEN) {
+    return false;
+  }
+
+  // Security: Generate HMAC signature with timestamp TTL (30 seconds)
+  const timestamp = Date.now();
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const payload = { accountId, platform, type: 'connect' };
+  const payloadString = JSON.stringify(payload);
+  
+  // Fetch deviceToken directly from DB to sign the payload securely
+  const deviceRecord = await prisma.device.findUnique({ where: { id: deviceId } });
+  const secret = deviceRecord?.deviceToken;
+  if (!secret) {
+    console.error(`❌ Cannot sign connect dispatch: no deviceToken found for device ${deviceId}.`);
+    return false;
+  }
+  
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${nonce}:${timestamp}:${payloadString}`)
+    .digest('hex');
+
+  socket.send(JSON.stringify({
+    type: 'job:connect',
+    nonce,
+    timestamp,
+    signature,
+    payload,
+  }));
+
+  console.log(`🚀 Dispatched connect job for account #${accountId} to Desktop Runner [${deviceId}]`);
+  return true;
+}
+
 // Missed Jobs Reconciliation
 async function reconcilePendingJobs(userId: string, deviceId: string) {
+  try {
+    const pendingCount = await prisma.job.count({
+      where: {
+        status: 'pending',
+        post: { campaign: { userId } },
+      }
+    });
+
+    if (pendingCount > 0) {
+      console.log(`🔄 User ${userId} has ${pendingCount} pending job(s). Sending sync_pending...`);
+      const userDevices = activeDevices.get(userId);
+      if (userDevices && userDevices.has(deviceId)) {
+        userDevices.get(deviceId)!.send(JSON.stringify({
+          type: 'job:sync_pending',
+          count: pendingCount
+        }));
+      }
+    }
+  } catch (err: any) {
+    console.error('Error during missed jobs reconciliation:', err.message);
+  }
+}
+
+async function triggerDispatchForUser(userId: string, deviceId: string) {
   try {
     const pendingJobs = await prisma.job.findMany({
       where: {
@@ -251,24 +367,21 @@ async function reconcilePendingJobs(userId: string, deviceId: string) {
         post: true,
         socialAccount: true,
       },
-      take: 5,
+      take: 10,
     });
 
-    if (pendingJobs.length > 0) {
-      console.log(`🔄 Reconciling ${pendingJobs.length} pending job(s) for reconnected user ${userId}...`);
-      for (const job of pendingJobs) {
-        await dispatchJobToLocalRunner(userId, {
-          id: job.id,
-          postId: job.postId,
-          content: job.post.content,
-          mediaUrls: job.post.mediaUrls,
-          targetUrl: job.targetUrl,
-          platform: job.socialAccount.platform,
-          socialAccountId: job.socialAccountId,
-        });
-      }
+    for (const job of pendingJobs) {
+      await dispatchJobToLocalRunner(userId, {
+        id: job.id,
+        postId: job.postId,
+        content: job.post.content,
+        mediaUrls: job.post.mediaUrls,
+        targetUrl: job.targetUrl,
+        platform: job.socialAccount.platform,
+        socialAccountId: job.socialAccountId,
+      });
     }
   } catch (err: any) {
-    console.error('Error during missed jobs reconciliation:', err.message);
+    console.error('Error triggering dispatch:', err.message);
   }
 }

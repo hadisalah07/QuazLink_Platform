@@ -16,8 +16,8 @@ export interface TokenPayload {
 
 function getSecret(): string {
   const secret = process.env.JWT_SECRET;
-  if (!secret || secret === 'null' || secret === 'undefined' || secret === '') {
-    return 'ql_jwt_super_secret_production_key_2026_x89a';
+  if (!secret || secret.length < 16) {
+    throw new Error('JWT_SECRET is missing or too short. Refusing to sign/verify with an insecure fallback — set it in the API .env.');
   }
   return secret;
 }

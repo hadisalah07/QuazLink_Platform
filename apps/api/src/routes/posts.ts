@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../prisma';
-import { addJobToQueue } from '../queue';
 import { dispatchJobToLocalRunner } from '../ws/gateway';
 
 const router = Router();
@@ -21,10 +20,18 @@ router.post('/', async (req: Request, res: Response) => {
     // comes straight from the request body).
     const account = await prisma.socialAccount.findFirst({
       where: { id: socialAccountId, userId },
-      select: { id: true },
+      select: { id: true, destinations: true },
     });
     if (!account) {
       return res.status(404).json({ error: 'Account not found' });
+    }
+
+    // Target safety: never let an empty/foreign URL silently fall back to the
+    // personal timeline in the worker. Require the target to be one of THIS
+    // account's detected page destinations.
+    const destinations = Array.isArray(account.destinations) ? (account.destinations as any[]) : [];
+    if (!targetUrl || !destinations.some((d) => d?.url === targetUrl)) {
+      return res.status(400).json({ error: 'A valid target page is required (must be one of the account destinations).' });
     }
 
     // Since we don't have a UI for campaigns yet, create a default one
@@ -65,15 +72,13 @@ router.post('/', async (req: Request, res: Response) => {
       socialAccountId,
     });
 
-    if (!dispatchedToRunner) {
-      // Fallback to background server queue if no desktop runner is currently connected
-      await addJobToQueue({ jobId: job.id, postId: post.id, socialAccountId, targetUrl });
-    }
+    // We no longer fallback to a background queue. If the runner is offline,
+    // the job remains 'pending' and will be synced when the runner connects.
 
     res.status(201).json({
       jobId: job.id,
       postId: post.id,
-      executionTarget: dispatchedToRunner ? 'local_desktop_runner' : 'cloud_worker',
+      executionTarget: dispatchedToRunner ? 'local_desktop_runner' : 'pending_offline',
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

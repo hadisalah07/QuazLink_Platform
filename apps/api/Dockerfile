@@ -30,4 +30,4 @@ WORKDIR /app/apps/api
 
 EXPOSE 3001
 
-CMD ["node", "dist/server.js"]
+CMD ["sh", "start.sh"]

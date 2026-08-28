@@ -38,8 +38,8 @@ services:
       PORT: 3001
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-secure_pg_password_2026}@postgres:5432/${POSTGRES_DB:-saas_automation}
       REDIS_URL: redis://redis:6379
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-ql_sec_9e2bf44a10c87d6531ea908bce5a7821}
-      JWT_SECRET: ${JWT_SECRET:-ql_jwt_991823abcefd112349887711aaeeff00}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY must be set in .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyD_dummy_key}
       WEB_ORIGIN: ${WEB_ORIGIN:-https://app.quazlink.site}
     depends_on:

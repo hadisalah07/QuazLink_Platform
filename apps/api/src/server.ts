@@ -27,7 +27,10 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      callback(null, true);
+      // No Origin header = same-origin, curl, server-to-server, or WS upgrade — allow.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
   })

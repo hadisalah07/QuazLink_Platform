@@ -7,6 +7,8 @@
     "dev": "tsx src/cli.ts",
     "dev:gui": "electron .",
     "build": "tsc",
+    "dist": "electron-builder --config electron-builder.yml",
+    "build:dist": "npm run build && npm run dist",
     "start": "node dist/cli.js"
   },
   "dependencies": {
@@ -17,8 +19,10 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/ws": "^8.5.10",
-    "electron": "^31.7.7",
+    "electron": "31.7.7",
+    "electron-builder": "^26.15.3",
     "tsx": "^4.7.0",
     "typescript": "^5.0.0"
-  }
+  },
+  "author": "QuazLink"
 }

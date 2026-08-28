@@ -25,7 +25,13 @@
       "Bash(curl -s -b /tmp/alice_cookies.txt http://localhost:3001/api/catalogs)",
       "Bash(curl -s -b /tmp/seed_cookies.txt http://localhost:3001/api/catalogs)",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(f\\\\\"  name={c['name']!r} id={c['id']}\\\\\"\\) for c in d]\")",
-      "Bash(npx tsx -e ' *)"
+      "Bash(npx tsx -e ' *)",
+      "Bash(tasklist //FI \"IMAGENAME eq node.exe\" //FO CSV)",
+      "Bash(netstat -ano)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(npx tsc *)",
+      "Bash(echo \"EXIT=$?\")"
     ],
     "additionalDirectories": [
       "\\tmp"

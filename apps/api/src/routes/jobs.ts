@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import * as fs from 'fs';
 import prisma from '../prisma';
-import { addJobToQueue } from '../queue';
 
 const router = Router();
 
@@ -40,8 +39,9 @@ router.post('/', async (req, res) => {
       }
     });
 
-    // Add to BullMQ
-    await addJobToQueue({ jobId: job.id, postId, socialAccountId });
+    // Removed cloud worker queue logic (addJobToQueue)
+    // The Desktop Agent will automatically dispatch this if connected, 
+    // or keep it pending until it connects.
 
     res.status(201).json(job);
   } catch (error: any) {
@@ -79,6 +79,40 @@ router.get('/:id/screenshot', async (req, res) => {
       return res.status(404).json({ error: 'Screenshot file missing on disk' });
     }
     res.sendFile(job.screenshotUrl);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Reset a stuck job back to pending
+router.post('/:id/reset', async (req, res) => {
+  try {
+    const userId = req.userId!;
+    
+    // Ensure the job exists and belongs to the caller
+    const job = await prisma.job.findFirst({
+      where: { id: req.params.id, post: { campaign: { userId } } },
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Only allow resetting if it's explicitly failed or errored. 
+    // Dispatched jobs might be currently publishing, so resetting them would cause a double post.
+    if (!['failed', 'error'].includes(job.status)) {
+      return res.status(400).json({ error: `Cannot reset job in status '${job.status}'. Only failed jobs can be reset.` });
+    }
+
+    // Update job status to pending
+    const updatedJob = await prisma.job.update({
+      where: { id: job.id },
+      data: { status: 'pending' },
+    });
+
+    // Removed BullMQ re-queueing. The Desktop Agent handles pending jobs.
+
+    res.json(updatedJob);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

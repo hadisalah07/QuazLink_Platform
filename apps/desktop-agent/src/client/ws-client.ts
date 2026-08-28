@@ -2,6 +2,12 @@ import WebSocket from 'ws';
 import crypto from 'crypto';
 import { LocalJobQueue, LocalTask } from '../queue/local-queue';
 import { PlaywrightRunner } from '../executor/playwright-runner';
+export interface RunnerWSOptions {
+  token?: string;
+  pairingToken?: string;
+  onStatusChange?: (status: 'online' | 'offline' | 'pairing', info?: any) => void;
+  onConnectRequest?: (platform: string, accountId: string) => void;
+}
 
 export class RunnerWSClient {
   private ws: WebSocket | null = null;
@@ -13,19 +19,18 @@ export class RunnerWSClient {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private otaSelectors: any = {};
   private onStatusChange?: (status: 'online' | 'offline' | 'pairing', info?: any) => void;
+  private onConnectRequest?: (platform: string, accountId: string) => void;
+  private isCleanedUp = false;
 
   constructor(
     serverUrl: string,
-    options: {
-      token?: string;
-      pairingToken?: string;
-      onStatusChange?: (status: 'online' | 'offline' | 'pairing', info?: any) => void;
-    }
+    options: RunnerWSOptions
   ) {
     this.serverUrl = serverUrl;
     this.token = options.token || null;
     this.pairingToken = options.pairingToken || null;
     this.onStatusChange = options.onStatusChange;
+    this.onConnectRequest = options.onConnectRequest;
 
     this.runner = new PlaywrightRunner();
     this.queue = new LocalJobQueue(this.handleTaskExecution.bind(this));
@@ -37,6 +42,12 @@ export class RunnerWSClient {
   }
 
   public connect() {
+    if (!this.token && !this.pairingToken) {
+      console.log('⚠️ [WSClient] No tokens found. Skipping connection to Cloud Gateway.');
+      if (this.onStatusChange) this.onStatusChange('offline');
+      return;
+    }
+
     let wsEndpoint = `${this.serverUrl}/ws/runner`;
     if (this.token) {
       wsEndpoint += `?token=${this.token}`;
@@ -69,6 +80,20 @@ export class RunnerWSClient {
           this.otaSelectors = msg.data.platforms;
         }
 
+        if (msg.type === 'job:sync_pending') {
+          const { dialog } = require('electron');
+          const { response } = await dialog.showMessageBox({
+            type: 'question',
+            buttons: ['Yes, publish now', 'No, keep them pending'],
+            defaultId: 0,
+            title: 'Pending Posts Available',
+            message: `You have ${msg.count} pending post(s) waiting. Would you like to publish them now?`,
+          });
+          if (response === 0) {
+            this.send({ type: 'job:request_dispatch' });
+          }
+        }
+
         if (msg.type === 'job:dispatch') {
           await this.handleIncomingJob(msg);
         }
@@ -80,8 +105,14 @@ export class RunnerWSClient {
     this.ws.on('close', () => {
       console.warn('🔴 [WSClient] Disconnected from Cloud Gateway. Reconnecting in 5s...');
       this.stopHeartbeat();
-      if (this.onStatusChange) this.onStatusChange('offline');
-      setTimeout(() => this.connect(), 5000);
+      if (this.onStatusChange) {
+        this.onStatusChange('offline');
+      }
+      
+      // Only reconnect if this instance hasn't been cleaned up
+      if (!this.isCleanedUp) {
+        setTimeout(() => this.connect(), 5000);
+      }
     });
 
     this.ws.on('error', (err) => {
@@ -93,7 +124,11 @@ export class RunnerWSClient {
     const { nonce, timestamp, signature, payload } = msg;
 
     // Zero-Trust Security Verification: Check HMAC signature and 30s TTL
-    const secret = process.env.ENCRYPTION_KEY || 'default_runner_secret_key_32_bytes_len';
+    const secret = this.token; // We use the dynamic device token instead of a bundled global secret
+    if (!secret) {
+      console.error('❌ Cannot verify runner dispatch: deviceToken not set.');
+      return;
+    }
     const payloadString = JSON.stringify(payload);
     const expectedSig = crypto
       .createHmac('sha256', secret)
@@ -106,12 +141,41 @@ export class RunnerWSClient {
       return;
     }
 
-    console.log(`📥 [WSClient] Verified HMAC signature. Enqueuing Job #${payload.id}`);
-    this.queue.enqueue({
-      id: payload.id,
-      jobData: payload,
-      dispatchedAt: Date.now(),
+    if (msg.type === 'job:connect') {
+      console.log(`📥 [WSClient] Verified HMAC signature. Enqueuing Connect Job for ${payload.platform}`);
+      if (this.onConnectRequest) {
+        this.onConnectRequest(payload.platform, payload.accountId);
+      } else {
+        console.warn('⚠️ [WSClient] Received job:connect but no onConnectRequest handler is registered!');
+      }
+      return;
+    }
+
+    // NEW: Interactive Offline Prompt
+    const { dialog } = require('electron');
+    const { response } = await dialog.showMessageBox({
+      type: 'question',
+      buttons: ['Yes, publish now', 'No, ignore it'],
+      defaultId: 0,
+      title: 'New Publishing Job',
+      message: `You have received a new job to publish on ${payload.platform || 'social media'}. Would you like to execute it now?`,
     });
+
+    if (response === 0) {
+      console.log(`📥 [WSClient] Verified HMAC signature and user approved. Enqueuing Job #${payload.id}`);
+      this.queue.enqueue({
+        id: payload.id,
+        jobData: payload,
+        dispatchedAt: Date.now(),
+      });
+    } else {
+      console.log(`🚫 [WSClient] User rejected job #${payload.id}`);
+      this.send({
+        type: 'job:failed',
+        jobId: payload.id,
+        error: 'User manually rejected execution on the local runner.',
+      });
+    }
   }
 
   private async handleTaskExecution(task: LocalTask) {
@@ -163,7 +227,14 @@ export class RunnerWSClient {
   }
 
   public cleanup() {
-    console.log('🧹 [WSClient] Cleaning up runner processes...');
+    console.log('🧹 [WSClient] Cleaning up runner processes and closing connections...');
+    this.isCleanedUp = true;
+    this.stopHeartbeat();
+    this.onStatusChange = undefined; // prevent sending events after cleanup
+    if (this.ws) {
+      this.ws.terminate();
+      this.ws = null;
+    }
     this.runner.terminateZombieProcesses();
   }
 }

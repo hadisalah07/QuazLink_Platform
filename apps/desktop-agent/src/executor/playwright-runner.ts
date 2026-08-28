@@ -159,7 +159,18 @@ export class PlaywrightRunner {
     const postBtn = page.locator('div[aria-label="Post"], div[aria-label="نشر"], button:has-text("Post")').first();
     if (await postBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await postBtn.click();
-      await page.waitForTimeout(5000);
+      
+      onProgress('Waiting for post to finish publishing...');
+      try {
+        // Wait for the composer dialog to disappear as an indicator of success
+        const composerDialog = page.locator('div[role="dialog"]:has-text("What\'s on your mind")').first();
+        await composerDialog.waitFor({ state: 'hidden', timeout: 30000 });
+        onProgress('Composer closed, post likely published successfully.');
+      } catch (e) {
+        throw new Error('Timed out waiting for post to publish. Facebook might be slow or stuck.');
+      }
+    } else {
+       throw new Error('Could not find the Post button in the composer dialog.');
     }
   }
 

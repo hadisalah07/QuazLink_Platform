@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { RunnerWSClient } from './client/ws-client';
+import { chromium } from 'playwright';
 
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
@@ -123,12 +124,28 @@ function createWindow() {
   });
 }
 
-function setupTray() {
-  const iconPath = path.join(__dirname, '..', 'src', 'assets', 'icon.png');
-  let icon = fs.existsSync(iconPath)
-    ? nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 })
-    : nativeImage.createEmpty();
+function getTrayIcon(): Electron.NativeImage {
+  const possiblePaths = [
+    path.join(__dirname, 'assets', 'icon.png'),
+    path.join(__dirname, '..', 'src', 'assets', 'icon.png'),
+    path.join(__dirname, '..', 'assets', 'icon.png'),
+    path.join(process.cwd(), 'src', 'assets', 'icon.png'),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      try {
+        const img = nativeImage.createFromPath(p);
+        if (!img.isEmpty()) {
+          return img.resize({ width: 24, height: 24 });
+        }
+      } catch {}
+    }
+  }
+  return nativeImage.createEmpty();
+}
 
+function setupTray() {
+  const icon = getTrayIcon();
   tray = new Tray(icon);
   tray.setToolTip('QuazLink Local Automation Runner');
 
@@ -210,6 +227,9 @@ function initializeRunnerClient() {
         saveConfig(appConfig);
       }
     },
+    onConnectRequest: (platform, accountId) => {
+      openLoginBrowser(platform, accountId, wsClient);
+    }
   });
 
   wsClient.connect();
@@ -233,6 +253,14 @@ app.whenReady().then(() => {
     initializeRunnerClient();
   });
 
+  ipcMain.on('unpair-device', () => {
+    appConfig.deviceToken = undefined;
+    appConfig.pairingToken = undefined;
+    saveConfig(appConfig);
+    wsClient?.cleanup();
+    initializeRunnerClient();
+  });
+
   ipcMain.on('toggle-keep-awake', (_, enabled) => {
     appConfig.keepAwake = enabled;
     saveConfig(appConfig);
@@ -243,7 +271,94 @@ app.whenReady().then(() => {
   ipcMain.on('close-window', () => {
     mainWindow?.hide();
   });
+
+  ipcMain.on('open-login-window', async (event, payload: { platform: string; accountId: string }) => {
+    // Optional manual fallback from the desktop UI itself
+    if (wsClient) {
+      openLoginBrowser(payload.platform, payload.accountId, wsClient);
+    }
+  });
 });
+
+async function openLoginBrowser(platform: string, accountId: string, client: RunnerWSClient | null) {
+  try {
+    const browser = await chromium.launch({
+      headless: false,
+      args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+    });
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    });
+    const page = await context.newPage();
+    
+    const url = platform === 'instagram' ? 'https://www.instagram.com/accounts/login/' 
+              : platform === 'tiktok' ? 'https://www.tiktok.com/login' 
+              : 'https://www.facebook.com/login';
+    await page.goto(url);
+
+    // 10-Minute Timeout logic
+    const timeoutTimer = setTimeout(() => {
+      console.warn('⏱️ [LoginTimeout] Login window was open for more than 10 minutes without success.');
+      browser.close().catch(() => {}); // This will trigger the close event
+    }, 10 * 60 * 1000);
+
+    let isSuccess = false;
+
+    // Check for success via navigation
+    page.on('framenavigated', async (frame) => {
+      if (frame === page.mainFrame()) {
+        const u = frame.url();
+        // Simple success criteria: navigated away from login pages
+        if (!u.includes('login') && !u.includes('/accounts/login')) {
+          try {
+            isSuccess = true;
+            clearTimeout(timeoutTimer);
+            const sessionDir = path.join(os.homedir(), '.quazlink', 'sessions');
+            if (!fs.existsSync(sessionDir)) {
+              fs.mkdirSync(sessionDir, { recursive: true });
+            }
+            const sessionFile = path.join(sessionDir, `${accountId}_${platform}_session.json`);
+            await context.storageState({ path: sessionFile });
+            fs.chmodSync(sessionFile, 0o600);
+            
+            // Notify API that login succeeded (could be a new WS message, but we haven't defined it in gateway yet,
+            // For now we just close the browser so the user sees it finished)
+            console.log(`✅ [Login] Successfully saved session for account ${accountId}`);
+            
+            // Optional: Close browser automatically after 3 seconds of success
+            setTimeout(() => { browser.close().catch(() => {}); }, 3000);
+          } catch (err) {}
+        }
+      }
+    });
+    
+    // Cancellation detection
+    browser.on('disconnected', async () => {
+      clearTimeout(timeoutTimer);
+      if (!isSuccess && client) {
+        console.log(`🚫 [Login] User closed the browser without logging in.`);
+        client.send({
+          type: 'job:cancelled',
+          jobId: accountId,
+          isConnectJob: true,
+          error: 'User manually closed the browser before completing login.'
+        });
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('Failed to open login window:', error.message);
+    if (client) {
+      client.send({
+        type: 'job:failed',
+        jobId: accountId,
+        isConnectJob: true,
+        error: 'Failed to launch Playwright browser on runner.'
+      });
+    }
+  }
+}
 
 app.on('window-all-closed', () => {
   // Keep alive in system tray on all platforms

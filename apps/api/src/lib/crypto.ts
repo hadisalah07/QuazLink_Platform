@@ -4,8 +4,12 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const algorithm = 'aes-256-cbc';
-// Ensure a 32-byte key is used. If ENCRYPTION_KEY is not set or not 32 bytes, fallback to a default (for local dev only).
-const rawKey = process.env.ENCRYPTION_KEY || 'default_secret_key_needs_32_byte';
+// ENCRYPTION_KEY must be set explicitly — no fallback. It must match the value
+// the existing encrypted rows were written with, or they won't decrypt.
+const rawKey = process.env.ENCRYPTION_KEY;
+if (!rawKey || rawKey.length < 32) {
+  throw new Error('ENCRYPTION_KEY must be set to a 32+ char secret (matching existing encrypted rows).');
+}
 // Pad or truncate to 32 bytes
 const secretKey = Buffer.from(rawKey.padEnd(32, '0').slice(0, 32));
 

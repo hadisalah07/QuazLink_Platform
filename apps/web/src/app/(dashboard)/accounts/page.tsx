@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Loader2, Trash2, RefreshCw, Users, Globe, X, Sparkles, CheckCircle2 } from "lucide-react";
+import { Plus, Loader2, Trash2, RefreshCw, Users, Globe, X, Sparkles, CheckCircle2, Laptop } from "lucide-react";
 import { getAccounts, connectAccount, deleteAccount, redetectPages, type Account } from "@/lib/api";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 
@@ -76,6 +76,7 @@ export default function AccountsPage() {
   const [redetectingId, setRedetectingId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState<string>("all");
+  const [showOfflineWarning, setShowOfflineWarning] = React.useState(false);
 
   const refresh = React.useCallback(async () => {
     try {
@@ -94,6 +95,19 @@ export default function AccountsPage() {
   const anyConnecting = accounts.some((a) => a.status === "connecting");
 
   async function handleConnect(platformId: string) {
+    try {
+      const { getDevices } = await import("@/lib/api");
+      const data = await getDevices();
+      if (!data.isOnline) {
+        setShowConnectModal(false);
+        setShowOfflineWarning(true);
+        return;
+      }
+    } catch (e: any) {
+      setError("Could not verify runner status.");
+      return;
+    }
+
     setShowConnectModal(false);
     setError(null);
     setConnectingPlatform(platformId);
@@ -270,6 +284,44 @@ export default function AccountsPage() {
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offline Runner Warning Modal */}
+      {showOfflineWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+          <div className="w-full max-w-md flex flex-col bg-[var(--color-quaz-bg)] border border-red-500/30 rounded-2xl overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-red-500/20 flex justify-between items-center bg-red-500/10">
+              <h2 className="text-lg font-bold text-red-400 flex items-center gap-2">
+                <Laptop className="w-5 h-5" />
+                Runner Offline
+              </h2>
+              <button
+                onClick={() => setShowOfflineWarning(false)}
+                className="p-1 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-gray-300 text-sm">
+                Your QuazLink Desktop Runner is currently offline. You must start the runner on your local computer before connecting a new social account.
+              </p>
+              <div className="bg-black/40 p-4 rounded-xl border border-white/5 space-y-2">
+                <p className="text-xs text-gray-400 font-semibold">To start the runner, run this in your terminal:</p>
+                <code className="block bg-black p-2 rounded text-cyan-400 text-xs font-mono border border-white/10 select-all">
+                  cd apps/desktop-agent<br/>npm run dev
+                </code>
+              </div>
+              <button
+                onClick={() => setShowOfflineWarning(false)}
+                className="w-full py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold rounded-xl transition-colors mt-2 border border-red-500/40 cursor-pointer"
+              >
+                Got it
+              </button>
             </div>
           </div>
         </div>

@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import prisma from '../prisma';
-import { addConnectJob, addRedetectJob } from '../queue';
+import { dispatchConnectJobToLocalRunner } from '../ws/gateway';
 
 const router = Router();
 
 // Start connecting a Facebook account: create a placeholder row and let the
-// connect worker open a browser for manual login, then save the session.
+// local runner open a browser for manual login, then save the session.
 router.post('/connect', async (req, res) => {
   try {
     const userId = req.userId!;
@@ -19,7 +19,12 @@ router.post('/connect', async (req, res) => {
       },
     });
 
-    await addConnectJob({ socialAccountId: account.id, platform });
+    const dispatched = await dispatchConnectJobToLocalRunner(userId, account.id, platform);
+    
+    if (!dispatched) {
+      await prisma.socialAccount.delete({ where: { id: account.id } });
+      return res.status(400).json({ error: 'No active desktop runner found. Please pair your local PC first.' });
+    }
 
     res.status(201).json({ id: account.id, status: account.status, platform: account.platform });
   } catch (error: any) {
@@ -66,8 +71,9 @@ router.post('/:id/detect-pages', async (req, res) => {
       return res.status(400).json({ error: 'Account has no saved session. Connect it first.' });
     }
 
-    await addRedetectJob({ socialAccountId: id });
-    res.status(202).json({ status: 'redetecting' });
+    // TODO: implement dispatchRedetectJobToLocalRunner
+    // await addRedetectJob({ socialAccountId: id });
+    res.status(501).json({ error: 'Re-detect pages is currently being migrated to Zero-Ban architecture.' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

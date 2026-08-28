@@ -1,0 +1,10 @@
+node_modules
+dist
+.next
+.env
+screenshots
+poc
+apps/*/node_modules
+apps/*/dist
+packages/*/node_modules
+packages/*/dist
