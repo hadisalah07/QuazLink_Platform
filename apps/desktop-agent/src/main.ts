@@ -322,9 +322,15 @@ async function openLoginBrowser(platform: string, accountId: string, client: Run
             await context.storageState({ path: sessionFile });
             fs.chmodSync(sessionFile, 0o600);
             
-            // Notify API that login succeeded (could be a new WS message, but we haven't defined it in gateway yet,
-            // For now we just close the browser so the user sees it finished)
+            // Notify API that login succeeded
             console.log(`✅ [Login] Successfully saved session for account ${accountId}`);
+            if (client) {
+              client.send({
+                type: 'job:connect_success',
+                jobId: accountId,
+                platform: platform,
+              });
+            }
             
             // Optional: Close browser automatically after 3 seconds of success
             setTimeout(() => { browser.close().catch(() => {}); }, 3000);

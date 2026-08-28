@@ -186,6 +186,14 @@ export function setupWebSocketGateway(server: HttpServer) {
             }
           }
 
+          if (msg.type === 'job:connect_success' && typeof msg.jobId === 'string') {
+            console.log(`✅ [WS] Runner reported connect success for account ${msg.jobId}`);
+            await prisma.socialAccount.updateMany({
+              where: { id: msg.jobId, userId: ws.userId },
+              data: { status: 'active' },
+            });
+          }
+
           if (msg.type === 'job:request_dispatch') {
             console.log(`🚀 Runner [${ws.deviceId}] requested dispatch of pending jobs.`);
             await triggerDispatchForUser(ws.userId!, ws.deviceId!);
