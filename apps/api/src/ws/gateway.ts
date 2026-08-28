@@ -234,11 +234,24 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
     return false; // No device currently online
   }
 
-  // Pick the first available active socket
-  const [deviceId, socket] = Array.from(userDevices.entries())[0];
-  if (socket.readyState !== WebSocket.OPEN) {
+  // Find the first available active socket
+  let targetSocket = null;
+  let targetDeviceId = null;
+  
+  for (const [deviceId, socket] of userDevices.entries()) {
+    if (socket.readyState === WebSocket.OPEN) {
+      targetSocket = socket;
+      targetDeviceId = deviceId;
+      break;
+    }
+  }
+
+  if (!targetSocket) {
     return false;
   }
+
+  const deviceId = targetDeviceId;
+  const socket = targetSocket;
 
   // ATOMIC CLAIM — flip pending -> dispatched before sending. If the job is no
   // longer pending (another path already took it, or a duplicate reconnect is
@@ -294,11 +307,24 @@ export async function dispatchConnectJobToLocalRunner(userId: string, accountId:
     return false; // No device currently online
   }
 
-  // Pick the first available active socket
-  const [deviceId, socket] = Array.from(userDevices.entries())[0];
-  if (socket.readyState !== WebSocket.OPEN) {
+  // Find the first available active socket
+  let targetSocket = null;
+  let targetDeviceId = null;
+  
+  for (const [deviceId, socket] of userDevices.entries()) {
+    if (socket.readyState === WebSocket.OPEN) {
+      targetSocket = socket;
+      targetDeviceId = deviceId;
+      break;
+    }
+  }
+
+  if (!targetSocket) {
     return false;
   }
+
+  const deviceId = targetDeviceId;
+  const socket = targetSocket;
 
   // Security: Generate HMAC signature with timestamp TTL (30 seconds)
   const timestamp = Date.now();
