@@ -188,9 +188,20 @@ export function setupWebSocketGateway(server: HttpServer) {
 
           if (msg.type === 'job:connect_success' && typeof msg.jobId === 'string') {
             console.log(`✅ [WS] Runner reported connect success for account ${msg.jobId}`);
+            
+            // Set a default destination for personal timeline if it's facebook, etc.
+            const defaultUrl = msg.platform === 'instagram' ? 'https://www.instagram.com/' : 
+                               msg.platform === 'tiktok' ? 'https://www.tiktok.com/upload' : 
+                               'https://www.facebook.com/';
+                               
+            const defaultDest = [{ name: 'Personal Profile (Timeline)', url: defaultUrl }];
+
             await prisma.socialAccount.updateMany({
               where: { id: msg.jobId, userId: ws.userId },
-              data: { status: 'active' },
+              data: { 
+                status: 'active',
+                destinations: defaultDest,
+              },
             });
           }
 
