@@ -1,8 +1,8 @@
 #!/bin/sh
-echo "🚀 Syncing database schema (db push)..."
-for i in 1 2 3 4 5; do
-  npx prisma db push --skip-generate && break || echo "⚠️ Database not ready yet, retrying in 3 seconds..."
-  sleep 3
-done
+set -e
+echo "🚀 Auto-Baselining existing database..."
+npx prisma migrate resolve --applied 20260830000000_init_catalog_device || true
+echo "🚀 Applying database migrations (migrate deploy)..."
+npx prisma migrate deploy
 echo "✅ Migrations up to date. Launching QuazLink API Server..."
 exec node dist/server.js
