@@ -1,5 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server as HttpServer } from 'http';
+import { verify } from 'jsonwebtoken';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import crypto from 'crypto';
 import prisma from '../prisma';
 
@@ -208,6 +210,54 @@ export function setupWebSocketGateway(server: HttpServer) {
           if (msg.type === 'job:request_dispatch') {
             console.log(`🚀 Runner [${ws.deviceId}] requested dispatch of pending jobs.`);
             await triggerDispatchForUser(ws.userId!, ws.deviceId!);
+          }
+
+          if (msg.type === 'job:request_healing' && typeof msg.screenshot === 'string') {
+            console.log(`🤖 [WS] Received AI Healing request for job #${msg.jobId}`);
+            try {
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+              const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+
+              const prompt = `You are an expert Playwright automation agent. The automation is currently stuck trying to execute: "${msg.currentStep}".
+              The error is: "${msg.error}".
+              Look at this screenshot of the browser. Find the element the user needs to interact with.
+              Return ONLY a JSON object with this exact format (no markdown, no backticks, no other text):
+              {"action": "click", "selector": "CSS selector to click"} OR {"action": "fail", "reason": "why it failed"}`;
+
+              const imageParts = [
+                {
+                  inlineData: {
+                    data: msg.screenshot,
+                    mimeType: "image/jpeg"
+                  }
+                }
+              ];
+
+              const result = await model.generateContent([prompt, ...imageParts]);
+              const response = await result.response;
+              const text = response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
+              
+              let aiInstruction;
+              try {
+                aiInstruction = JSON.parse(text);
+              } catch (e) {
+                console.error('AI returned invalid JSON:', text);
+                aiInstruction = { action: 'fail', reason: 'AI returned invalid JSON' };
+              }
+
+              ws.send(JSON.stringify({
+                type: 'job:heal_action',
+                jobId: msg.jobId,
+                instruction: aiInstruction
+              }));
+            } catch (err: any) {
+              console.error('❌ AI Healing failed:', err.message);
+              ws.send(JSON.stringify({
+                type: 'job:heal_action',
+                jobId: msg.jobId,
+                instruction: { action: 'fail', reason: err.message }
+              }));
+            }
           }
         } catch (e: any) {
           console.error('Error handling WebSocket message:', e.message);
