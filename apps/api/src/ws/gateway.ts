@@ -216,7 +216,7 @@ export function setupWebSocketGateway(server: HttpServer) {
             console.log(`🤖 [WS] Received AI Healing request for job #${msg.jobId}`);
             try {
               const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-              const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+              const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
 
               const prompt = `You are an expert Playwright automation agent. The automation is currently stuck trying to execute: "${msg.currentStep}".
               The error is: "${msg.error}".
