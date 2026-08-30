@@ -54,10 +54,7 @@ export class PlaywrightRunner {
         args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
       });
 
-      // Track PID for Zombie Process Protection
-      // @ts-ignore
-      const pid = browser.process()?.pid;
-      if (pid) this.activePids.add(pid);
+      // Process ID tracking removed for Playwright
 
       context = await browser.newContext({
         storageState,
@@ -101,9 +98,6 @@ export class PlaywrightRunner {
       // 6. Clean up process & temp files
       if (context) await context.close().catch(() => {});
       if (browser) {
-        // @ts-ignore
-        const pid = browser.process()?.pid;
-        if (pid) this.activePids.delete(pid);
         await browser.close().catch(() => {});
       }
 
@@ -137,12 +131,14 @@ export class PlaywrightRunner {
       await page.waitForTimeout(2000);
     }
 
-    // Type content
+    // Type content FIRST (using pressSequentially to trigger React state properly)
     if (content) {
       onProgress('Writing post text...');
       const textBox = page.locator('[contenteditable="true"][role="textbox"]').first();
-      await textBox.fill(content);
-      await page.waitForTimeout(1000);
+      await textBox.click();
+      // pressSequentially acts exactly like a human typing, triggering all keyboard events
+      await textBox.pressSequentially(content, { delay: 10 });
+      await page.waitForTimeout(2000);
     }
 
     // Attach images
@@ -151,14 +147,15 @@ export class PlaywrightRunner {
       const fileInput = page.locator('input[type="file"][accept*="image"]').first();
       if (await fileInput.count() > 0) {
         await fileInput.setInputFiles(images);
-        await page.waitForTimeout(3000);
+        await page.waitForTimeout(4000); // Give Facebook time to render the image previews
       }
     }
 
     onProgress('Publishing post...');
     const postBtn = page.locator('div[aria-label="Post"], div[aria-label="نشر"], button:has-text("Post")').first();
     if (await postBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await postBtn.click();
+      // Force click to bypass any invisible overlay layers Facebook adds
+      await postBtn.click({ force: true });
       
       onProgress('Waiting for post to finish publishing...');
       try {

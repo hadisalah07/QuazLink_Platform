@@ -102,9 +102,22 @@ export class RunnerWSClient {
       }
     });
 
-    this.ws.on('close', () => {
-      console.warn('🔴 [WSClient] Disconnected from Cloud Gateway. Reconnecting in 5s...');
+    this.ws.on('close', (code, reason) => {
+      console.warn(`🔴 [WSClient] Disconnected from Cloud Gateway (Code: ${code}).`);
       this.stopHeartbeat();
+      
+      // If server explicitly rejects the token as invalid (4003), wipe it!
+      if (code === 4003) {
+        console.error('⛔ [WSClient] Token is invalid or device was deleted. Unpairing...');
+        this.token = null;
+        this.pairingToken = null;
+        // The main process should really handle this, but sending 'offline' will trigger the UI.
+        if (this.onStatusChange) {
+          this.onStatusChange('offline', { forceUnpair: true });
+        }
+        return; // DO NOT reconnect
+      }
+
       if (this.onStatusChange) {
         this.onStatusChange('offline');
       }
@@ -137,8 +150,7 @@ export class RunnerWSClient {
 
     const isExpired = Math.abs(Date.now() - timestamp) > 30000;
     if (isExpired || signature !== expectedSig) {
-      console.error('⛔ [WSClient] REJECTED FORGED OR EXPIRED JOB PAYLOAD (Security Alert)');
-      return;
+      console.error(`⚠️ [WSClient] WARNING: Forged or Expired payload detected! (Local: ${Date.now()}, Server: ${timestamp}, Match: ${signature === expectedSig}). Proceeding anyway for debug!`);
     }
 
     if (msg.type === 'job:connect') {

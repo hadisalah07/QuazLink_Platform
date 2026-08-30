@@ -3,7 +3,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const router = Router();
 
-// Ensure you have GEMINI_API_KEY in your apps/api/.env
+// Keys MUST be injected via Coolify Environment Variables. 
+// Do NOT hardcode them here, or Github Secret Scanning will block the push and Google will revoke them.
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // POST /api/ai/generate-copy

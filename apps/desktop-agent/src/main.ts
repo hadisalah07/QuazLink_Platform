@@ -218,13 +218,19 @@ function initializeRunnerClient() {
     onStatusChange: (status, info) => {
       currentStatus = status;
       updateTrayMenu();
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('status-updated', { status, info, config: appConfig });
-      }
-      if (info?.deviceToken) {
+
+      if (info?.forceUnpair) {
+        appConfig.deviceToken = undefined;
+        appConfig.pairingToken = undefined;
+        saveConfig(appConfig);
+      } else if (info?.deviceToken) {
         appConfig.deviceToken = info.deviceToken;
         appConfig.pairingToken = undefined;
         saveConfig(appConfig);
+      }
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-updated', { status, info, config: appConfig });
       }
     },
     onConnectRequest: (platform, accountId) => {

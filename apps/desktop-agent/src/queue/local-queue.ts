@@ -27,13 +27,8 @@ export class LocalJobQueue {
       return;
     }
 
-    // RAM Guard: Ensure at least 400MB free memory before spawning browser
-    const freeMemoryMB = os.freemem() / (1024 * 1024);
-    if (freeMemoryMB < 400) {
-      console.warn(`⚠️ [LocalQueue] Memory low (${Math.round(freeMemoryMB)}MB free). Pausing queue for 10s...`);
-      setTimeout(() => this.processNext(), 10000);
-      return;
-    }
+    // RAM Guard removed: os.freemem() is unreliable on Windows (returns 0 due to SuperFetch/Standby cache)
+    // We will spawn the browser immediately.
 
     this.isProcessing = true;
     const task = this.queue.shift()!;
