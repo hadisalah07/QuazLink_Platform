@@ -265,7 +265,10 @@ export function setupWebSocketGateway(server: HttpServer) {
             try {
               const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
               // We use gemini-3.5-flash-lite as requested by the user's rule for all tasks
-              const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+              const model = genAI.getGenerativeModel({ 
+                model: 'gemini-3.5-flash-lite',
+                generationConfig: { responseMimeType: "application/json" }
+              });
 
               const prompt = `You are an Autonomous AI Browser Driver. Your goal is to guide the browser to achieve the user's objective on a social media platform.
 Objective: "${msg.goal}"
