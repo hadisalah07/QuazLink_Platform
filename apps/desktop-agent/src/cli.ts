@@ -75,6 +75,12 @@ async function main() {
   console.log(`💻 Local Machine: \x1b[35m${os.hostname()} (${os.platform()} ${os.arch()})\x1b[0m`);
   console.log(`🛡️ Encryption: \x1b[32mZero-Trust HMAC-SHA256 Signed Channel\x1b[0m\n`);
 
+  // §14: headless approval. An unattended CLI runner exists to run jobs automatically, so the
+  // default is to auto-approve. Set QUAZLINK_AUTO_APPROVE=false (or 0/no/off) to make it decline
+  // everything — useful to park a runner online-but-idle without unpairing it.
+  const autoApproveEnv = (process.env.QUAZLINK_AUTO_APPROVE ?? 'true').toLowerCase();
+  const autoApprove = !['false', '0', 'no', 'off'].includes(autoApproveEnv);
+
   const client = new RunnerWSClient(config.serverUrl, {
     token: config.deviceToken,
     pairingToken: config.pairingToken,
@@ -91,9 +97,37 @@ async function main() {
         console.log('\x1b[31m%s\x1b[0m', '🔴 [STATUS] Machine is Offline. Reconnecting...');
       }
     },
+    // §14: inject headless approval so the WS client never touches Electron dialogs (which threw
+    // in plain Node — require('electron') returns a path string — and silently blocked all jobs).
+    confirmJob: async (payload) => {
+      console.log(
+        autoApprove
+          ? `🤖 [AUTO] Approving ${payload?.platform || 'social'} job #${payload?.id}.`
+          : `⛔ [AUTO] Declining job #${payload?.id} (QUAZLINK_AUTO_APPROVE is off).`
+      );
+      return autoApprove;
+    },
+    confirmSync: async (count) => {
+      console.log(
+        autoApprove
+          ? `🤖 [AUTO] Fetching ${count} pending post(s) from cloud.`
+          : `⛔ [AUTO] Skipping ${count} pending post(s) (QUAZLINK_AUTO_APPROVE is off).`
+      );
+      return autoApprove;
+    },
   });
 
   client.connect();
+
+  // §7: register signal handlers once, here in the entry point (removed from RunnerWSClient to
+  // stop per-instance listener leaks). Ensures Ctrl+C still tears down the WS connection cleanly.
+  const shutdown = (signal: string) => {
+    console.log(`\n🛑 [CLI] Received ${signal}. Cleaning up and exiting...`);
+    client.cleanup();
+    process.exit(0);
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 
   console.log('\x1b[90m%s\x1b[0m', 'Listening for incoming automation tasks from Cloud... Press Ctrl+C to stop.\n');
 }

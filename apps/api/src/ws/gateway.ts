@@ -260,6 +260,68 @@ export function setupWebSocketGateway(server: HttpServer) {
               }));
             }
           }
+          if (msg.type === 'job:request_driver_action' && typeof msg.screenshot === 'string') {
+            console.log(`🤖 [WS] Received AI Driver request for job #${msg.jobId} (Step ${msg.stepIndex})`);
+            try {
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+              // We use gemini-3.5-flash-lite as requested by the user's rule for all tasks
+              const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+
+              const prompt = `You are an Autonomous AI Browser Driver. Your goal is to guide the browser to achieve the user's objective on a social media platform.
+Objective: "${msg.goal}"
+Current Step Index: ${msg.stepIndex}
+History of actions taken so far: ${JSON.stringify(msg.history)}
+
+Look at the screenshot of the browser. Figure out exactly what needs to be done NEXT to progress towards the objective.
+You must return ONLY a valid JSON object matching this schema (do NOT use markdown formatting, just raw JSON):
+{
+  "thought": "Briefly explain what you see and what your next move is, step by step.",
+  "action": "click" | "type" | "upload" | "done" | "fail",
+  "selector": "CSS selector or text selector (e.g. 'text=\"Post\"') of the target element. Leave empty if action is 'done' or 'fail'.",
+  "value": "The text to type if action is 'type', otherwise empty.",
+  "reason": "If action is 'fail', explain why."
+}
+
+CRITICAL RULES:
+1. Playwright will execute the selector. Use robust selectors like '[aria-label="Post"]' or 'text="Create Post"'.
+2. If the goal is fully achieved (e.g., the post is successfully published and you see the timeline), return action "done".
+3. If you need to type text, return action "type" and put the text in "value".`;
+
+              const imageParts = [
+                {
+                  inlineData: {
+                    data: msg.screenshot,
+                    mimeType: "image/jpeg"
+                  }
+                }
+              ];
+
+              const result = await model.generateContent([prompt, ...imageParts]);
+              const response = await result.response;
+              const text = response.text().replace(/```json/gi, '').replace(/```/g, '').trim();
+              
+              let aiInstruction;
+              try {
+                aiInstruction = JSON.parse(text);
+              } catch (e) {
+                console.error('AI returned invalid JSON:', text);
+                aiInstruction = { action: 'fail', reason: 'AI returned invalid JSON', thought: 'Failed to parse JSON' };
+              }
+
+              ws.send(JSON.stringify({
+                type: 'job:driver_action',
+                jobId: msg.jobId,
+                instruction: aiInstruction
+              }));
+            } catch (err: any) {
+              console.error('❌ AI Driver failed:', err.message);
+              ws.send(JSON.stringify({
+                type: 'job:driver_action',
+                jobId: msg.jobId,
+                instruction: { action: 'fail', reason: err.message, thought: 'API error occurred.' }
+              }));
+            }
+          }
         } catch (e: any) {
           console.error('Error handling WebSocket message:', e.message);
         }

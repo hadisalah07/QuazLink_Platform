@@ -427,7 +427,7 @@
           <div class="device-name" id="deviceName">Local Automation Node</div>
           <div class="gateway-url" id="gatewayInfo">Gateway: Connecting...</div>
         </div>
-        <button id="unpairBtn" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: bold; cursor: pointer; display: none; transition: all 0.2s;">Disconnect</button>
+        <button id="unpairBtn" style="background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: #f87171; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s;">Disconnect</button>
       </div>
     </div>
 
@@ -485,7 +485,9 @@
   </div>
 
   <script>
-    const { ipcRenderer, shell } = require('electron');
+    // Renderer runs isolated (contextIsolation on, no Node). All main-process access goes
+    // through the `window.quazlink` bridge defined in preload.ts — no more require('electron').
+    const q = window.quazlink;
 
     const statusBadge = document.getElementById('statusBadge');
     const deviceName = document.getElementById('deviceName');
@@ -499,14 +501,27 @@
     const openWebBtn = document.getElementById('openWebBtn');
     const unpairBtn = document.getElementById('unpairBtn');
 
-    closeBtn.addEventListener('click', () => ipcRenderer.send('close-window'));
+    function addLog(msg, type = '') {
+      const time = new Date().toLocaleTimeString();
+      const cls = type ? `class="${type}"` : '';
+      logsBox.innerHTML += `<div ${cls}>[${time}] ${msg}</div>`;
+      logsBox.scrollTop = logsBox.scrollHeight;
+    }
+
+    // Capture any renderer errors to the logs box
+    window.onerror = function(message, source, lineno, colno, error) {
+      addLog(`[UI ERROR] ${message} at line ${lineno}`, 'red');
+      return true; // prevent default
+    };
+
+    closeBtn.addEventListener('click', () => q.closeWindow());
 
     openWebBtn.addEventListener('click', () => {
-      shell.openExternal('http://localhost:3000');
+      q.openExternal('http://localhost:3000');
     });
 
     keepAwakeToggle.addEventListener('change', (e) => {
-      ipcRenderer.send('toggle-keep-awake', e.target.checked);
+      q.toggleKeepAwake(e.target.checked);
       addLog(`[SETTINGS] Keep-Awake set to ${e.target.checked}`, 'warn');
     });
 
@@ -514,18 +529,18 @@
       const code = pairingCodeInput.value.trim();
       if (code) {
         addLog(`[PAIRING] Pairing with code: ${code}...`, 'highlight');
-        ipcRenderer.send('pair-device', code);
+        q.pairDevice(code);
       }
     });
 
     unpairBtn.addEventListener('click', () => {
-      if (confirm("Are you sure you want to disconnect this node? You will need to pair it again.")) {
-        addLog(`[PAIRING] Unpairing node from cloud...`, 'warn');
-        ipcRenderer.send('unpair-device');
+      if (confirm("Are you sure you want to forcefully disconnect this node?")) {
+        addLog(`[PAIRING] Forcefully unpairing node...`, 'warn');
+        q.unpairDevice();
       }
     });
 
-    ipcRenderer.on('status-updated', (_, { status, info, config }) => {
+    q.onStatusUpdated(({ status, info, config }) => {
       if (config?.serverUrl) {
         gatewayInfo.textContent = `Gateway: ${config.serverUrl}`;
       }
@@ -546,25 +561,16 @@
         }
       }
 
-      if (config?.deviceToken) {
-        unpairBtn.style.display = 'block';
-      } else {
-        unpairBtn.style.display = 'none';
-      }
-
       if (config?.keepAwake !== undefined) {
         keepAwakeToggle.checked = config.keepAwake;
       }
     });
 
-    function addLog(msg, type = '') {
-      const time = new Date().toLocaleTimeString();
-      const cls = type ? `class="${type}"` : '';
-      logsBox.innerHTML += `<div ${cls}>[${time}] ${msg}</div>`;
-      logsBox.scrollTop = logsBox.scrollHeight;
+    try {
+      q.getState();
+    } catch (e) {
+      addLog(`[IPC] Failed to get state: ${e.message}`, 'red');
     }
-
-    ipcRenderer.send('get-state');
   </script>
 </body>
 </html>

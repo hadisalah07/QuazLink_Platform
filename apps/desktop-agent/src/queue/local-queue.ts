@@ -1,5 +1,3 @@
-import os from 'os';
-
 export interface LocalTask {
   id: string;
   jobData: any;
@@ -7,19 +5,31 @@ export interface LocalTask {
 }
 
 export class LocalJobQueue {
+  // Single-slot FIFO: exactly one job runs at a time (anti-detection + resource safety).
+  // Hard cap on how many jobs may wait, so a dispatch flood can't grow memory unbounded.
+  private static readonly MAX_QUEUE_DEPTH = 100;
+
   private queue: LocalTask[] = [];
   private isProcessing = false;
-  private maxConcurrency = 1;
   private executorFn: (task: LocalTask) => Promise<void>;
 
   constructor(executor: (task: LocalTask) => Promise<void>) {
     this.executorFn = executor;
   }
 
-  public enqueue(task: LocalTask) {
+  /**
+   * Enqueue a task. Returns false if the queue is at capacity and the task was rejected — the
+   * caller should report job:failed so the cloud doesn't keep waiting on a dropped job.
+   */
+  public enqueue(task: LocalTask): boolean {
+    if (this.queue.length >= LocalJobQueue.MAX_QUEUE_DEPTH) {
+      console.warn(`⛔ [LocalQueue] Queue full (${this.queue.length}). Rejecting task #${task.id}.`);
+      return false;
+    }
     this.queue.push(task);
     console.log(`📥 [LocalQueue] Enqueued task #${task.id}. Queue depth: ${this.queue.length}`);
     this.processNext();
+    return true;
   }
 
   private async processNext() {
@@ -58,7 +68,8 @@ export class LocalJobQueue {
     return {
       isProcessing: this.isProcessing,
       pendingCount: this.queue.length,
-      freeMemoryMB: Math.round(os.freemem() / (1024 * 1024)),
+      // NOTE (§13): freeMemoryMB removed — os.freemem() is unreliable on Windows (misleading
+      // values from the standby/SuperFetch cache), so it was never a trustworthy signal.
     };
   }
 }

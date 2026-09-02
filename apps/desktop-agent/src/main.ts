@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, powerSaveBlocker, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, Tray, Menu, powerSaveBlocker, ipcMain, nativeImage, dialog, shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -58,11 +58,36 @@ function handleDeepLink(urlStr: string) {
     const parsed = new URL(urlStr);
     const token = parsed.searchParams.get('token') || parsed.searchParams.get('pairingToken');
     if (token) {
-      console.log('🔑 [DeepLink] Received auto-pairing token:', token);
-      appConfig.pairingToken = token.trim();
-      saveConfig(appConfig);
-      wsClient?.cleanup();
-      initializeRunnerClient();
+      console.log('🔑 [DeepLink] Received auto-pairing request via deep link.');
+      // SECURITY (§6): any website can invoke quazlink://… — never pair silently on its say-so.
+      // Require an explicit human confirmation before binding this machine to an account.
+      if (mainWindow) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+      const opts = {
+        type: 'warning' as const,
+        buttons: ['Pair this machine', 'Cancel'],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+        title: 'Confirm Device Pairing',
+        message: 'A website is asking to pair this runner to a QuazLink account.',
+        detail:
+          'Only continue if you just started pairing from the QuazLink dashboard yourself. ' +
+          'Pairing lets that account send publishing jobs to this machine.',
+      };
+      const choice = mainWindow
+        ? dialog.showMessageBoxSync(mainWindow, opts)
+        : dialog.showMessageBoxSync(opts);
+      if (choice === 0) {
+        appConfig.pairingToken = token.trim();
+        saveConfig(appConfig);
+        wsClient?.cleanup();
+        initializeRunnerClient();
+      } else {
+        console.log('🚫 [DeepLink] User declined the pairing request.');
+      }
     }
     if (mainWindow) {
       mainWindow.show();
@@ -108,8 +133,11 @@ function createWindow() {
     alwaysOnTop: true,
     backgroundColor: '#0a0d14',
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      // Security: isolate the renderer. It can no longer require() Electron/Node — it reaches
+      // main only through the whitelisted `window.quazlink` bridge defined in preload.ts.
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -235,7 +263,41 @@ function initializeRunnerClient() {
     },
     onConnectRequest: (platform, accountId) => {
       openLoginBrowser(platform, accountId, wsClient);
-    }
+    },
+    // §14: interactive prompts are injected by the host (the WS client is now Electron-free).
+    // The desktop app backs them with native dialogs; the headless CLI supplies auto-approve.
+    confirmJob: async (payload) => {
+      const opts = {
+        type: 'question' as const,
+        buttons: ['Run now', 'Reject'],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+        title: 'New Publishing Job',
+        message: `QuazLink wants to publish a ${payload?.platform || 'social'} post on this machine.`,
+        detail: 'This will open an automated browser and post to your connected account.',
+      };
+      const { response } = mainWindow
+        ? await dialog.showMessageBox(mainWindow, opts)
+        : await dialog.showMessageBox(opts);
+      return response === 0;
+    },
+    confirmSync: async (count) => {
+      const opts = {
+        type: 'question' as const,
+        buttons: ['Fetch & run', 'Not now'],
+        defaultId: 0,
+        cancelId: 1,
+        noLink: true,
+        title: 'Pending Posts Available',
+        message: `You have ${count} pending post${count === 1 ? '' : 's'} waiting to publish.`,
+        detail: 'Fetch them from the cloud and run them on this machine now?',
+      };
+      const { response } = mainWindow
+        ? await dialog.showMessageBox(mainWindow, opts)
+        : await dialog.showMessageBox(opts);
+      return response === 0;
+    },
   });
 
   wsClient.connect();
@@ -276,6 +338,33 @@ app.whenReady().then(() => {
 
   ipcMain.on('close-window', () => {
     mainWindow?.hide();
+  });
+
+  // §5: the renderer can no longer reach `shell` directly. Open external links here, but only
+  // after validating the URL — https (or http on localhost for dev) to a known QuazLink host.
+  ipcMain.on('open-external', (_event, url: unknown) => {
+    if (typeof url !== 'string') return;
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return;
+    }
+    const ALLOWED_HOSTS = new Set([
+      'quazlink.site',
+      'www.quazlink.site',
+      'app.quazlink.site',
+      'localhost',
+      '127.0.0.1',
+    ]);
+    const isHttps = parsed.protocol === 'https:';
+    const isLocalDev =
+      parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
+    if ((isHttps || isLocalDev) && ALLOWED_HOSTS.has(parsed.hostname)) {
+      shell.openExternal(parsed.toString());
+    } else {
+      console.warn(`⛔ [Security] Blocked open-external to a disallowed URL: ${url}`);
+    }
   });
 
   ipcMain.on('open-login-window', async (event, payload: { platform: string; accountId: string }) => {
@@ -326,7 +415,10 @@ async function openLoginBrowser(platform: string, accountId: string, client: Run
             }
             const sessionFile = path.join(sessionDir, `${accountId}_${platform}_session.json`);
             await context.storageState({ path: sessionFile });
-            fs.chmodSync(sessionFile, 0o600);
+            // NOTE (§12): chmod is effectively a no-op on Windows (the runner's primary OS);
+            // real per-user locking would need an ACL (icacls). Best-effort, and must never
+            // throw past this point or it would skip the job:connect_success below.
+            try { fs.chmodSync(sessionFile, 0o600); } catch {}
             
             // Notify API that login succeeded
             console.log(`✅ [Login] Successfully saved session for account ${accountId}`);
@@ -375,3 +467,14 @@ async function openLoginBrowser(platform: string, accountId: string, client: Run
 app.on('window-all-closed', () => {
   // Keep alive in system tray on all platforms
 });
+
+// §7: process-signal handling lives here (once), not inside RunnerWSClient — a new client is
+// created on every pair/unpair/deep-link, so per-instance listeners used to accumulate and leak.
+// This references the module-level `wsClient`, so it always cleans up the current instance.
+const shutdown = (signal: string) => {
+  console.log(`\n🛑 [Main] Received ${signal}. Cleaning up runner and quitting...`);
+  wsClient?.cleanup();
+  app.quit();
+};
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
