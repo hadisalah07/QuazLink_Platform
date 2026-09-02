@@ -264,10 +264,22 @@ export function setupWebSocketGateway(server: HttpServer) {
             console.log(`🤖 [WS] Received AI Driver request for job #${msg.jobId} (Step ${msg.stepIndex})`);
             try {
               const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-              // We use gemini-3.5-flash-lite as requested by the user's rule for all tasks
               const model = genAI.getGenerativeModel({ 
                 model: 'gemini-3.5-flash-lite',
-                generationConfig: { responseMimeType: "application/json" }
+                generationConfig: { 
+                  responseMimeType: "application/json",
+                  responseSchema: {
+                    type: "object",
+                    properties: {
+                      thought: { type: "string" },
+                      action: { type: "string" },
+                      selector: { type: "string" },
+                      value: { type: "string" },
+                      reason: { type: "string" }
+                    },
+                    required: ["thought", "action", "selector", "value", "reason"]
+                  }
+                }
               });
 
               const prompt = `You are an Autonomous AI Browser Driver. Your goal is to guide the browser to achieve the user's objective on a social media platform.
@@ -308,7 +320,7 @@ CRITICAL RULES:
                 aiInstruction = JSON.parse(text);
               } catch (e) {
                 console.error('AI returned invalid JSON:', text);
-                aiInstruction = { action: 'fail', reason: 'AI returned invalid JSON', thought: 'Failed to parse JSON' };
+                aiInstruction = { action: 'fail', reason: `Invalid JSON: ${text.substring(0, 100)}`, thought: 'Failed to parse JSON' };
               }
 
               ws.send(JSON.stringify({
