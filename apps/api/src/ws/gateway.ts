@@ -222,7 +222,8 @@ export function setupWebSocketGateway(server: HttpServer) {
               The error is: "${msg.error}".
               Look at this screenshot of the browser. Find the element the user needs to interact with.
               Return ONLY a JSON object with this exact format (no markdown, no backticks, no other text):
-              {"action": "click", "selector": "CSS selector to click"} OR {"action": "fail", "reason": "why it failed"}`;
+              {"action": "click", "selector": "CSS selector to click"} OR {"action": "fail", "reason": "why it failed"}.
+              CRITICAL: The "selector" MUST be a valid, standard CSS or text selector (e.g., 'span:has-text("Text")' or 'button[aria-label="Post"]'). Do NOT return chained Playwright API methods like '.locator()', '.filter()', or '.first()'.`;
 
               const imageParts = [
                 {
