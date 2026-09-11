@@ -4,11 +4,11 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Send, Loader2, Info, Sparkles, Database, X } from "lucide-react";
+import { Send, Loader2, Info, Sparkles, Database, X, Plus, Globe } from "lucide-react";
 import { GlassCard } from "@/components/effects/GlassCard";
 import { PostPreview } from "@/components/compose/PostPreview";
 import { fadeIn } from "@/lib/motion";
-import { getAccounts, createPost, getCatalogs, getCatalogProducts, generateCopy, type Account, type Catalog, type Product } from "@/lib/api";
+import { getAccounts, createPost, getCatalogs, getCatalogProducts, generateCopy, addDestination, type Account, type Catalog, type Product } from "@/lib/api";
 
 export default function ComposePage() {
   const router = useRouter();
@@ -20,6 +20,12 @@ export default function ComposePage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // New Destination State
+  const [showAddDestModal, setShowAddDestModal] = React.useState(false);
+  const [newDestName, setNewDestName] = React.useState("House Of Glass - ال عاشور عدس");
+  const [newDestUrl, setNewDestUrl] = React.useState("https://www.facebook.com/al3shour");
+  const [addingDest, setAddingDest] = React.useState(false);
+
   // Catalog Picker State
   const [showPicker, setShowPicker] = React.useState(false);
   const [catalogs, setCatalogs] = React.useState<Catalog[]>([]);
@@ -27,6 +33,21 @@ export default function ComposePage() {
   const [products, setProducts] = React.useState<Product[]>([]);
   const [loadingCatalog, setLoadingCatalog] = React.useState(false);
   const [generating, setGenerating] = React.useState(false);
+
+  async function handleAddDestination(name: string, url: string) {
+    if (!accountId || !name.trim() || !url.trim()) return;
+    setAddingDest(true);
+    try {
+      const updated = await addDestination(accountId, { name: name.trim(), url: url.trim() });
+      setAccounts(prev => prev.map(a => a.id === accountId ? { ...a, destinations: updated.destinations } : a));
+      setTargetUrl(url.trim());
+      setShowAddDestModal(false);
+    } catch (e: any) {
+      alert("Failed to add destination: " + e.message);
+    } finally {
+      setAddingDest(false);
+    }
+  }
 
   // Only accounts with a saved session can publish.
   React.useEffect(() => {
@@ -161,23 +182,57 @@ export default function ComposePage() {
                 </div>
 
                 {/* Post Destination Dropdown */}
-                {selectedAcc?.destinations && selectedAcc.destinations.length > 0 && (
-                  <div className="space-y-2">
-                    <label htmlFor="destination" className="text-sm font-medium text-gray-300">
-                      Post Destination (Profile or Page)
-                    </label>
+                {selectedAcc && (
+                  <div className="space-y-2 p-3.5 rounded-xl bg-white/[0.03] border border-white/10">
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="destination" className="text-sm font-medium text-gray-200 flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-cyan-400" />
+                        <span>Post Destination (Profile vs Page)</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddDestModal(true)}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Page / Group</span>
+                      </button>
+                    </div>
+
                     <select
                       id="destination"
                       value={targetUrl}
                       onChange={(e) => setTargetUrl(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-quaz-cyan)] transition-all"
+                      className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-quaz-cyan)] transition-all font-sans"
                     >
-                      {selectedAcc.destinations.map((d, i) => (
-                        <option key={i} value={d.url} className="bg-[var(--color-quaz-bg)]">
-                          {d.name}
+                      {selectedAcc.destinations && selectedAcc.destinations.length > 0 ? (
+                        selectedAcc.destinations.map((d, i) => {
+                          const isPage = d.url.includes("facebook.com") && !d.url.endsWith("facebook.com/") && !d.url.endsWith("facebook.com");
+                          return (
+                            <option key={i} value={d.url} className="bg-[var(--color-quaz-bg)] py-1">
+                              {isPage ? `📄 [PAGE] ${d.name}` : `👤 [PROFILE] ${d.name}`}
+                            </option>
+                          );
+                        })
+                      ) : (
+                        <option value="https://www.facebook.com/" className="bg-[var(--color-quaz-bg)]">
+                          👤 [PROFILE] Personal Profile (Timeline)
                         </option>
-                      ))}
+                      )}
                     </select>
+
+                    {/* Quick Add House Of Glass button if not already added */}
+                    {!selectedAcc.destinations?.some(d => d.url.includes("al3shour") || d.name.toLowerCase().includes("glass")) && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddDestination("House Of Glass - ال عاشور عدس", "https://www.facebook.com/al3shour")}
+                        disabled={addingDest}
+                        className="w-full mt-2 py-2 px-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>{addingDest ? "Adding..." : "+ Quick-Add House Of Glass Page (ال عاشور عدس)"}</span>
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -325,6 +380,70 @@ export default function ComposePage() {
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Custom Page / Destination Modal */}
+      {showAddDestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-[var(--color-quaz-bg)] border border-white/10 rounded-2xl overflow-hidden shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Globe className="w-5 h-5 text-cyan-400" />
+                Add Facebook Page
+              </h3>
+              <button onClick={() => setShowAddDestModal(false)} className="text-gray-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-400">
+              Enter the Facebook Page name and URL you want to publish posts to through your local browser runner.
+            </p>
+
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-300">Page Name</label>
+                <input
+                  type="text"
+                  value={newDestName}
+                  onChange={(e) => setNewDestName(e.target.value)}
+                  placeholder="e.g. House Of Glass - ال عاشور عدس"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-300">Page URL or Username</label>
+                <input
+                  type="text"
+                  value={newDestUrl}
+                  onChange={(e) => setNewDestUrl(e.target.value)}
+                  placeholder="https://www.facebook.com/al3shour"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-cyan-400 font-mono text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowAddDestModal(false)}
+                className="px-4 py-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 text-xs font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddDestination(newDestName, newDestUrl)}
+                disabled={addingDest || !newDestName.trim() || !newDestUrl.trim()}
+                className="px-5 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold rounded-xl text-xs hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {addingDest ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                <span>Add Destination</span>
+              </button>
             </div>
           </div>
         </div>

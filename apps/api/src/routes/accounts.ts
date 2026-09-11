@@ -79,6 +79,83 @@ router.post('/:id/detect-pages', async (req, res) => {
   }
 });
 
+// Add a destination (Page / Target) to an account
+router.post('/:id/destinations', async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const { id } = req.params;
+    const { name, url } = req.body || {};
+
+    if (!name || !url) {
+      return res.status(400).json({ error: 'Destination name and url are required.' });
+    }
+
+    const account = await prisma.socialAccount.findFirst({
+      where: { id, userId },
+    });
+    if (!account) return res.status(404).json({ error: 'Account not found' });
+
+    let destinations: Array<{ name: string; url: string }> = Array.isArray(account.destinations)
+      ? (account.destinations as any[])
+      : [{ name: 'Personal Profile (Timeline)', url: 'https://www.facebook.com/' }];
+
+    const exists = destinations.some(d => d.url === url.trim() || d.name.toLowerCase() === name.trim().toLowerCase());
+    if (!exists) {
+      destinations.push({ name: name.trim(), url: url.trim() });
+    }
+
+    const updated = await prisma.socialAccount.update({
+      where: { id },
+      data: { destinations },
+      select: {
+        id: true,
+        platform: true,
+        status: true,
+        destinations: true,
+      },
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove a destination from an account
+router.delete('/:id/destinations', async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const { id } = req.params;
+    const { url } = req.body || {};
+
+    const account = await prisma.socialAccount.findFirst({
+      where: { id, userId },
+    });
+    if (!account) return res.status(404).json({ error: 'Account not found' });
+
+    let destinations: Array<{ name: string; url: string }> = Array.isArray(account.destinations)
+      ? (account.destinations as any[])
+      : [];
+
+    destinations = destinations.filter(d => d.url !== url);
+
+    const updated = await prisma.socialAccount.update({
+      where: { id },
+      data: { destinations },
+      select: {
+        id: true,
+        platform: true,
+        status: true,
+        destinations: true,
+      },
+    });
+
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete an account
 router.delete('/:id', async (req, res) => {
   try {

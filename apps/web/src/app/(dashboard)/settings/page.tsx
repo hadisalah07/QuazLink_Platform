@@ -37,14 +37,25 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col space-y-8 max-w-5xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
-          <User className="w-8 h-8 text-[var(--color-quaz-cyan)]" />
-          Account &amp; System Settings
-        </h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Manage your personal profile, security credentials, API keys, and notification preferences.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
+            <User className="w-8 h-8 text-[var(--color-quaz-cyan)]" />
+            Account &amp; System Settings
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Manage your personal profile, desktop runners, security credentials, and system preferences.
+          </p>
+        </div>
+
+        {/* Platform Version Badge */}
+        <div className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/30 px-4 py-2 rounded-xl self-start sm:self-auto shadow-[0_0_15px_rgba(34,211,238,0.15)]">
+          <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase font-mono tracking-wider text-gray-400">Platform Version</span>
+            <span className="text-sm font-mono font-bold text-cyan-300">v.26.9.0</span>
+          </div>
+        </div>
       </div>
 
       {toastMessage && (
@@ -232,6 +243,36 @@ export default function SettingsPage() {
           </div>
         </SpotlightCard>
       )}
+
+      {/* System Version & Architecture Specifications Footer */}
+      <div className="p-5 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xl">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm shadow-[0_0_10px_rgba(34,211,238,0.2)]">
+            v26
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold text-sm">QuazLink Enterprise Platform</span>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/30">
+                v.26.9.0
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Zero-Ban Distributed Agent &amp; Residential Desktop Runner Architecture
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-gray-400 border-t md:border-t-0 pt-3 md:pt-0 border-white/5">
+          <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300">
+            Version Scheme: v.yr.mon.x
+          </span>
+          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Runner Active
+          </span>
+        </div>
+      </div>
     </div>
   );
 }

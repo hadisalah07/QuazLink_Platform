@@ -120,8 +120,24 @@ export async function deleteAccount(id: string): Promise<void> {
   }
 }
 
-// Re-detect pages for an already-connected account (reuses the saved session,
-// opens a short-lived browser on the worker, refreshes `destinations`).
+export async function addDestination(accountId: string, destination: { name: string; url: string }): Promise<Account> {
+  const res = await apiFetch(`/api/accounts/${accountId}/destinations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(destination),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function removeDestination(accountId: string, url: string): Promise<Account> {
+  const res = await apiFetch(`/api/accounts/${accountId}/destinations`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  return jsonOrThrow(res);
+}
+
 export async function redetectPages(id: string): Promise<{ status: string }> {
   const res = await apiFetch(`/api/accounts/${id}/detect-pages`, {
     method: "POST",
@@ -130,6 +146,7 @@ export async function redetectPages(id: string): Promise<{ status: string }> {
   });
   return jsonOrThrow(res);
 }
+
 
 export async function createPost(input: {
   content: string;
