@@ -1,6 +1,6 @@
 {
   "name": "saas-automation",
-  "version": "1.0.0",
+  "version": "26.9.0",
   "private": true,
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",

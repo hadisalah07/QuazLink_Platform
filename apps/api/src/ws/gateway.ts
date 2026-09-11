@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server as HttpServer } from 'http';
 import { verify } from 'jsonwebtoken';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import crypto from 'crypto';
 import prisma from '../prisma';
 
@@ -269,13 +269,13 @@ export function setupWebSocketGateway(server: HttpServer) {
                 generationConfig: { 
                   responseMimeType: "application/json",
                   responseSchema: {
-                    type: "object",
+                    type: SchemaType.OBJECT,
                     properties: {
-                      thought: { type: "string" },
-                      action: { type: "string" },
-                      selector: { type: "string" },
-                      value: { type: "string" },
-                      reason: { type: "string" }
+                      thought: { type: SchemaType.STRING },
+                      action: { type: SchemaType.STRING },
+                      selector: { type: SchemaType.STRING },
+                      value: { type: SchemaType.STRING },
+                      reason: { type: SchemaType.STRING }
                     },
                     required: ["thought", "action", "selector", "value", "reason"]
                   }
@@ -298,9 +298,14 @@ You must return ONLY a valid JSON object matching this schema (do NOT use markdo
 }
 
 CRITICAL RULES:
-1. Playwright will execute the selector. Use robust selectors like '[aria-label="Post"]' or 'text="Create Post"'.
-2. If the goal is fully achieved (e.g., the post is successfully published and you see the timeline), return action "done".
-3. If you need to type text, return action "type" and put the text in "value".`;
+1. Playwright will execute the selector. Use resilient selectors based on roles, labels, or clear text. Never use dynamic obfuscated classes (e.g. 'x1i10hfl').
+2. The social media interface may be in English or Arabic. Support both languages:
+   - To open composer: use 'div[role="button"]:has-text("What\'s on your mind"), div[role="button"]:has-text("بما تفكر"), div[role="button"]:has-text("بم تفكر")'
+   - To write text: return action "type" with selector '[contenteditable="true"][role="textbox"], div[role="dialog"] div[role="textbox"]'
+   - To attach images: if photo button is visible, click it, or if file input exists, return action "upload" with selector 'input[type="file"][accept*="image"]'
+   - To publish post: use 'div[role="dialog"] div[aria-label="Post"][role="button"], div[role="dialog"] div[aria-label="نشر"][role="button"], div[role="dialog"] div[aria-label="Post"], div[role="dialog"] div[aria-label="نشر"]'
+3. If the goal is fully achieved (e.g., the post is published and the dialog has closed), return action "done".
+4. If you need to type text, return action "type".`;
 
               const imageParts = [
                 {

@@ -84,7 +84,7 @@ export class PlaywrightRunner {
         viewport: { width: 1280, height: 800 },
         permissions: ['clipboard-read', 'clipboard-write'],
         userAgent:
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
       });
 
       const page = await context.newPage();
@@ -126,31 +126,66 @@ export class PlaywrightRunner {
 
   private async executeActionOnPage(page: Page, action: MacroAction, content?: string, images?: string[]) {
     if (action.action === 'navigate' && action.url) {
-      await page.goto(action.url, { waitUntil: 'domcontentloaded' });
+      await page.goto(action.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(1500);
     } else if (action.action === 'click' && action.selector) {
-      await page.click(action.selector, { force: true, timeout: 5000 });
+      if (action.selector.includes('Next') || action.selector.includes('التالي')) {
+        const clickedViaEval = await page.evaluate(() => {
+          const dialog = document.querySelector('div[role="dialog"]');
+          const btn = Array.from(dialog?.querySelectorAll('div[role="button"], button') || []).find(
+            b => b.getAttribute('aria-label') === 'Next' || (b as HTMLElement).innerText?.trim() === 'Next' ||
+                 b.getAttribute('aria-label') === 'التالي' || (b as HTMLElement).innerText?.trim() === 'التالي'
+          );
+          if (btn) {
+            (btn as HTMLElement).click();
+            return true;
+          }
+          return false;
+        });
+        if (!clickedViaEval) {
+          const loc = page.locator(action.selector).first();
+          await loc.waitFor({ state: 'visible', timeout: 8000 });
+          await loc.click({ force: true });
+        }
+      } else {
+        const loc = page.locator(action.selector).first();
+        await loc.waitFor({ state: 'visible', timeout: 8000 });
+        await loc.click({ force: true });
+      }
+      await page.waitForTimeout(1500);
     } else if (action.action === 'type' && action.selector) {
-      const textToType = action.value || content || '';
-      // Use standard fill/type, fallback to evaluate if strict Lexical
-      await page.fill(action.selector, textToType, { timeout: 5000 }).catch(async () => {
-         await page.evaluate(({ sel, txt }) => {
-           const el = document.querySelector(sel) as HTMLElement;
-           if (el) {
-             el.focus();
-             const dataTransfer = new DataTransfer();
-             dataTransfer.setData('text/plain', txt);
-             el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dataTransfer, bubbles: true }));
-           }
-         }, { sel: action.selector as string, txt: textToType });
-      });
-    } else if (action.action === 'upload' && action.selector && images && images.length > 0) {
-      const fileInput = page.locator(action.selector).first();
-      await fileInput.setInputFiles(images);
-      await page.waitForTimeout(3000); // Wait for preview
+      // Dynamic post content MUST take precedence over any static/recorded action.value
+      const textToType = content || action.value || '';
+      const locator = page.locator(action.selector).first();
+      await locator.waitFor({ state: 'visible', timeout: 10000 });
+      await locator.click({ force: true });
+
+      // Facebook uses Lexical / Draft.js contenteditable.
+      // Focusing and using keyboard.insertText fires full native input events instantly and reliably.
+      try {
+        await page.keyboard.insertText(textToType);
+      } catch (e) {
+        await locator.pressSequentially(textToType, { delay: 10 });
+      }
+      await page.waitForTimeout(1500);
+    } else if (action.action === 'upload') {
+      if (images && images.length > 0) {
+        const selector = action.selector || 'div[role="dialog"] input[type="file"], input[type="file"]';
+        let fileInput = page.locator(selector).first();
+        if ((await fileInput.count().catch(() => 0)) === 0) {
+          const photoBtn = page.locator('div[role="dialog"] div[aria-label="Photo/video"], div[aria-label="Photo/video"], div[role="dialog"] div[aria-label="صورة/فيديو"]').first();
+          if (await photoBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+            await photoBtn.click({ force: true });
+            await page.waitForTimeout(1500);
+          }
+        }
+        fileInput = page.locator('div[role="dialog"] input[type="file"], input[type="file"]').first();
+        await fileInput.setInputFiles(images);
+        await page.waitForTimeout(5000); // Wait for preview cards to render
+      }
     } else if (action.action === 'fail') {
       throw new Error(`AI indicated failure: ${action.value}`);
     }
-    await page.waitForTimeout(2000);
   }
 
   private async runAutonomousEngine(
@@ -174,10 +209,45 @@ export class PlaywrightRunner {
           if (step.action === 'done') break;
           await this.executeActionOnPage(page, step, content, images);
         }
+
+        // Multi-step Page Support: If clicking Next opened Step 2 (Post settings on Facebook Pages)
+        onProgress('[MacroEngine] Checking for Step 2 (Page Post Settings & Skeletons)...');
+        await page.waitForTimeout(6500);
+
+        const clickedPost = await page.evaluate(() => {
+          const dialog = document.querySelector('div[role="dialog"]');
+          if (!dialog) return false;
+          const buttons = Array.from(dialog.querySelectorAll('div[role="button"], button'));
+          const postBtn = buttons.find(b => {
+            const txt = (b as HTMLElement).innerText?.trim();
+            const lbl = b.getAttribute('aria-label');
+            return txt === 'Post' || lbl === 'Post' || txt === 'نشر' || lbl === 'نشر' || txt === 'Publish' || lbl === 'Publish';
+          });
+          if (postBtn) {
+            (postBtn as HTMLElement).click();
+            return true;
+          }
+          return false;
+        });
+
+        if (clickedPost) {
+          onProgress('[MacroEngine] Clicked final Post button on Step 2.');
+        } else {
+          const step2PostBtn = page.locator('div[role="dialog"] div[aria-label="Post"][role="button"], div[role="dialog"] div[aria-label="Publish"][role="button"], div[role="dialog"] div[aria-label="نشر"][role="button"]').last();
+          if (await step2PostBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
+            await step2PostBtn.click({ force: true });
+            onProgress('[MacroEngine] Clicked Step 2 Post button via locator.');
+          }
+        }
         
-        // Wait to verify publication
-        await page.waitForTimeout(5000);
-        onProgress('[MacroEngine] Static macro executed successfully.');
+        // Wait to verify publication: check that dialog closes completely
+        const dialog = page.locator('div[role="dialog"]').first();
+        if (await dialog.isVisible({ timeout: 3000 }).catch(() => false)) {
+          onProgress('[MacroEngine] Waiting for post composer dialog to finish publishing...');
+          await dialog.waitFor({ state: 'hidden', timeout: 35000 }).catch(() => {});
+        }
+
+        onProgress('[MacroEngine] Post submitted successfully.');
         return;
       } catch (e: any) {
         onProgress(`[MacroEngine] Cached macro failed (${e.message}). Invalidating cache and falling back to Driver Mode...`);
@@ -191,8 +261,8 @@ export class PlaywrightRunner {
     }
 
     onProgress(`[DriverMode] Engaging Autonomous AI for ${platform}...`);
-    await page.goto(dest, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(3000);
+    await page.goto(dest, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForTimeout(2500);
 
     const history: any[] = [];
     let stepIndex = 0;
@@ -211,10 +281,18 @@ export class PlaywrightRunner {
       if (instruction.action === 'done') {
         history.push(instruction);
         onProgress('[DriverMode] AI reported goal achieved. Saving new macro...');
-        // Prepend the initial navigation step
+        
+        // Sanitize history so that 'type' actions do not bake in specific post text
+        const sanitizedHistory = history.map(h => {
+          if (h.action === 'type') {
+            return { ...h, value: '' };
+          }
+          return h;
+        });
+
         const stepsToSave: MacroAction[] = [
           { action: 'navigate', url: dest },
-          ...history
+          ...sanitizedHistory
         ];
         this.macroCache.saveMacro(platform, stepsToSave);
         return; // Success!

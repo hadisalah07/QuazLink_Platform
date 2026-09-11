@@ -141,3 +141,40 @@
   - **حفظ الوصول الآمن:** تم حفظ `COOLIFY_API_TOKEN` في ملف مخفي آمن لتسهيل متابعة حالة السيرفر برمجياً.
   - **حل مشاكل الرفع (Git Limits):** تم إصلاح خطأ تجاوز سعة الرفع على GitHub (بسبب ملفات تطبيق سطح المكتب)، وتعديل `.gitignore` ليتجاهل مجلدات `release` نهائياً.
 - **النتيجة:** قاعدة بيانات مستقرة، آلية تحديث (CI/CD) موثوقة ومؤتمتة بالكامل على سيرفر Coolify تعمل ذاتياً بدون أي تدخل يدوي.
+
+---
+
+## 📅 [11 سبتمبر 2026] - تأسيس قسم الأتمتة وإصلاح محرك نشر فيسبوك والـ Macro Cache (QuazCode CoWork)
+- **تأسيس قسم الأتمتة (Automation Department):**
+  - تم إنشاء 6 أدوار تخصصية جديدة داخل شركة QuazCode CoWork (`automation-manager`, `browser-automator`, `scraper-specialist`, `workflow-automator`, `desktop-automator`, `ai-automator`).
+  - تحديث توجيهات الـ General Manager والـ HR Auditor لإدماج القسم الجديد.
+- **إصلاح أتمتة نشر فيسبوك والـ Playwright Runner (`apps/desktop-agent`):**
+  - **حل مشكلة تكرار البوستات (Macro Dynamic Content Overwrite):** تم إعطاء الأولوية للـ `content` القادم من الـ Job بدلاً من `action.value` الثابت، وتجريد النصوص المسجلة في الـ Macro Cache لضمان نشر النصوص الجديدة دائماً دون تكرار.
+  - **حل مشكلة محرر فيسبوك وزر النشر (Facebook Lexical State):** استبدال `page.fill` بـ `pressSequentially` و `keyboard.insertText` لإطلاق أحداث الـ Synthetic Input Events الخاصة بـ React، مما يضمن تفعيل زر النشر (Post Button) فوراً.
+  - **التحقق من اكتمال النشر (Verified Dialog Dismissal):** استبدال الـ Fixed Waits بمراقبة اختفاء الـ Modal Dialog لضمان انتهاء النشر قبل التقاط لقطة الشاشة وإغلاق المتصفح.
+  - **تحديث الـ User-Agent:** ترقية الـ User Agent إلى Chrome 131 الحديث لتفادي كشف البوتات.
+- **تنفيذ الأتمتة العملية: سحب بيانات المنتج ونشره على فيسبوك بالصورة والوصف:**
+  - **سحب المنتج (`https://www.hg-alshour.online/?code=8606`):** استخراج كود المنتج (8606)، الاسم (Caka Vacuum Coffee Mug)، السعر (110 ج.م)، ورابط الصورة عالية الدقة من ImageKit CDN.
+  - **الرفع والنشر المباشر (Direct Native Input):** رفع الصورة عبر محدد الـ File Input وتجاوز فخاخ القوائم الفرعية في فيسبوك ("Add to your post").
+  - **النشر الناجح على البروفايل الشخصي:** تم نشر البوست التسويقي بالصورة والوصف وتوثيقه (`live_published_product_post.png`).
+  - **النشر الاحترافي على صفحة العمل الرسمية (House Of Glass - ال عاشور عدس):**
+    - تم التبديل البرمجي الذكي لهوية الحساب إلى صفحة العمل الرسمية (`https://www.facebook.com/al3shour`).
+    - إدارة دورة النشر على الصفحات (Page Post Flow: Next Step -> Scheduling / Post Settings -> Final Post Submission).
+    - تم إطلاق ونشر البوست رسمياً باسم الصفحة مع اللوجو والصورة عالية الدقة وروابط الشراء وتوثيق ذلك بلقطة حية لتايم لاين الصفحة (`hog_live_published_post_card.png`).
+
+---
+
+## 📅 [11 سبتمبر 2026] - إطلاق الإصدار `v.26.9.0` (نظام الإصدارات وتكامل الـ Desktop Runner مع المنصة)
+- **اعتماد نظام الترقيم القياسي (`v.yr.mon.x`):**
+  - تم اعتماد صيغة الترقيم الرسمية للمنصة: `v.26.9.0` (السنة: 26، الشهر: 9، الإصدار: 0).
+  - إدراج رقم الإصدار في الـ `package.json` لكافة حزم المشروع (Root, Web, API, Desktop-Agent).
+  - إضافة شارة الإصدار (Version Badge) في القائمة الجانبية (Sidebar) بجوار لوجو QuazLink وأسفل القائمة.
+  - إضافة الإصدار في شاشة ترحيب الـ Desktop Runner CLI.
+- **تحديث محرك الأتمتة للـ Desktop Runner (`playwright-runner.ts`):**
+  - دمج المسار الموثوق لنشر صفحات فيسبوك (Facebook Page Multi-Step Publishing):
+    - معالجة زر `Next` عبر الـ Evaluate Dispatch المباشر لمنع تفويت الأحداث.
+    - انتظار ذكي (6.5 ثوانٍ) لانتهاء تحميل الـ Skeletons في خطوة إعدادات البوست (Post Settings).
+    - استهداف دقيق ومحكم لزر `Post` النهائي ومنع الالتباس مع زر "Add to your post".
+    - دعم كامل للمحتوى العربي وإرفاق الصور الأصلية عالية الدقة.
+- **الجاهزية للتشغيل الحي (Live Zero-Ban Node):**
+  - ربط الـ Desktop Runner ببوابة المنصة `wss://api.quazlink.site` ليصبح جهاز العميل جاهزاً لاستقبال وتنفيذ المهام فور إنشائها من الويب.

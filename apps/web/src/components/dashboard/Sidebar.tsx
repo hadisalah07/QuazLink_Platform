@@ -50,9 +50,16 @@ export function Sidebar({ user }: { user: AuthUser }) {
       onClick={() => { if (!isExpanded) setIsExpanded(true); }}
     >
       <div className="h-16 flex items-center justify-between px-6 border-b border-white/10">
-        <Link href="/" className="flex items-center space-x-2 group">
+        <Link href="/" className="flex items-center space-x-2.5 group">
           <img src="/logo.png" alt="QuazLink Logo" className="w-8 h-8 flex-shrink-0 object-contain drop-shadow-[0_0_8px_rgba(34,211,238,0.4)] group-hover:drop-shadow-[0_0_20px_rgba(34,211,238,0.9)] transition-all duration-300" />
-          {isExpanded && <span className="font-semibold text-lg text-white tracking-tight whitespace-nowrap">QuazLink</span>}
+          {isExpanded && (
+            <div className="flex items-center space-x-2">
+              <span className="font-semibold text-lg text-white tracking-tight whitespace-nowrap">QuazLink</span>
+              <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 tracking-wider">
+                v.26.9.0
+              </span>
+            </div>
+          )}
         </Link>
         {isExpanded && (
           <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="text-gray-400 hover:text-white">
@@ -108,6 +115,13 @@ export function Sidebar({ user }: { user: AuthUser }) {
           <LogOut className="w-5 h-5 flex-shrink-0" />
           {isExpanded && <span className="whitespace-nowrap">{signingOut ? "Signing out…" : "Sign out"}</span>}
         </button>
+
+        {isExpanded && (
+          <div className="pt-2 px-1 flex items-center justify-between text-[11px] text-gray-500 font-mono">
+            <span>Platform</span>
+            <span className="text-cyan-400 font-semibold">v.26.9.0</span>
+          </div>
+        )}
       </div>
     </aside>
   );
