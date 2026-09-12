@@ -140,16 +140,41 @@ export class InstagramNode implements IPlatformNode {
 
     await createTrigger.waitFor({ state: 'visible', timeout: 15000 });
     await createTrigger.click({ force: true });
+    await page.waitForTimeout(1500);
+
+    // Step 1.5: Instagram Web opens a popover submenu (Post, Live video, Ad). Click "Post"
+    onProgress('[InstagramNode] Selecting "Post" from create menu...');
+    try {
+      await page.evaluate(() => {
+        const all = Array.from(document.querySelectorAll('a, div[role="button"], button, span'));
+        const postEl = all.find((el) => {
+          const txt = (el as HTMLElement).innerText?.trim();
+          return (txt === 'Post' || txt === 'منشور') && el.children.length === 0;
+        });
+        if (postEl) {
+          const clickable = postEl.closest('a, div[role="button"], button') || postEl;
+          (clickable as HTMLElement).click();
+        }
+      });
+    } catch {
+      // Fallback to locator click
+      const postOption = page
+        .locator('a:has-text("Post"), div[role="button"]:has-text("Post"), a:has-text("منشور"), div[role="button"]:has-text("منشور")')
+        .first();
+      if (await postOption.isVisible().catch(() => false)) {
+        await postOption.click({ force: true });
+      }
+    }
     await page.waitForTimeout(2000);
 
     // Step 2: Ensure Dialog is Open
     const dialog = page.locator('div[role="dialog"]').first();
-    await dialog.waitFor({ state: 'visible', timeout: 12000 });
+    await dialog.waitFor({ state: 'visible', timeout: 15000 });
     onProgress('[InstagramNode] Create post dialog is active.');
 
     // Step 3: Inject Images into Instagram Dialog file input
     onProgress(`[InstagramNode] Injecting ${images.length} media file(s) into Instagram...`);
-    const fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
+    const fileInput = page.locator('div[role="dialog"] input[type="file"], input[type="file"]').first();
     await fileInput.waitFor({ state: 'attached', timeout: 10000 });
     await fileInput.setInputFiles(images);
     await page.waitForTimeout(3000);
@@ -167,7 +192,6 @@ export class InstagramNode implements IPlatformNode {
     await page.waitForTimeout(2500);
 
     // Step 5: Second "Next" (Filter Screen -> Caption Screen)
-    // If Instagram is on Filter screen, click Next again
     if (await nextBtn.isVisible({ timeout: 4000 }).catch(() => false)) {
       onProgress('[InstagramNode] Navigating past Filter screen (Next)...');
       await nextBtn.click({ force: true });
@@ -179,7 +203,7 @@ export class InstagramNode implements IPlatformNode {
       onProgress(`[InstagramNode] Entering post caption (${content.length} characters)...`);
       const captionBox = page
         .locator(
-          'div[role="dialog"] div[aria-label="Write a caption..."], div[role="dialog"] [aria-label*="caption"], div[role="dialog"] [aria-label*="شرح"], div[role="dialog"] div[role="textbox"]'
+          'div[role="dialog"] div[aria-label="Add a caption..."], div[role="dialog"] div[aria-label="Write a caption..."], div[role="dialog"] [aria-label*="caption"], div[role="dialog"] [aria-label*="شرح"], div[role="dialog"] div[role="textbox"]'
         )
         .first();
 

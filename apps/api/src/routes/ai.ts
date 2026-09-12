@@ -32,7 +32,7 @@ Requirements:
 - Include appropriate emojis.
 - Return ONLY the ad copy text, no extra conversational filler.`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash-lite' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const copy = response.text();
