@@ -66,15 +66,31 @@ export default function ComposePage() {
     getCatalogs().then(setCatalogs).catch(console.error);
   }, []);
 
-  // Update targetUrl when account changes
+  const selectedAcc = accounts.find(a => a.id === accountId);
+
+  const availableDestinations = React.useMemo(() => {
+    if (!selectedAcc) return [];
+    const dests = selectedAcc.destinations || [];
+    if (selectedAcc.platform === "instagram") {
+      const igOnly = dests.filter(d => !d.url.includes("facebook.com"));
+      if (igOnly.length === 0) {
+        return [{ name: "@hog_alashour (Instagram Feed)", url: "https://www.instagram.com/" }];
+      }
+      return igOnly;
+    }
+    return dests.length > 0 ? dests : [{ name: "Personal Profile (Timeline)", url: "https://www.facebook.com/" }];
+  }, [selectedAcc]);
+
+  // Update targetUrl when account or available destinations change
   React.useEffect(() => {
-    const acc = accounts.find(a => a.id === accountId);
-    if (acc?.destinations && acc.destinations.length > 0) {
-      setTargetUrl(acc.destinations[0].url);
+    if (availableDestinations.length > 0) {
+      if (!availableDestinations.some(d => d.url === targetUrl)) {
+        setTargetUrl(availableDestinations[0].url);
+      }
     } else {
       setTargetUrl("");
     }
-  }, [accountId, accounts]);
+  }, [availableDestinations, targetUrl]);
 
   async function handleCatalogSelect(c: Catalog) {
     setSelectedCatalog(c);
@@ -124,9 +140,7 @@ export default function ComposePage() {
   }
 
   const canSubmit = accountId && content.trim() && !submitting;
-
-  const selectedAcc = accounts.find(a => a.id === accountId);
-  const selectedDest = selectedAcc?.destinations?.find(d => d.url === targetUrl);
+  const selectedDest = availableDestinations.find(d => d.url === targetUrl) || availableDestinations[0];
 
   return (
     <motion.div initial="initial" animate="animate" variants={fadeIn} className="max-w-7xl mx-auto space-y-6">
@@ -153,19 +167,19 @@ export default function ComposePage() {
           <GlassCard className="flex flex-col p-6 md:p-8 space-y-6">
             {accounts.length === 0 ? (
               <div className="text-center py-8 space-y-4">
-                <p className="text-gray-400">مفيش حساب فيسبوك متصل جاهز للنشر.</p>
+                <p className="text-gray-400">مفيش حساب متصل جاهز للنشر.</p>
                 <Link
                   href="/accounts"
                   className="inline-block px-5 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-semibold hover:bg-cyan-500/30 transition-all"
                 >
-                  اربط حساب فيسبوك الأول
+                  اربط حسابك من صفحة Accounts الأول
                 </Link>
               </div>
             ) : (
               <form className="flex flex-col space-y-5" onSubmit={handleSubmit}>
                 <div className="space-y-2">
                   <label htmlFor="account" className="text-sm font-medium text-gray-300">
-                    Facebook Account
+                    Social Account {selectedAcc?.platform ? `(${selectedAcc.platform.toUpperCase()})` : ""}
                   </label>
                   <select
                     id="account"
@@ -175,7 +189,7 @@ export default function ComposePage() {
                   >
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id} className="bg-[var(--color-quaz-bg)]">
-                        {a.platform} — {a.id.slice(0, 8)}
+                        {a.platform === "instagram" ? "📸 Instagram" : a.platform === "tiktok" ? "🎵 TikTok" : "👤 Facebook"} — {a.id.slice(0, 8)}
                       </option>
                     ))}
                   </select>
@@ -187,16 +201,20 @@ export default function ComposePage() {
                     <div className="flex items-center justify-between">
                       <label htmlFor="destination" className="text-sm font-medium text-gray-200 flex items-center gap-2">
                         <Globe className="w-4 h-4 text-cyan-400" />
-                        <span>Post Destination (Profile vs Page)</span>
+                        <span>
+                          Post Destination {selectedAcc.platform === "instagram" ? "(Instagram Feed)" : "(Profile vs Page)"}
+                        </span>
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddDestModal(true)}
-                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Add Page / Group</span>
-                      </button>
+                      {selectedAcc.platform !== "instagram" && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAddDestModal(true)}
+                          className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Add Page / Group</span>
+                        </button>
+                      )}
                     </div>
 
                     <select
@@ -205,24 +223,20 @@ export default function ComposePage() {
                       onChange={(e) => setTargetUrl(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-[var(--color-quaz-cyan)] transition-all font-sans"
                     >
-                      {selectedAcc.destinations && selectedAcc.destinations.length > 0 ? (
-                        selectedAcc.destinations.map((d, i) => {
-                          const isPage = d.url.includes("facebook.com") && !d.url.endsWith("facebook.com/") && !d.url.endsWith("facebook.com");
-                          return (
-                            <option key={i} value={d.url} className="bg-[var(--color-quaz-bg)] py-1">
-                              {isPage ? `📄 [PAGE] ${d.name}` : `👤 [PROFILE] ${d.name}`}
-                            </option>
-                          );
-                        })
-                      ) : (
-                        <option value="https://www.facebook.com/" className="bg-[var(--color-quaz-bg)]">
-                          👤 [PROFILE] Personal Profile (Timeline)
-                        </option>
-                      )}
+                      {availableDestinations.map((d, i) => {
+                        const isInstagram = selectedAcc.platform === "instagram";
+                        const isPage = d.url.includes("facebook.com") && !d.url.endsWith("facebook.com/") && !d.url.endsWith("facebook.com");
+                        const prefix = isInstagram ? "📸 [FEED]" : isPage ? "📄 [PAGE]" : "👤 [PROFILE]";
+                        return (
+                          <option key={i} value={d.url} className="bg-[var(--color-quaz-bg)] py-1">
+                            {`${prefix} ${d.name}`}
+                          </option>
+                        );
+                      })}
                     </select>
 
-                    {/* Quick Add House Of Glass button if not already added */}
-                    {!selectedAcc.destinations?.some(d => d.url.includes("al3shour") || d.name.toLowerCase().includes("glass")) && (
+                    {/* Quick Add House Of Glass button strictly for Facebook */}
+                    {selectedAcc.platform === "facebook" && !selectedAcc.destinations?.some(d => d.url.includes("al3shour") || d.name.toLowerCase().includes("glass")) && (
                       <button
                         type="button"
                         onClick={() => handleAddDestination("House Of Glass - ال عاشور عدس", "https://www.facebook.com/al3shour")}
@@ -305,8 +319,9 @@ export default function ComposePage() {
           <PostPreview
             content={content}
             mediaUrls={mediaUrls}
-            accountName={selectedAcc?.platform || "Facebook Account"}
+            accountName={selectedAcc?.platform === "instagram" ? "hog_alashour" : selectedAcc?.platform || "Facebook Account"}
             targetName={selectedDest?.name}
+            platform={selectedAcc?.platform}
           />
         </div>
       </div>

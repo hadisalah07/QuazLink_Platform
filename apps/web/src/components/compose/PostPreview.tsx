@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ThumbsUp, MessageSquare, Share2, Globe, Sparkles } from "lucide-react";
+import { ThumbsUp, MessageSquare, Share2, Globe, Sparkles, Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 
 interface PostPreviewProps {
@@ -9,9 +9,127 @@ interface PostPreviewProps {
   mediaUrls: string[];
   accountName?: string;
   targetName?: string;
+  platform?: string;
 }
 
-export function PostPreview({ content, mediaUrls, accountName = "Your Facebook Page", targetName }: PostPreviewProps) {
+export function PostPreview({
+  content,
+  mediaUrls,
+  accountName = "Your Account",
+  targetName,
+  platform = "facebook",
+}: PostPreviewProps) {
+  const isInstagram = (platform || "").toLowerCase() === "instagram";
+
+  if (isInstagram) {
+    const igHandle = targetName?.includes("@")
+      ? targetName.replace("@", "")
+      : accountName?.includes("@")
+      ? accountName.replace("@", "")
+      : "hog_alashour";
+
+    return (
+      <div className="flex flex-col space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-pink-400 flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+            Live Instagram Preview
+          </span>
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border border-pink-500/30 font-mono">
+            Instagram Feed View
+          </span>
+        </div>
+
+        <SpotlightCard className="p-4 border border-white/10 bg-[#000000] text-white rounded-xl shadow-2xl font-sans">
+          {/* Instagram Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 flex items-center justify-center shadow-md">
+                <div className="w-full h-full rounded-full bg-black flex items-center justify-center text-xs font-bold text-white uppercase">
+                  {igHandle.slice(0, 2)}
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-1">
+                  <span className="font-semibold text-xs text-white leading-tight">
+                    {igHandle}
+                  </span>
+                  <span className="text-gray-400 text-xs">•</span>
+                  <span className="text-gray-400 text-xs">Follow</span>
+                </div>
+                <span className="text-[10px] text-gray-400">Original audio</span>
+              </div>
+            </div>
+            <button type="button" className="text-gray-400 hover:text-white transition-colors">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Media Showcase (Square/Aspect-Fill) */}
+          <div className="rounded-lg overflow-hidden border border-white/5 bg-[#121212] mb-3 relative">
+            {mediaUrls.length > 0 ? (
+              mediaUrls.length === 1 ? (
+                <img src={mediaUrls[0]} alt="Instagram Post" className="w-full aspect-square object-cover" />
+              ) : (
+                <div className="relative aspect-square">
+                  <img src={mediaUrls[0]} alt="Instagram Carousel" className="w-full h-full object-cover" />
+                  <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-white text-[11px] font-mono">
+                    1/{mediaUrls.length}
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="w-full aspect-square flex flex-col items-center justify-center text-gray-600 p-6 text-center">
+                <div className="w-12 h-12 rounded-full border border-gray-700 flex items-center justify-center mb-2 text-gray-500">
+                  📸
+                </div>
+                <span className="text-xs text-gray-500">Pick products or add images to see carousel preview</span>
+              </div>
+            )}
+          </div>
+
+          {/* Instagram Action Bar */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3.5">
+              <button type="button" className="hover:text-red-500 transition-colors">
+                <Heart className="w-5 h-5" />
+              </button>
+              <button type="button" className="hover:text-gray-300 transition-colors">
+                <MessageCircle className="w-5 h-5 -rotate-90" />
+              </button>
+              <button type="button" className="hover:text-gray-300 transition-colors">
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+            <button type="button" className="hover:text-gray-300 transition-colors">
+              <Bookmark className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Likes */}
+          <div className="text-xs font-semibold text-white mb-1.5">
+            284 likes
+          </div>
+
+          {/* Caption */}
+          <div className="text-xs text-gray-100 whitespace-pre-wrap leading-relaxed" dir="auto">
+            <span className="font-bold mr-1.5 text-white">{igHandle}</span>
+            {content.trim() ? (
+              content
+            ) : (
+              <span className="text-gray-500 italic">Write your post caption here...</span>
+            )}
+          </div>
+
+          <div className="mt-2 text-[10px] text-gray-500 uppercase tracking-wider font-mono">
+            Just now
+          </div>
+        </SpotlightCard>
+      </div>
+    );
+  }
+
+  // Fallback: Facebook Preview
   return (
     <div className="flex flex-col space-y-3">
       <div className="flex items-center justify-between">

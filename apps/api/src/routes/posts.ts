@@ -20,7 +20,7 @@ router.post('/', async (req: Request, res: Response) => {
     // comes straight from the request body).
     const account = await prisma.socialAccount.findFirst({
       where: { id: socialAccountId, userId },
-      select: { id: true, destinations: true },
+      select: { id: true, platform: true, destinations: true },
     });
     if (!account) {
       return res.status(404).json({ error: 'Account not found' });
@@ -69,6 +69,7 @@ router.post('/', async (req: Request, res: Response) => {
       content: post.content,
       mediaUrls: post.mediaUrls,
       targetUrl,
+      platform: account.platform,
       socialAccountId,
     });
 

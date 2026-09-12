@@ -12,7 +12,7 @@ export class InstagramNode implements IPlatformNode {
 
   async execute(params: NodeExecutionParams): Promise<NodeExecutionResult> {
     const { page, content, images, targetUrl, onProgress, requestDriverAction } = params;
-    const dest = targetUrl || 'https://www.instagram.com';
+    const dest = (targetUrl && !targetUrl.includes('facebook.com')) ? targetUrl : 'https://www.instagram.com';
     const goal = `Publish a new post on Instagram with the provided caption and ${images.length} images.`;
 
     if (!images || images.length === 0) {
