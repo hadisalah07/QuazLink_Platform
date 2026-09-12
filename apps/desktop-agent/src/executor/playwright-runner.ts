@@ -96,8 +96,8 @@ export class PlaywrightRunner {
       try { fs.chmodSync(sessionFile, 0o600); } catch {}
 
       onProgress('Capturing publication proof screenshot...');
-      const screenshotBuffer = await page.screenshot({ fullPage: false });
-      const screenshotBase64 = `data:image/png;base64,${screenshotBuffer.toString('base64')}`;
+      const screenshotBuffer = await page.screenshot({ type: 'jpeg', quality: 75, fullPage: false });
+      const screenshotBase64 = `data:image/jpeg;base64,${screenshotBuffer.toString('base64')}`;
 
       onProgress('Execution finished successfully!');
       return {

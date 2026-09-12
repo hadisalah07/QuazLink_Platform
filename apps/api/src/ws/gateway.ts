@@ -45,6 +45,21 @@ export function setupWebSocketGateway(server: HttpServer) {
 
   console.log('🛡️ WebSocket Gateway initialized on /ws/runner (Secure Zero-Trust Channel)');
 
+  // Periodic background watchdog to reconcile any stuck/dispatched jobs (runs every 15s)
+  setInterval(async () => {
+    try {
+      for (const [userId, devices] of activeDevices.entries()) {
+        for (const [deviceId, socket] of devices.entries()) {
+          if (socket.readyState === WebSocket.OPEN) {
+            await reconcilePendingJobs(userId, deviceId);
+          }
+        }
+      }
+    } catch (e: any) {
+      console.error('Watchdog error:', e.message);
+    }
+  }, 15000);
+
   wss.on('connection', async (ws: AuthenticatedSocket, req) => {
     try {
       const url = new URL(req.url || '', `http://${req.headers.host}`);
@@ -405,15 +420,20 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
   const deviceId = targetDeviceId;
   const socket = targetSocket;
 
-  // ATOMIC CLAIM — flip pending -> dispatched before sending. If the job is no
-  // longer pending (another path already took it, or a duplicate reconnect is
-  // re-dispatching), do NOT send it again — this prevents a double dispatch.
+  // ATOMIC CLAIM — flip pending (or stale dispatched > 30s) -> dispatched before sending.
+  const staleThreshold = new Date(Date.now() - 30_000);
   const claim = await prisma.job.updateMany({
-    where: { id: jobData.id, status: 'pending' },
-    data: { status: 'dispatched' },
+    where: { 
+      id: jobData.id, 
+      OR: [
+        { status: 'pending' },
+        { status: 'dispatched', updatedAt: { lt: staleThreshold } }
+      ]
+    },
+    data: { status: 'dispatched', updatedAt: new Date() },
   });
   if (claim.count === 0) {
-    console.log(`⏭️ Job ${jobData.id} not pending — skipping runner dispatch (already claimed).`);
+    console.log(`⏭️ Job ${jobData.id} not pending or already claimed — skipping runner dispatch.`);
     return false;
   }
 
@@ -441,7 +461,15 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
     timestamp,
     signature,
     payload: jobData,
-  }));
+  }), async (err) => {
+    if (err) {
+      console.error(`❌ [Gateway] Failed to transmit job #${jobData.id} to runner:`, err.message);
+      await prisma.job.updateMany({
+        where: { id: jobData.id, status: 'dispatched' },
+        data: { status: 'pending', updatedAt: new Date() },
+      });
+    }
+  });
 
   console.log(`🚀 Dispatched signed job #${jobData.id} to Desktop Runner [${deviceId}]`);
   return true;
@@ -509,18 +537,22 @@ export async function dispatchConnectJobToLocalRunner(userId: string, accountId:
   return true;
 }
 
-// Missed Jobs Reconciliation
+// Missed & Stuck Jobs Reconciliation
 async function reconcilePendingJobs(userId: string, deviceId: string) {
   try {
+    const staleThreshold = new Date(Date.now() - 30_000);
     const pendingCount = await prisma.job.count({
       where: {
-        status: 'pending',
+        OR: [
+          { status: 'pending' },
+          { status: 'dispatched', updatedAt: { lt: staleThreshold } },
+        ],
         post: { campaign: { userId } },
       }
     });
 
     if (pendingCount > 0) {
-      console.log(`🔄 User ${userId} has ${pendingCount} pending job(s). Sending sync_pending...`);
+      console.log(`🔄 User ${userId} has ${pendingCount} pending/stuck job(s). Sending sync_pending...`);
       const userDevices = activeDevices.get(userId);
       if (userDevices && userDevices.has(deviceId)) {
         userDevices.get(deviceId)!.send(JSON.stringify({
@@ -536,9 +568,13 @@ async function reconcilePendingJobs(userId: string, deviceId: string) {
 
 async function triggerDispatchForUser(userId: string, deviceId: string) {
   try {
+    const staleThreshold = new Date(Date.now() - 30_000);
     const pendingJobs = await prisma.job.findMany({
       where: {
-        status: 'pending',
+        OR: [
+          { status: 'pending' },
+          { status: 'dispatched', updatedAt: { lt: staleThreshold } },
+        ],
         post: { campaign: { userId } },
       },
       include: {
