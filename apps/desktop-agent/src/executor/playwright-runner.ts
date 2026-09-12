@@ -133,10 +133,13 @@ export class PlaywrightRunner {
         const clickedViaEval = await page.evaluate(() => {
           const dialog = document.querySelector('div[role="dialog"]');
           const btn = Array.from(dialog?.querySelectorAll('div[role="button"], button') || []).find(
-            b => b.getAttribute('aria-label') === 'Next' || (b as HTMLElement).innerText?.trim() === 'Next' ||
-                 b.getAttribute('aria-label') === 'التالي' || (b as HTMLElement).innerText?.trim() === 'التالي'
+            b => {
+              const lbl = b.getAttribute('aria-label');
+              const txt = (b as HTMLElement).innerText?.trim();
+              return lbl === 'Next' || txt === 'Next' || lbl === 'التالي' || txt === 'التالي';
+            }
           );
-          if (btn) {
+          if (btn && btn.getAttribute('aria-disabled') !== 'true') {
             (btn as HTMLElement).click();
             return true;
           }
@@ -160,10 +163,10 @@ export class PlaywrightRunner {
         return;
       }
 
-      if (onProgress) onProgress(`[Type] Focusing composer textbox (${textToType.length} characters)...`);
+      if (onProgress) onProgress(`[Type] Locating and focusing composer textbox (${textToType.length} characters)...`);
       
-      const locator = page.locator(action.selector).first();
-      await locator.waitFor({ state: 'visible', timeout: 10000 });
+      const locator = page.locator('div[role="dialog"] div[role="textbox"][contenteditable="true"], div[role="dialog"] [contenteditable="true"], ' + action.selector).first();
+      await locator.waitFor({ state: 'visible', timeout: 12000 });
       
       // 1. Native click & focus
       await locator.click({ force: true });
@@ -207,6 +210,7 @@ export class PlaywrightRunner {
       await page.waitForTimeout(1500);
     } else if (action.action === 'upload') {
       if (images && images.length > 0) {
+        if (onProgress) onProgress(`[Upload] Injecting ${images.length} media file(s) into composer...`);
         const selector = action.selector || 'div[role="dialog"] input[type="file"], input[type="file"]';
         let fileInput = page.locator(selector).first();
         if ((await fileInput.count().catch(() => 0)) === 0) {
@@ -218,7 +222,12 @@ export class PlaywrightRunner {
         }
         fileInput = page.locator('div[role="dialog"] input[type="file"], input[type="file"]').first();
         await fileInput.setInputFiles(images);
-        await page.waitForTimeout(5000); // Wait for preview cards to render
+        if (onProgress) onProgress(`[Upload] Files attached. Waiting for Facebook photo preview cards to render...`);
+        const previewLoc = page.locator('div[role="dialog"] div[role="button"]:has-text("Edit all"), div[role="dialog"] div[role="button"]:has-text("تعديل الكل"), div[role="dialog"] [aria-label="Remove"], div[role="dialog"] img').first();
+        await previewLoc.waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
+        await page.waitForTimeout(4000);
+      } else {
+        if (onProgress) onProgress('[Upload] No media attachments provided, skipping upload.');
       }
     } else if (action.action === 'fail') {
       throw new Error(`AI indicated failure: ${action.value}`);
@@ -260,7 +269,7 @@ export class PlaywrightRunner {
             const lbl = b.getAttribute('aria-label');
             return txt === 'Post' || lbl === 'Post' || txt === 'نشر' || lbl === 'نشر' || txt === 'Publish' || lbl === 'Publish';
           });
-          if (postBtn) {
+          if (postBtn && postBtn.getAttribute('aria-disabled') !== 'true') {
             (postBtn as HTMLElement).click();
             return true;
           }
