@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import readline from 'readline';
 import { RunnerWSClient } from './client/ws-client';
+import { openLoginBrowser } from './executor/login-browser';
 
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
@@ -97,6 +98,10 @@ async function main() {
       } else {
         console.log('\x1b[31m%s\x1b[0m', '🔴 [STATUS] Machine is Offline. Reconnecting...');
       }
+    },
+    onConnectRequest: (platform, accountId) => {
+      console.log(`\n🔑 [CLI] Received account connection request for ${platform.toUpperCase()} (${accountId})`);
+      openLoginBrowser(platform, accountId, client);
     },
     // §14: inject headless approval so the WS client never touches Electron dialogs (which threw
     // in plain Node — require('electron') returns a path string — and silently blocked all jobs).
