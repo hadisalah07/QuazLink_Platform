@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { RunnerWSClient } from './client/ws-client';
-import { chromium } from 'playwright';
+import { openLoginBrowser } from './executor/login-browser';
 
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
@@ -374,95 +374,6 @@ app.whenReady().then(() => {
     }
   });
 });
-
-async function openLoginBrowser(platform: string, accountId: string, client: RunnerWSClient | null) {
-  try {
-    const browser = await chromium.launch({
-      headless: false,
-      args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
-    });
-    const context = await browser.newContext({
-      viewport: { width: 1280, height: 800 },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    });
-    const page = await context.newPage();
-    
-    const url = platform === 'instagram' ? 'https://www.instagram.com/accounts/login/' 
-              : platform === 'tiktok' ? 'https://www.tiktok.com/login' 
-              : 'https://www.facebook.com/login';
-    await page.goto(url);
-
-    // 10-Minute Timeout logic
-    const timeoutTimer = setTimeout(() => {
-      console.warn('⏱️ [LoginTimeout] Login window was open for more than 10 minutes without success.');
-      browser.close().catch(() => {}); // This will trigger the close event
-    }, 10 * 60 * 1000);
-
-    let isSuccess = false;
-
-    // Check for success via navigation
-    page.on('framenavigated', async (frame) => {
-      if (frame === page.mainFrame()) {
-        const u = frame.url();
-        // Simple success criteria: navigated away from login pages
-        if (!u.includes('login') && !u.includes('/accounts/login')) {
-          try {
-            isSuccess = true;
-            clearTimeout(timeoutTimer);
-            const sessionDir = path.join(os.homedir(), '.quazlink', 'sessions');
-            if (!fs.existsSync(sessionDir)) {
-              fs.mkdirSync(sessionDir, { recursive: true });
-            }
-            const sessionFile = path.join(sessionDir, `${accountId}_${platform}_session.json`);
-            await context.storageState({ path: sessionFile });
-            // NOTE (§12): chmod is effectively a no-op on Windows (the runner's primary OS);
-            // real per-user locking would need an ACL (icacls). Best-effort, and must never
-            // throw past this point or it would skip the job:connect_success below.
-            try { fs.chmodSync(sessionFile, 0o600); } catch {}
-            
-            // Notify API that login succeeded
-            console.log(`✅ [Login] Successfully saved session for account ${accountId}`);
-            if (client) {
-              client.send({
-                type: 'job:connect_success',
-                jobId: accountId,
-                platform: platform,
-              });
-            }
-            
-            // Optional: Close browser automatically after 3 seconds of success
-            setTimeout(() => { browser.close().catch(() => {}); }, 3000);
-          } catch (err) {}
-        }
-      }
-    });
-    
-    // Cancellation detection
-    browser.on('disconnected', async () => {
-      clearTimeout(timeoutTimer);
-      if (!isSuccess && client) {
-        console.log(`🚫 [Login] User closed the browser without logging in.`);
-        client.send({
-          type: 'job:cancelled',
-          jobId: accountId,
-          isConnectJob: true,
-          error: 'User manually closed the browser before completing login.'
-        });
-      }
-    });
-    
-  } catch (error: any) {
-    console.error('Failed to open login window:', error.message);
-    if (client) {
-      client.send({
-        type: 'job:failed',
-        jobId: accountId,
-        isConnectJob: true,
-        error: 'Failed to launch Playwright browser on runner.'
-      });
-    }
-  }
-}
 
 app.on('window-all-closed', () => {
   // Keep alive in system tray on all platforms
