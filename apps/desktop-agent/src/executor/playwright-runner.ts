@@ -124,7 +124,7 @@ export class PlaywrightRunner {
     }
   }
 
-  private async executeActionOnPage(page: Page, action: MacroAction, content?: string, images?: string[]) {
+  private async executeActionOnPage(page: Page, action: MacroAction, content?: string, images?: string[], onProgress?: (m: string) => void) {
     if (action.action === 'navigate' && action.url) {
       await page.goto(action.url, { waitUntil: 'domcontentloaded', timeout: 45000 });
       await page.waitForTimeout(1500);
@@ -154,19 +154,56 @@ export class PlaywrightRunner {
       }
       await page.waitForTimeout(1500);
     } else if (action.action === 'type' && action.selector) {
-      // Dynamic post content MUST take precedence over any static/recorded action.value
       const textToType = content || action.value || '';
+      if (!textToType.trim()) {
+        if (onProgress) onProgress('⚠️ [Type] Post content is empty, skipping typing.');
+        return;
+      }
+
+      if (onProgress) onProgress(`[Type] Focusing composer textbox (${textToType.length} characters)...`);
+      
       const locator = page.locator(action.selector).first();
       await locator.waitFor({ state: 'visible', timeout: 10000 });
+      
+      // 1. Native click & focus
       await locator.click({ force: true });
+      await locator.focus();
+      await page.waitForTimeout(300);
 
-      // Facebook uses Lexical / Draft.js contenteditable.
-      // Focusing and using keyboard.insertText fires full native input events instantly and reliably.
+      // 2. Insert text via keyboard
       try {
         await page.keyboard.insertText(textToType);
       } catch (e) {
         await locator.pressSequentially(textToType, { delay: 10 });
       }
+      await page.waitForTimeout(1000);
+
+      // 3. Robust Verification: Check if text was actually entered into Lexical
+      let currentLength = (await locator.innerText().catch(() => '')).trim().length;
+      if (currentLength === 0) {
+        if (onProgress) onProgress('⚠️ [Type] Textbox still empty after insertText. Retrying with focused DOM injection...');
+        
+        await page.evaluate((text) => {
+          const dialog = document.querySelector('div[role="dialog"]');
+          const el = dialog?.querySelector('div[role="textbox"][contenteditable="true"], div[contenteditable="true"]') as HTMLElement;
+          if (el) {
+            el.focus();
+            document.execCommand('insertText', false, text);
+          }
+        }, textToType);
+        await page.waitForTimeout(1000);
+
+        currentLength = (await locator.innerText().catch(() => '')).trim().length;
+      }
+
+      if (currentLength === 0) {
+        if (onProgress) onProgress('⚠️ [Type] Attempting sequential key typing fallback...');
+        await locator.click({ force: true });
+        await locator.pressSequentially(textToType, { delay: 5 });
+        currentLength = (await locator.innerText().catch(() => '')).trim().length;
+      }
+
+      if (onProgress) onProgress(`✅ [Type] Post content verified in editor (${currentLength} characters).`);
       await page.waitForTimeout(1500);
     } else if (action.action === 'upload') {
       if (images && images.length > 0) {
@@ -207,7 +244,7 @@ export class PlaywrightRunner {
       try {
         for (const step of macro.steps) {
           if (step.action === 'done') break;
-          await this.executeActionOnPage(page, step, content, images);
+          await this.executeActionOnPage(page, step, content, images, onProgress);
         }
 
         // Multi-step Page Support: If clicking Next opened Step 2 (Post settings on Facebook Pages)
