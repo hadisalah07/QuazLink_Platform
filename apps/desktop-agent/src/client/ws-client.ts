@@ -46,6 +46,8 @@ export class RunnerWSClient {
   // Replay cache: nonce -> timestamp. The server tracks no nonces, so replay protection lives
   // here. Swept against HMAC_WINDOW_MS so it stays bounded.
   private seenNonces = new Map<string, number>();
+  // Job deduplication cache: drops duplicate dispatches from the cloud watchdog
+  private seenJobIds = new Set<string>();
 
   constructor(serverUrl: string, options: RunnerWSOptions) {
     this.serverUrl = serverUrl;
@@ -236,6 +238,17 @@ export class RunnerWSClient {
       return;
     }
 
+    // Deduplication check: drop duplicate dispatches from the cloud watchdog
+    const jobId = payload?.id;
+    if (jobId && this.seenJobIds.has(jobId)) {
+      console.warn(`⚠️ [WSClient] Dropping duplicate dispatch for job #${jobId} (already enqueued or recently executed).`);
+      return;
+    }
+    if (jobId) {
+      this.seenJobIds.add(jobId);
+      setTimeout(() => this.seenJobIds.delete(jobId), 15 * 60 * 1000);
+    }
+
     // job:dispatch → ask the host whether to run now (Electron dialog, or CLI auto-approve).
     const approved = this.confirmJob ? await this.confirmJob(payload) : true;
     if (approved) {
@@ -275,80 +288,93 @@ export class RunnerWSClient {
   private async handleTaskExecution(task: LocalTask) {
     const { id, jobData } = task;
 
-    const result = await this.runner.executeTask(
-      jobData,
-      this.otaSelectors,
-      (progressMsg) => {
-        this.send({
-          type: 'job:progress',
-          jobId: id,
-          message: progressMsg,
-        });
-      },
-      async (screenshotBase64: string, goal: string, stepIndex: number, history: any[]) => {
-        // Capture the current socket so cleanup targets the right instance across reconnects.
-        const ws = this.ws;
-        if (!ws) {
-          throw new Error('Cannot request AI driver: socket is not connected.');
-        }
-        return new Promise((resolve, reject) => {
-          let settled = false;
-          let timer: NodeJS.Timeout;
+    // Send periodic progress heartbeats every 8s so cloud watchdog knows runner is actively working
+    const heartbeat = setInterval(() => {
+      this.send({
+        type: 'job:progress',
+        jobId: id,
+        message: 'Automation execution in progress...',
+      });
+    }, 8000);
 
-          const finish = () => {
-            ws.off('message', aiResponseHandler);
-            clearTimeout(timer);
-          };
-
-          const aiResponseHandler = (raw: WebSocket.RawData) => {
-            try {
-              const m = JSON.parse(raw.toString());
-              if (m.type === 'job:driver_action' && m.jobId === id) {
-                if (settled) return;
-                settled = true;
-                finish();
-                resolve(m.instruction);
-              }
-            } catch (e) {
-              // ignore non-JSON / unrelated frames
-            }
-          };
-
-          ws.on('message', aiResponseHandler);
-
-          // Guard against a cloud that never replies
-          timer = setTimeout(() => {
-            if (settled) return;
-            settled = true;
-            finish();
-            reject(new Error(`AI driver timed out after ${HEAL_TIMEOUT_MS}ms with no cloud response.`));
-          }, HEAL_TIMEOUT_MS);
-
+    try {
+      const result = await this.runner.executeTask(
+        jobData,
+        this.otaSelectors,
+        (progressMsg) => {
           this.send({
-            type: 'job:request_driver_action',
+            type: 'job:progress',
             jobId: id,
-            goal,
-            stepIndex,
-            history,
-            screenshot: screenshotBase64,
+            message: progressMsg,
           });
+        },
+        async (screenshotBase64: string, goal: string, stepIndex: number, history: any[]) => {
+          // Capture the current socket so cleanup targets the right instance across reconnects.
+          const ws = this.ws;
+          if (!ws) {
+            throw new Error('Cannot request AI driver: socket is not connected.');
+          }
+          return new Promise((resolve, reject) => {
+            let settled = false;
+            let timer: NodeJS.Timeout;
+
+            const finish = () => {
+              ws.off('message', aiResponseHandler);
+              clearTimeout(timer);
+            };
+
+            const aiResponseHandler = (raw: WebSocket.RawData) => {
+              try {
+                const m = JSON.parse(raw.toString());
+                if (m.type === 'job:driver_action' && m.jobId === id) {
+                  if (settled) return;
+                  settled = true;
+                  finish();
+                  resolve(m.instruction);
+                }
+              } catch (e) {
+                // ignore non-JSON / unrelated frames
+              }
+            };
+
+            ws.on('message', aiResponseHandler);
+
+            // Guard against a cloud that never replies
+            timer = setTimeout(() => {
+              if (settled) return;
+              settled = true;
+              finish();
+              reject(new Error(`AI driver timed out after ${HEAL_TIMEOUT_MS}ms with no cloud response.`));
+            }, HEAL_TIMEOUT_MS);
+
+            this.send({
+              type: 'job:request_driver_action',
+              jobId: id,
+              goal,
+              stepIndex,
+              history,
+              screenshot: screenshotBase64,
+            });
+          });
+        }
+      );
+
+      if (result.success) {
+        this.send({
+          type: 'job:completed',
+          jobId: id,
+          result: result.resultMessage,
+          screenshotUrl: result.screenshotBase64,
+        });
+      } else {
+        this.send({
+          type: 'job:failed',
+          jobId: id,
+          error: result.error,
         });
       }
-    );
-
-    if (result.success) {
-      this.send({
-        type: 'job:completed',
-        jobId: id,
-        result: result.resultMessage,
-        screenshotUrl: result.screenshotBase64,
-      });
-    } else {
-      this.send({
-        type: 'job:failed',
-        jobId: id,
-        error: result.error,
-      });
+    } finally {
+      clearInterval(heartbeat);
     }
   }
 

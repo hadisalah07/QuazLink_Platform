@@ -149,8 +149,13 @@ export function setupWebSocketGateway(server: HttpServer) {
             ws.send(JSON.stringify({ type: 'heartbeat:pong', time: Date.now() }));
           }
 
-          if (msg.type === 'job:progress') {
+          if (msg.type === 'job:progress' && typeof msg.jobId === 'string') {
             console.log(`⏳ Job #${msg.jobId} Progress from Runner: ${msg.message}`);
+            // Touch updatedAt to prevent watchdog / reconciliation from claiming this actively executing job
+            await prisma.job.updateMany({
+              where: { id: msg.jobId, status: 'dispatched' },
+              data: { updatedAt: new Date() },
+            }).catch(() => {});
           }
 
           if (msg.type === 'job:completed' && typeof msg.jobId === 'string') {
@@ -420,8 +425,8 @@ export async function dispatchJobToLocalRunner(userId: string, jobData: any): Pr
   const deviceId = targetDeviceId;
   const socket = targetSocket;
 
-  // ATOMIC CLAIM — flip pending (or stale dispatched > 30s) -> dispatched before sending.
-  const staleThreshold = new Date(Date.now() - 30_000);
+  // ATOMIC CLAIM — flip pending (or stale dispatched > 180s) -> dispatched before sending.
+  const staleThreshold = new Date(Date.now() - 180_000);
   const claim = await prisma.job.updateMany({
     where: { 
       id: jobData.id, 
@@ -540,7 +545,7 @@ export async function dispatchConnectJobToLocalRunner(userId: string, accountId:
 // Missed & Stuck Jobs Reconciliation
 async function reconcilePendingJobs(userId: string, deviceId: string) {
   try {
-    const staleThreshold = new Date(Date.now() - 30_000);
+    const staleThreshold = new Date(Date.now() - 180_000);
     const pendingCount = await prisma.job.count({
       where: {
         OR: [
@@ -568,7 +573,7 @@ async function reconcilePendingJobs(userId: string, deviceId: string) {
 
 async function triggerDispatchForUser(userId: string, deviceId: string) {
   try {
-    const staleThreshold = new Date(Date.now() - 30_000);
+    const staleThreshold = new Date(Date.now() - 180_000);
     const pendingJobs = await prisma.job.findMany({
       where: {
         OR: [

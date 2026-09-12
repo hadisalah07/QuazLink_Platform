@@ -211,21 +211,50 @@ export class PlaywrightRunner {
     } else if (action.action === 'upload') {
       if (images && images.length > 0) {
         if (onProgress) onProgress(`[Upload] Injecting ${images.length} media file(s) into composer...`);
-        const selector = action.selector || 'div[role="dialog"] input[type="file"], input[type="file"]';
-        let fileInput = page.locator(selector).first();
-        if ((await fileInput.count().catch(() => 0)) === 0) {
-          const photoBtn = page.locator('div[role="dialog"] div[aria-label="Photo/video"], div[aria-label="Photo/video"], div[role="dialog"] div[aria-label="صورة/فيديو"]').first();
-          if (await photoBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        
+        // Ensure dialog is ready
+        const dialog = page.locator('div[role="dialog"]').first();
+        await dialog.waitFor({ state: 'visible', timeout: 15000 });
+
+        // On Facebook Pages, the file input inside the dialog is only rendered after clicking the Photo/video button
+        let fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
+        const hasFileInput = (await fileInput.count().catch(() => 0)) > 0;
+        
+        if (!hasFileInput) {
+          const photoBtn = page.locator('div[role="dialog"] div[role="button"][aria-label="Photo/video"], div[role="dialog"] div[role="button"][aria-label="صورة/فيديو"], div[role="dialog"] [aria-label*="Photo/video"], div[role="dialog"] [aria-label*="صورة/فيديو"], div[role="dialog"] [aria-label*="Photo"], div[role="dialog"] [aria-label*="صورة"]').first();
+          if (await photoBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+            if (onProgress) onProgress('[Upload] Clicking Photo/video button inside dialog to reveal dropzone...');
             await photoBtn.click({ force: true });
-            await page.waitForTimeout(1500);
+            await page.waitForTimeout(2000);
           }
         }
-        fileInput = page.locator('div[role="dialog"] input[type="file"], input[type="file"]').first();
+
+        // Strictly target the file input INSIDE the modal dialog (NEVER search globally!)
+        fileInput = page.locator('div[role="dialog"] input[type="file"]').first();
+        await fileInput.waitFor({ state: 'attached', timeout: 10000 });
         await fileInput.setInputFiles(images);
+        
         if (onProgress) onProgress(`[Upload] Files attached. Waiting for Facebook photo preview cards to render...`);
-        const previewLoc = page.locator('div[role="dialog"] div[role="button"]:has-text("Edit all"), div[role="dialog"] div[role="button"]:has-text("تعديل الكل"), div[role="dialog"] [aria-label="Remove"], div[role="dialog"] img').first();
-        await previewLoc.waitFor({ state: 'visible', timeout: 12000 }).catch(() => {});
-        await page.waitForTimeout(4000);
+        const previewLoc = page.locator('div[role="dialog"] [aria-label*="Edit"], div[role="dialog"] [aria-label*="Remove"], div[role="dialog"] [aria-label*="تعديل"], div[role="dialog"] div[role="button"]:has-text("Edit"), div[role="dialog"] div[role="button"]:has-text("تعديل")').first();
+        await previewLoc.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {
+          if (onProgress) onProgress('⚠️ [Upload] Preview cards locator wait timeout; checking image count in dialog...');
+        });
+        
+        // Verify at least one image/preview is in the dialog
+        const imageAttached = await page.evaluate(() => {
+          const d = document.querySelector('div[role="dialog"]');
+          if (!d) return false;
+          const imgs = d.querySelectorAll('img');
+          const hasEdit = d.querySelector('[aria-label*="Edit"], [aria-label*="تعديل"], [aria-label*="Remove"]');
+          return imgs.length > 0 || !!hasEdit;
+        });
+
+        if (imageAttached) {
+          if (onProgress) onProgress(`✅ [Upload] Successfully attached and verified ${images.length} image(s) in composer.`);
+        } else {
+          throw new Error('Failed to attach media files: No photo preview cards rendered in Facebook composer dialog.');
+        }
+        await page.waitForTimeout(2000);
       } else {
         if (onProgress) onProgress('[Upload] No media attachments provided, skipping upload.');
       }
@@ -296,8 +325,7 @@ export class PlaywrightRunner {
         onProgress('[MacroEngine] Post submitted successfully.');
         return;
       } catch (e: any) {
-        onProgress(`[MacroEngine] Cached macro failed (${e.message}). Invalidating cache and falling back to Driver Mode...`);
-        this.macroCache.deleteMacro(platform);
+        onProgress(`[MacroEngine] Cached macro failed (${e.message}). Retrying with Driver Mode without deleting macro...`);
       }
     }
 
