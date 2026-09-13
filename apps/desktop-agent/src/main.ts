@@ -81,6 +81,7 @@ function handleDeepLink(urlStr: string) {
         ? dialog.showMessageBoxSync(mainWindow, opts)
         : dialog.showMessageBoxSync(opts);
       if (choice === 0) {
+        appConfig.deviceToken = undefined;
         appConfig.pairingToken = token.trim();
         saveConfig(appConfig);
         wsClient?.cleanup();
@@ -255,6 +256,9 @@ function initializeRunnerClient() {
         appConfig.deviceToken = info.deviceToken;
         appConfig.pairingToken = undefined;
         saveConfig(appConfig);
+      } else if (info?.pairingError) {
+        appConfig.pairingToken = undefined;
+        saveConfig(appConfig);
       }
 
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -264,39 +268,14 @@ function initializeRunnerClient() {
     onConnectRequest: (platform, accountId) => {
       openLoginBrowser(platform, accountId, wsClient);
     },
-    // §14: interactive prompts are injected by the host (the WS client is now Electron-free).
-    // The desktop app backs them with native dialogs; the headless CLI supplies auto-approve.
+    // Auto-approve publishing jobs dispatched from paired cloud account
     confirmJob: async (payload) => {
-      const opts = {
-        type: 'question' as const,
-        buttons: ['Run now', 'Reject'],
-        defaultId: 0,
-        cancelId: 1,
-        noLink: true,
-        title: 'New Publishing Job',
-        message: `QuazLink wants to publish a ${payload?.platform || 'social'} post on this machine.`,
-        detail: 'This will open an automated browser and post to your connected account.',
-      };
-      const { response } = mainWindow
-        ? await dialog.showMessageBox(mainWindow, opts)
-        : await dialog.showMessageBox(opts);
-      return response === 0;
+      console.log(`🤖 [Desktop] Auto-approving ${payload?.platform || 'social'} job #${payload?.id}.`);
+      return true;
     },
     confirmSync: async (count) => {
-      const opts = {
-        type: 'question' as const,
-        buttons: ['Fetch & run', 'Not now'],
-        defaultId: 0,
-        cancelId: 1,
-        noLink: true,
-        title: 'Pending Posts Available',
-        message: `You have ${count} pending post${count === 1 ? '' : 's'} waiting to publish.`,
-        detail: 'Fetch them from the cloud and run them on this machine now?',
-      };
-      const { response } = mainWindow
-        ? await dialog.showMessageBox(mainWindow, opts)
-        : await dialog.showMessageBox(opts);
-      return response === 0;
+      console.log(`🤖 [Desktop] Auto-approving sync of ${count} pending post(s).`);
+      return true;
     },
   });
 
@@ -315,6 +294,8 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('pair-device', (_, pairingCode) => {
+    console.log(`🔑 [Main] Received pair-device request with code: ${pairingCode}`);
+    appConfig.deviceToken = undefined; // Crucial: clear old rejected token so ws-client pairs with new code
     appConfig.pairingToken = pairingCode.trim();
     saveConfig(appConfig);
     wsClient?.cleanup();
@@ -322,6 +303,7 @@ app.whenReady().then(() => {
   });
 
   ipcMain.on('unpair-device', () => {
+    console.log('🔴 [Main] Received unpair-device request. Clearing tokens.');
     appConfig.deviceToken = undefined;
     appConfig.pairingToken = undefined;
     saveConfig(appConfig);

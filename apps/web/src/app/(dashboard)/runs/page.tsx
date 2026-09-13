@@ -14,6 +14,21 @@ function toUiStatus(status: string): UiStatus {
   return "running";
 }
 
+function getProofImageSrc(job: Job): string {
+  if (!job.screenshotUrl) return screenshotUrl(job.id);
+  const src = job.screenshotUrl.trim();
+  if (src.startsWith("data:") || src.startsWith("http://") || src.startsWith("https://")) {
+    return src;
+  }
+  if (src.startsWith("/9j/")) {
+    return `data:image/jpeg;base64,${src}`;
+  }
+  if (src.startsWith("iVBORw")) {
+    return `data:image/png;base64,${src}`;
+  }
+  return screenshotUrl(job.id);
+}
+
 export default function RunsPage() {
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [error, setError] = React.useState<string | null>(null);
@@ -173,7 +188,7 @@ export default function RunsPage() {
             </div>
             <div className="p-6 overflow-y-auto flex flex-col items-center justify-center bg-black/40">
               <img
-                src={screenshotUrl(previewJob.id)}
+                src={getProofImageSrc(previewJob)}
                 alt="Execution Proof Screenshot"
                 className="max-h-[70vh] rounded-xl border border-white/10 object-contain shadow-2xl"
               />

@@ -53,6 +53,10 @@ export class RunnerWSClient {
     this.serverUrl = serverUrl;
     this.token = options.token || null;
     this.pairingToken = options.pairingToken || null;
+    // If a pairing code is provided, clear any previous device token to avoid sending expired auth
+    if (this.pairingToken) {
+      this.token = null;
+    }
     this.onStatusChange = options.onStatusChange;
     this.onConnectRequest = options.onConnectRequest;
     this.confirmJob = options.confirmJob;
@@ -80,10 +84,10 @@ export class RunnerWSClient {
     // `Authorization: Bearer <token>` on the upgrade request (with a query fallback for
     // rollout); at that point move this to the `headers` option of `new WebSocket(...)`.
     let wsEndpoint = `${this.serverUrl}/ws/runner`;
-    if (this.token) {
-      wsEndpoint += `?token=${this.token}`;
-    } else if (this.pairingToken) {
+    if (this.pairingToken) {
       wsEndpoint += `?pairingToken=${this.pairingToken}`;
+    } else if (this.token) {
+      wsEndpoint += `?token=${this.token}`;
     }
 
     console.log(`🔌 [WSClient] Connecting to Cloud Gateway: ${this.serverUrl}/ws/runner`);
@@ -93,7 +97,11 @@ export class RunnerWSClient {
       console.log('🟢 [WSClient] Connected to QuazLink Cloud Gateway (Zero-Trust TLS)');
       this.reconnectDelay = RECONNECT_BASE_MS; // reset backoff on a healthy connection
       this.startHeartbeat();
-      if (this.onStatusChange) this.onStatusChange('online');
+      if (this.pairingToken) {
+        if (this.onStatusChange) this.onStatusChange('pairing');
+      } else {
+        if (this.onStatusChange) this.onStatusChange('online');
+      }
     });
 
     this.ws.on('message', async (raw) => {
@@ -131,13 +139,30 @@ export class RunnerWSClient {
       console.warn(`🔴 [WSClient] Disconnected from Cloud Gateway (Code: ${code}).`);
       this.stopHeartbeat();
 
-      // If server explicitly rejects the token as invalid (4003), wipe it and do NOT reconnect.
+      // If server explicitly rejects credentials as invalid (4003)
       if (code === 4003) {
-        console.error('⛔ [WSClient] Token is invalid or device was deleted. Unpairing...');
-        this.token = null;
+        if (this.pairingToken) {
+          console.error('⛔ [WSClient] Pairing code is invalid or expired.');
+          this.pairingToken = null;
+          if (this.onStatusChange) {
+            this.onStatusChange('offline', { pairingError: 'Invalid or expired pairing code. Please generate a fresh code in Settings.' });
+          }
+        } else {
+          console.error('⛔ [WSClient] Token is invalid or device was deleted. Unpairing...');
+          this.token = null;
+          if (this.onStatusChange) {
+            this.onStatusChange('offline', { forceUnpair: true });
+          }
+        }
+        return;
+      }
+
+      // If pairing code is explicitly reported as invalid or expired (4004), inform UI
+      if (code === 4004) {
+        console.error('⛔ [WSClient] Pairing code is invalid or expired.');
         this.pairingToken = null;
         if (this.onStatusChange) {
-          this.onStatusChange('offline', { forceUnpair: true });
+          this.onStatusChange('offline', { pairingError: 'Invalid or expired pairing code. Please generate a fresh code in Settings.' });
         }
         return;
       }

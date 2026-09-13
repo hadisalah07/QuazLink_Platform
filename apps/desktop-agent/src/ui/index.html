@@ -149,6 +149,13 @@
       border: 1px solid rgba(239, 68, 68, 0.35);
     }
 
+    .status-pill.pairing {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+    }
+
     .pulse-dot {
       width: 7px;
       height: 7px;
@@ -525,11 +532,19 @@
       addLog(`[SETTINGS] Keep-Awake set to ${e.target.checked}`, 'warn');
     });
 
+    pairingCodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        pairBtn.click();
+      }
+    });
+
     pairBtn.addEventListener('click', () => {
       const code = pairingCodeInput.value.trim();
       if (code) {
-        addLog(`[PAIRING] Pairing with code: ${code}...`, 'highlight');
+        addLog(`[PAIRING] Submitting pairing code: ${code}...`, 'highlight');
         q.pairDevice(code);
+      } else {
+        addLog(`[PAIRING] Please enter a pairing code (e.g. QL-XXXXXX)`, 'red');
       }
     });
 
@@ -549,15 +564,25 @@
         statusBadge.className = 'status-pill online';
         statusBadge.innerHTML = '<span class="pulse-dot"></span><span>ONLINE &amp; READY</span>';
         pairingSection.style.display = 'none';
+        unpairBtn.style.display = 'block';
+        unpairBtn.textContent = 'Disconnect';
         deviceName.textContent = info?.deviceName || 'My Local PC';
         addLog('[WS] Cloud Handshake Verified (Zero-Trust Active)', 'success');
+      } else if (status === 'pairing') {
+        statusBadge.className = 'status-pill pairing';
+        statusBadge.innerHTML = '<span class="pulse-dot"></span><span>PAIRING...</span>';
+        pairingSection.style.display = 'flex';
+        unpairBtn.style.display = 'none';
+        addLog('[PAIRING] Contacting Cloud Gateway with pairing code...', 'highlight');
       } else {
         statusBadge.className = 'status-pill offline';
         statusBadge.innerHTML = '<span class="pulse-dot"></span><span>OFFLINE / UNPAIRED</span>';
-        if (!config?.deviceToken) {
-          pairingSection.style.display = 'flex';
-        } else {
-          pairingSection.style.display = 'none';
+        pairingSection.style.display = 'flex';
+        unpairBtn.style.display = 'none';
+        if (info?.pairingError) {
+          addLog(`[PAIRING ERROR] ${info.pairingError}`, 'red');
+        } else if (info?.forceUnpair) {
+          addLog(`[PAIRING] Node successfully disconnected and unpaired.`, 'warn');
         }
       }
 

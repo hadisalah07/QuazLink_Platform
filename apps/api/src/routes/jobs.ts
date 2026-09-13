@@ -75,10 +75,49 @@ router.get('/:id/screenshot', async (req, res) => {
     if (!job || !job.screenshotUrl) {
       return res.status(404).json({ error: 'No screenshot for this job' });
     }
-    if (!fs.existsSync(job.screenshotUrl)) {
-      return res.status(404).json({ error: 'Screenshot file missing on disk' });
+
+    const raw = job.screenshotUrl.trim();
+
+    // 1. Data URL (Base64)
+    if (raw.startsWith('data:')) {
+      const matches = raw.match(/^data:([^;]+);base64,(.+)$/s);
+      if (matches) {
+        const mimeType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', mimeType);
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.end(buffer);
+      }
     }
-    res.sendFile(job.screenshotUrl);
+
+    // 2. Raw Base64 without data URI scheme
+    if (raw.startsWith('/9j/')) {
+      const buffer = Buffer.from(raw, 'base64');
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.end(buffer);
+    }
+    if (raw.startsWith('iVBORw')) {
+      const buffer = Buffer.from(raw, 'base64');
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.end(buffer);
+    }
+
+    // 3. Remote URL
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      return res.redirect(raw);
+    }
+
+    // 4. File on disk (legacy workers)
+    if (fs.existsSync(raw)) {
+      return res.sendFile(raw);
+    }
+
+    return res.status(404).json({ error: 'Screenshot file missing on disk' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
