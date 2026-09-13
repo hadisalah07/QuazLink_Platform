@@ -225,6 +225,58 @@ export async function getCatalogProducts(id: string): Promise<Product[]> {
   return jsonOrThrow(res);
 }
 
+export interface AiAdPreset {
+  id?: string;
+  presetKey: string;
+  title: string;
+  category: 'social' | 'video' | 'messaging' | 'urgency' | 'wholesale' | string;
+  systemPrompt: string;
+  isDefault?: boolean;
+  isCustomized?: boolean;
+}
+
+export interface GenerateAdInput {
+  product: Product;
+  presetKey?: string;
+  customPrompt?: string;
+  tone?: string;
+  language?: string;
+}
+
+export interface GenerateAdResponse {
+  copy: string;
+  source?: string;
+  presetKey?: string;
+}
+
+export async function getAiPresets(): Promise<AiAdPreset[]> {
+  const res = await apiFetch(`/api/ai/presets`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function saveAiPreset(input: {
+  presetKey: string;
+  systemPrompt: string;
+  title?: string;
+  category?: string;
+}): Promise<AiAdPreset> {
+  const res = await apiFetch(`/api/ai/presets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function generateAd(input: GenerateAdInput): Promise<GenerateAdResponse> {
+  const res = await apiFetch(`/api/ai/generate-ad`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+
 export async function generateCopy(input: {
   product: Product;
   tone?: string;

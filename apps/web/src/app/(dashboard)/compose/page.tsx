@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { Send, Loader2, Info, Sparkles, Database, X, Plus, Globe } from "lucide-react";
 import { GlassCard } from "@/components/effects/GlassCard";
 import { PostPreview } from "@/components/compose/PostPreview";
+import { AiAdModal } from "@/components/compose/AiAdModal";
 import { fadeIn } from "@/lib/motion";
 import { getAccounts, createPost, getCatalogs, getCatalogProducts, generateCopy, addDestination, type Account, type Catalog, type Product } from "@/lib/api";
 
@@ -64,6 +65,17 @@ export default function ComposePage() {
       .catch((e) => setError(e.message));
       
     getCatalogs().then(setCatalogs).catch(console.error);
+
+    // Pick up draft if forwarded from Catalogs page
+    try {
+      const draft = sessionStorage.getItem("quazlink_compose_draft");
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.content) setContent(parsed.content);
+        if (parsed.mediaUrls && Array.isArray(parsed.mediaUrls)) setMediaUrls(parsed.mediaUrls);
+        sessionStorage.removeItem("quazlink_compose_draft");
+      }
+    } catch {}
   }, []);
 
   const selectedAcc = accounts.find(a => a.id === accountId);
@@ -326,79 +338,17 @@ export default function ComposePage() {
         </div>
       </div>
 
-      {/* Catalog Picker Modal */}
-      {showPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-4xl h-[80vh] flex flex-col bg-[var(--color-quaz-bg)] border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Database className="w-5 h-5 text-[var(--color-quaz-purple)]" />
-                Select Product for AI Ad
-              </h2>
-              <button onClick={() => setShowPicker(false)} className="text-gray-400 hover:text-white transition-colors">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="flex flex-1 overflow-hidden">
-              {/* Sidebar: Catalogs List */}
-              <div className="w-64 border-r border-white/10 p-4 overflow-y-auto bg-black/20">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Your Catalogs</h3>
-                <div className="space-y-2">
-                  {catalogs.map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => handleCatalogSelect(c)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                        selectedCatalog?.id === c.id ? 'bg-[var(--color-quaz-cyan)]/20 text-white border border-[var(--color-quaz-cyan)]/30' : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'
-                      }`}
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Main: Products List */}
-              <div className="flex-1 p-6 overflow-y-auto relative">
-                {!selectedCatalog ? (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    Select a catalog from the left to view products.
-                  </div>
-                ) : loadingCatalog ? (
-                  <div className="h-full flex items-center justify-center text-gray-400 gap-3">
-                    <Loader2 className="w-6 h-6 animate-spin" /> Fetching live products...
-                  </div>
-                ) : products.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-gray-500">
-                    No products found.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products.map((p) => {
-                      const img = (p.images && p.images.length > 0) ? p.images[0] : p.imageUrl;
-                      return (
-                        <div key={p.id} className="p-3 rounded-xl border border-white/5 bg-black/40 hover:bg-white/5 hover:border-white/10 transition-all group flex flex-col cursor-pointer" onClick={() => handleProductSelect(p)}>
-                          {img ? (
-                            <img src={img} alt={p.title} className="w-full h-32 object-cover rounded-lg mb-3" />
-                          ) : (
-                            <div className="w-full h-32 rounded-lg mb-3 bg-white/5 flex items-center justify-center text-xs text-gray-600">No Image</div>
-                          )}
-                          <h4 className="font-semibold text-sm text-white line-clamp-1">{p.title}</h4>
-                          <div className="mt-auto pt-2 flex items-center justify-between">
-                            <span className="text-xs text-[var(--color-quaz-cyan)] font-bold">{p.price} {p.currency}</span>
-                            <span className="text-xs px-2 py-1 bg-[var(--color-quaz-purple)]/20 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity">Select</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Smart AI Ad from Catalog Modal */}
+      <AiAdModal
+        isOpen={showPicker}
+        onClose={() => setShowPicker(false)}
+        onApply={(adText, urls) => {
+          setContent(adText);
+          if (urls && urls.length > 0) {
+            setMediaUrls(urls);
+          }
+        }}
+      />
 
       {/* Add Custom Page / Destination Modal */}
       {showAddDestModal && (

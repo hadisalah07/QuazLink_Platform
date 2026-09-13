@@ -21,6 +21,7 @@ model User {
   campaigns      Campaign[]
   catalogs       Catalog[]
   devices        Device[]
+  aiPresets      AiAdPreset[]
 }
 
 model SocialAccount {
@@ -110,3 +111,19 @@ model Device {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
+
+model AiAdPreset {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  presetKey      String    // 'fb_ig_feed', 'tiktok_reels', 'whatsapp_direct', 'flash_sale', 'b2b_wholesale'
+  title          String
+  category       String    @default("social")
+  systemPrompt   String    @db.Text
+  isDefault      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, presetKey])
+}
+

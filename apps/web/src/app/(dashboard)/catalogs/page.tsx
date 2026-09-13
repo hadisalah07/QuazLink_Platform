@@ -1,16 +1,27 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Loader2, ShoppingBag, Trash2, Database, Key, Sparkles, X, RefreshCw, ExternalLink, Tag } from "lucide-react";
 import { getCatalogs, addCatalog, deleteCatalog, getCatalogProducts, type Catalog, type Product } from "@/lib/api";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
+import { AiAdModal } from "@/components/compose/AiAdModal";
 
 export default function CatalogsPage() {
+  const router = useRouter();
   const [catalogs, setCatalogs] = React.useState<Catalog[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isAdding, setIsAdding] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [aiAdProduct, setAiAdProduct] = React.useState<Product | null>(null);
+
+  const handleApplyFromCatalog = (copy: string, mediaUrls: string[]) => {
+    try {
+      sessionStorage.setItem("quazlink_compose_draft", JSON.stringify({ content: copy, mediaUrls }));
+    } catch {}
+    router.push("/compose");
+  };
 
   // Form State
   const [name, setName] = React.useState("");
@@ -363,6 +374,15 @@ export default function CatalogsPage() {
                             In Stock
                           </span>
                         </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setAiAdProduct(p)}
+                          className="mt-3 w-full py-2 px-3 rounded-xl bg-gradient-to-r from-[var(--color-quaz-purple)] to-[var(--color-quaz-cyan)] text-black font-extrabold text-xs flex items-center justify-center gap-1.5 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] transition-all cursor-pointer"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>AI Ad from Product</span>
+                        </button>
                       </SpotlightCard>
                     );
                   })}
@@ -372,6 +392,14 @@ export default function CatalogsPage() {
           </div>
         </div>
       )}
+
+      {/* AI Ad Modal */}
+      <AiAdModal
+        isOpen={!!aiAdProduct}
+        initialProduct={aiAdProduct}
+        onClose={() => setAiAdProduct(null)}
+        onApply={handleApplyFromCatalog}
+      />
     </div>
   );
 }
