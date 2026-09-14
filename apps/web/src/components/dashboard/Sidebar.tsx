@@ -5,6 +5,7 @@ import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logout, type AuthUser } from "@/lib/api";
+import { PLATFORM_VERSION } from "@/lib/version";
 
 const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -56,7 +57,7 @@ export function Sidebar({ user }: { user: AuthUser }) {
             <div className="flex items-center space-x-2">
               <span className="font-semibold text-lg text-white tracking-tight whitespace-nowrap">QuazLink</span>
               <span className="px-1.5 py-0.5 text-[10px] font-mono font-bold rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 tracking-wider">
-                v.26.9.0
+                {PLATFORM_VERSION}
               </span>
             </div>
           )}
@@ -119,7 +120,7 @@ export function Sidebar({ user }: { user: AuthUser }) {
         {isExpanded && (
           <div className="pt-2 px-1 flex items-center justify-between text-[11px] text-gray-500 font-mono">
             <span>Platform</span>
-            <span className="text-cyan-400 font-semibold">v.26.9.0</span>
+            <span className="text-cyan-400 font-semibold">{PLATFORM_VERSION}</span>
           </div>
         )}
       </div>

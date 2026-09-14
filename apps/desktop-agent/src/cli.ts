@@ -41,7 +41,7 @@ async function main() {
   console.clear();
   console.log('\x1b[36m%s\x1b[0m', '=====================================================');
   console.log('\x1b[36m%s\x1b[0m', '   🚀 QuazLink Local Desktop Automation Runner       ');
-  console.log('\x1b[36m%s\x1b[0m', '   Version: v.26.9.0 • Zero-Ban Node Engine           ');
+  console.log('\x1b[36m%s\x1b[0m', '   Version: v.26.9.5 • Zero-Ban Node Engine           ');
   console.log('\x1b[36m%s\x1b[0m', '   Zero-Proxy • Military-Grade Secure Browser Node   ');
   console.log('\x1b[36m%s\x1b[0m', '=====================================================\n');
 

@@ -1,6 +1,6 @@
 {
   "name": "@saas/desktop-agent",
-  "version": "26.9.0",
+  "version": "26.9.5",
   "description": "QuazLink Local Desktop Automation Runner",
   "main": "dist/main.js",
   "scripts": {

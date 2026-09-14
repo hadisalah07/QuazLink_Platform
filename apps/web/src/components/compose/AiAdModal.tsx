@@ -23,6 +23,8 @@ import {
   Flame,
   Briefcase,
   ExternalLink,
+  Plus,
+  Hash,
 } from "lucide-react";
 import {
   getCatalogs,
@@ -74,6 +76,10 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
   const [generationSource, setGenerationSource] = React.useState<string | null>(null);
   const [copied, setCopied] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Quick refinement customized input state
+  const [showCustomRefinement, setShowCustomRefinement] = React.useState(false);
+  const [customRefinementText, setCustomRefinementText] = React.useState("");
 
   // Load catalogs and presets on mount
   React.useEffect(() => {
@@ -584,8 +590,11 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
 
             {/* Quick Refinement Pills */}
             {adCopy && (
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-semibold text-gray-400">تحسينات سريعة بنقرة واحدة:</span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-gray-400">تحسينات سريعة بنقرة واحدة:</span>
+                  <span className="text-[10px] text-cyan-400/80 font-mono">1-Click AI Refine</span>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -611,7 +620,71 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                   >
                     🔥 زوّد نبرة الحماس والعرض
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleGenerate("أضف مجموعة هاشتاجات قوية ومستهدفة ورائجة (Viral & Trending E-Commerce Hashtags) في نهاية الإعلان ومناسبة للمنتج وللسوق العربي والمصري")}
+                    disabled={generating}
+                    className="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-cyan-500/30 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Hash className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>زوّد الهاشتاجات</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomRefinement((prev) => !prev)}
+                    disabled={generating}
+                    className={`text-xs px-3 py-1.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 ${
+                      showCustomRefinement
+                        ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_12px_rgba(34,211,238,0.25)] font-bold"
+                        : "bg-white/5 hover:bg-white/10 text-gray-300 border-white/10 hover:border-cyan-500/30"
+                    }`}
+                  >
+                    <Plus className={`w-3.5 h-3.5 ${showCustomRefinement ? "text-cyan-300 rotate-45 transition-transform" : "text-cyan-400"}`} />
+                    <span>تخصيص (+)</span>
+                  </button>
                 </div>
+
+                {/* Inline Custom Refinement Input Bar */}
+                <AnimatePresence>
+                  {showCustomRefinement && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      className="pt-1"
+                    >
+                      <div className="flex items-center gap-2 p-1.5 rounded-xl bg-cyan-950/25 border border-cyan-500/30 shadow-[0_0_15px_rgba(34,211,238,0.1)]">
+                        <input
+                          type="text"
+                          value={customRefinementText}
+                          onChange={(e) => setCustomRefinementText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && customRefinementText.trim() && !generating) {
+                              e.preventDefault();
+                              handleGenerate(customRefinementText.trim());
+                            }
+                          }}
+                          placeholder="اكتب طلبك الخاص للذكاء الاصطناعي (مثال: خصم 20% عند شراء قطعتين، ركّز على خامة المنتج، اجعل النبرة فكاهية)..."
+                          className="flex-1 bg-transparent px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          disabled={!customRefinementText.trim() || generating}
+                          onClick={() => {
+                            if (customRefinementText.trim()) {
+                              handleGenerate(customRefinementText.trim());
+                            }
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-40 disabled:grayscale text-black font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all shrink-0"
+                        >
+                          {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 fill-black" />}
+                          <span>تطبيق</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 

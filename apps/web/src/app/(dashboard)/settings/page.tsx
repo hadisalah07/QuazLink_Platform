@@ -5,6 +5,7 @@ import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw,
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { DeviceManager } from "@/components/settings/DeviceManager";
 import { getMe, type AuthUser } from "@/lib/api";
+import { PLATFORM_VERSION } from "@/lib/version";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = React.useState<"profile" | "devices" | "security" | "api" | "notifications">("profile");
@@ -53,7 +54,7 @@ export default function SettingsPage() {
           <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
           <div className="flex flex-col">
             <span className="text-[10px] uppercase font-mono tracking-wider text-gray-400">Platform Version</span>
-            <span className="text-sm font-mono font-bold text-cyan-300">v.26.9.0</span>
+            <span className="text-sm font-mono font-bold text-cyan-300">{PLATFORM_VERSION}</span>
           </div>
         </div>
       </div>
@@ -254,7 +255,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <span className="text-white font-bold text-sm">QuazLink Enterprise Platform</span>
               <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/30">
-                v.26.9.0
+                {PLATFORM_VERSION}
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
