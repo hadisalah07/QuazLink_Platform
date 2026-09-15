@@ -91,7 +91,9 @@ export default function ComposePage() {
       return igOnly;
     }
     if (selectedAcc.platform === "whatsapp") {
-      return dests.length > 0 ? dests : [
+      const waOnly = dests.filter(d => d.url && d.url.includes("whatsapp.com"));
+      if (waOnly.length > 0) return waOnly;
+      return [
         { name: "WhatsApp Status (حالة الواتساب / قصة)", url: "https://web.whatsapp.com/status" },
         { name: "Direct Customer Chat (محادثة مباشرة)", url: "https://web.whatsapp.com/send" },
       ];
@@ -207,7 +209,7 @@ export default function ComposePage() {
                   >
                     {accounts.map((a) => (
                       <option key={a.id} value={a.id} className="bg-[var(--color-quaz-bg)]">
-                        {a.platform === "instagram" ? "📸 Instagram" : a.platform === "tiktok" ? "🎵 TikTok" : "👤 Facebook"} — {a.id.slice(0, 8)}
+                        {a.platform === "whatsapp" ? "🟢 WhatsApp" : a.platform === "instagram" ? "📸 Instagram" : a.platform === "tiktok" ? "🎵 TikTok" : "👤 Facebook"} — {a.id.slice(0, 8)}
                       </option>
                     ))}
                   </select>
@@ -220,10 +222,10 @@ export default function ComposePage() {
                       <label htmlFor="destination" className="text-sm font-medium text-gray-200 flex items-center gap-2">
                         <Globe className="w-4 h-4 text-cyan-400" />
                         <span>
-                          Post Destination {selectedAcc.platform === "instagram" ? "(Instagram Feed)" : "(Profile vs Page)"}
+                          Post Destination {selectedAcc.platform === "instagram" ? "(Instagram Feed)" : selectedAcc.platform === "whatsapp" ? "(Status vs Direct Chat)" : "(Profile vs Page)"}
                         </span>
                       </label>
-                      {selectedAcc.platform !== "instagram" && (
+                      {selectedAcc.platform === "facebook" && (
                         <button
                           type="button"
                           onClick={() => setShowAddDestModal(true)}
@@ -243,8 +245,15 @@ export default function ComposePage() {
                     >
                       {availableDestinations.map((d, i) => {
                         const isInstagram = selectedAcc.platform === "instagram";
+                        const isWhatsApp = selectedAcc.platform === "whatsapp";
                         const isPage = d.url.includes("facebook.com") && !d.url.endsWith("facebook.com/") && !d.url.endsWith("facebook.com");
-                        const prefix = isInstagram ? "📸 [FEED]" : isPage ? "📄 [PAGE]" : "👤 [PROFILE]";
+                        const prefix = isWhatsApp
+                          ? (d.url.includes("status") ? "🟢 [STATUS]" : "💬 [CHAT]")
+                          : isInstagram
+                          ? "📸 [FEED]"
+                          : isPage
+                          ? "📄 [PAGE]"
+                          : "👤 [PROFILE]";
                         return (
                           <option key={i} value={d.url} className="bg-[var(--color-quaz-bg)] py-1">
                             {`${prefix} ${d.name}`}
@@ -252,6 +261,28 @@ export default function ComposePage() {
                         );
                       })}
                     </select>
+
+                    {/* Recipient Phone Input for WhatsApp Direct Chat */}
+                    {selectedAcc.platform === "whatsapp" && targetUrl.includes("send") && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-1.5">
+                        <label className="text-xs text-emerald-400 font-medium flex items-center gap-1.5">
+                          <span>📱 رقم هاتف العميل (مع كود الدولة):</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="مثال: 201012345678"
+                          value={targetUrl.includes("phone=") ? targetUrl.split("phone=")[1] : ""}
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/[^0-9]/g, "");
+                            setTargetUrl(`https://web.whatsapp.com/send?phone=${clean}`);
+                          }}
+                          className="w-full px-3.5 py-2 rounded-lg bg-black/50 border border-emerald-500/40 text-white placeholder:text-gray-500 text-xs focus:outline-none focus:border-emerald-400 font-mono tracking-wider"
+                        />
+                        <p className="text-[10px] text-gray-400">
+                          سيتم فتح المحادثة المباشرة مع هذا الرقم وإرسال الرسالة والصور إليه تلقائياً.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Quick Add House Of Glass button strictly for Facebook */}
                     {selectedAcc.platform === "facebook" && !selectedAcc.destinations?.some(d => d.url.includes("al3shour") || d.name.toLowerCase().includes("glass")) && (

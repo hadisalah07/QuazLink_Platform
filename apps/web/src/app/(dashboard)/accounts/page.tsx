@@ -203,7 +203,7 @@ export default function AccountsPage() {
 
       {/* Platform Filter Tabs */}
       <div className="flex items-center space-x-2 border-b border-white/10 pb-3">
-        {["all", "facebook", "instagram", "tiktok"].map((p) => (
+        {["all", "facebook", "instagram", "whatsapp", "tiktok"].map((p) => (
           <button
             key={p}
             onClick={() => setFilter(p)}
@@ -423,22 +423,33 @@ function AccountCard({
         </div>
 
         {/* Destinations / Targets */}
-        {destinations.length > 0 && (
+        {(destinations.length > 0 || isWa) && (
           <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/5 space-y-1.5">
             <span className="text-[11px] font-semibold uppercase text-gray-400 flex items-center gap-1">
               <Globe className="w-3 h-3 text-cyan-400" />
-              Connected Targets ({destinations.length})
+              Connected Targets ({isWa ? 2 : destinations.length})
             </span>
             <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-              {destinations.map((d, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-0.5 rounded-md bg-black/40 text-[11px] text-gray-300 border border-white/5 truncate max-w-full"
-                  title={d.url}
-                >
-                  {d.name}
-                </span>
-              ))}
+              {isWa ? (
+                <>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-950/40 text-[11px] text-emerald-300 border border-emerald-500/20 truncate">
+                    🟢 WhatsApp Status (حالة / قصة)
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-950/40 text-[11px] text-emerald-300 border border-emerald-500/20 truncate">
+                    💬 Direct Customer Chat (محادثة مباشرة)
+                  </span>
+                </>
+              ) : (
+                destinations.map((d, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-0.5 rounded-md bg-black/40 text-[11px] text-gray-300 border border-white/5 truncate max-w-full"
+                    title={d.url}
+                  >
+                    {d.name}
+                  </span>
+                ))
+              )}
             </div>
           </div>
         )}

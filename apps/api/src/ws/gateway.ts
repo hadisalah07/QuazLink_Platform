@@ -211,12 +211,15 @@ export function setupWebSocketGateway(server: HttpServer) {
           if (msg.type === 'job:connect_success' && typeof msg.jobId === 'string') {
             console.log(`✅ [WS] Runner reported connect success for account ${msg.jobId}`);
             
-            // Set a default destination for personal timeline if it's facebook, etc.
+            // Set default destinations depending on platform
             const defaultUrl = msg.platform === 'instagram' ? 'https://www.instagram.com/' : 
                                msg.platform === 'tiktok' ? 'https://www.tiktok.com/upload' : 
                                'https://www.facebook.com/';
                                
-            const defaultDest = [{ name: 'Personal Profile (Timeline)', url: defaultUrl }];
+            const defaultDest = msg.platform === 'whatsapp' ? [
+              { name: 'WhatsApp Status (حالة الواتساب)', url: 'https://web.whatsapp.com/status' },
+              { name: 'Direct Customer Chat (محادثة مباشرة)', url: 'https://web.whatsapp.com/send' },
+            ] : [{ name: 'Personal Profile (Timeline)', url: defaultUrl }];
 
             await prisma.socialAccount.updateMany({
               where: { id: msg.jobId, userId: ws.userId },
