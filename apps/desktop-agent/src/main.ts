@@ -104,17 +104,18 @@ if (!gotTheLock) {
 }
 
 function createWindow() {
+  const icon = getTrayIcon();
   mainWindow = new BrowserWindow({
     width: 380,
     height: 540,
-    show: false,
+    show: true,
     frame: false,
     resizable: false,
     alwaysOnTop: true,
+    skipTaskbar: false,
+    icon: icon.isEmpty() ? undefined : icon,
     backgroundColor: '#0a0d14',
     webPreferences: {
-      // Security: isolate the renderer. It can no longer require() Electron/Node — it reaches
-      // main only through the whitelisted `window.quazlink` bridge defined in preload.ts.
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, 'preload.js'),
@@ -127,6 +128,8 @@ function createWindow() {
 
   mainWindow.loadFile(htmlPath);
   mainWindow.center();
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 function getTrayIcon(): Electron.NativeImage {
@@ -160,13 +163,9 @@ function setupTray() {
     if (mainWindow?.isVisible()) {
       mainWindow.hide();
     } else {
-      const trayBounds = tray?.getBounds();
-      if (trayBounds && mainWindow) {
-        const x = Math.round(trayBounds.x + (trayBounds.width / 2) - 190);
-        const y = Math.round(trayBounds.y - 550);
-        mainWindow.setPosition(x > 0 ? x : 50, y > 0 ? y : 50);
-        mainWindow.show();
-      }
+      mainWindow?.center();
+      mainWindow?.show();
+      mainWindow?.focus();
     }
   });
 }
