@@ -15,11 +15,19 @@ declare global {
 // `Authorization: Bearer <jwt>` header (the future Desktop Agent). One verify
 // path serves both clients.
 function extractToken(req: Request): string | null {
+  // 1. Dedicated integration API key headers
+  const apiKey = req.headers['x-api-key'] || req.headers['x-quazlink-key'];
+  if (typeof apiKey === 'string' && apiKey.trim().length > 0) {
+    return apiKey.trim();
+  }
+
+  // 2. HTTP-only session cookie (web dashboard)
   const cookieToken = req.cookies?.[SESSION_COOKIE];
   if (typeof cookieToken === 'string' && cookieToken.length > 0) {
     return cookieToken;
   }
 
+  // 3. Authorization Bearer header
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.slice('Bearer '.length).trim();

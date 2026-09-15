@@ -7,6 +7,21 @@ import { openLoginBrowser } from './executor/login-browser';
 
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+const LOG_FILE = path.join(CONFIG_DIR, 'runner.log');
+
+function logToFile(msg: string) {
+  try {
+    if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] [PID:${process.pid}] ${msg}\n`);
+  } catch {}
+  console.log(msg);
+}
+
+logToFile(`🚀 App launched with argv: ${JSON.stringify(process.argv)}`);
+
+app.name = 'quazlink-desktop-runner';
+const userDataPath = path.join(CONFIG_DIR, 'electron_data');
+app.setPath('userData', userDataPath);
 
 // Register custom protocol 'quazlink'
 const appEntry = path.resolve(__dirname, '..');
@@ -53,23 +68,35 @@ let appConfig = loadConfig();
 let currentStatus: 'online' | 'offline' | 'pairing' = 'offline';
 
 function showAppWindow() {
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.center();
-    mainWindow.show();
-    mainWindow.focus();
-    mainWindow.setAlwaysOnTop(true);
+  logToFile(`🪟 [Window] showAppWindow invoked (hasWindow=${!!mainWindow})`);
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    logToFile('🪟 [Window] Window missing or destroyed, recreating...');
+    createWindow();
+    return;
   }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.center();
+  mainWindow.focus();
+  mainWindow.setAlwaysOnTop(true);
+  setTimeout(() => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.setAlwaysOnTop(false);
+      }
+    } catch {}
+  }, 1200);
 }
 
 function handleDeepLink(urlStr: string) {
   try {
+    logToFile(`🔗 [DeepLink] Raw URL received: ${urlStr}`);
     const cleanUrl = urlStr.trim().replace(/^["']|["']$/g, '');
     const parsed = new URL(cleanUrl);
     const token = (parsed.searchParams.get('token') || parsed.searchParams.get('pairingToken'))?.trim();
     showAppWindow();
     if (token) {
-      console.log('🔑 [DeepLink] Received auto-pairing request for code:', token);
+      logToFile(`🔑 [DeepLink] Auto-pairing request for code: ${token}`);
       appConfig.deviceToken = undefined;
       appConfig.pairingToken = token;
       saveConfig(appConfig);
@@ -80,37 +107,88 @@ function handleDeepLink(urlStr: string) {
       }
     }
   } catch (e: any) {
-    console.error('DeepLink error:', e.message);
+    logToFile(`❌ [DeepLink] Parse error: ${e.message}`);
     showAppWindow();
   }
 }
 
+const PENDING_PAIR_FILE = path.join(CONFIG_DIR, 'pending_pair.json');
+
 const gotTheLock = app.requestSingleInstanceLock();
+logToFile(`🔒 [Lock] gotTheLock=${gotTheLock}`);
 if (!gotTheLock) {
+  const deepLinkArg = process.argv.find((arg) => arg.includes('quazlink://'));
+  if (deepLinkArg) {
+    try {
+      logToFile(`📝 [Secondary] Forwarding deep-link to primary: ${deepLinkArg}`);
+      fs.writeFileSync(PENDING_PAIR_FILE, JSON.stringify({ url: deepLinkArg, time: Date.now() }));
+    } catch (e: any) {
+      logToFile(`❌ [Secondary] Error writing pending pair: ${e.message}`);
+    }
+  } else {
+    // Secondary was opened without URL (just user clicking desktop icon again)
+    try {
+      fs.writeFileSync(PENDING_PAIR_FILE, JSON.stringify({ showOnly: true, time: Date.now() }));
+    } catch {}
+  }
+  logToFile(`👋 [Instance] Secondary instance notifying primary and quitting.`);
   app.quit();
 } else {
+  // Watch for pending requests from secondary instances (fail-safe IPC on Windows)
+  const checkPendingPair = () => {
+    try {
+      if (fs.existsSync(PENDING_PAIR_FILE)) {
+        const raw = fs.readFileSync(PENDING_PAIR_FILE, 'utf-8');
+        try { fs.unlinkSync(PENDING_PAIR_FILE); } catch {}
+        const data = JSON.parse(raw);
+        logToFile(`📥 [Primary] Picked up secondary request: ${raw.trim()}`);
+        showAppWindow();
+        if (data.url) {
+          handleDeepLink(data.url);
+        }
+      }
+    } catch {}
+  };
+
+  setInterval(checkPendingPair, 350);
+  try {
+    fs.watch(CONFIG_DIR, (_event, filename) => {
+      if (filename && filename.includes('pending_pair')) {
+        checkPendingPair();
+      }
+    });
+  } catch {}
+
   app.on('second-instance', (event, commandLine) => {
+    logToFile(`⚡ [SecondInstance] Caught second instance with args: ${JSON.stringify(commandLine)}`);
     showAppWindow();
-    const deepLinkUrl = commandLine.find((arg) => arg.startsWith('quazlink://'));
+    const deepLinkUrl = commandLine.find((arg) => arg.includes('quazlink://'));
     if (deepLinkUrl) {
       handleDeepLink(deepLinkUrl);
     }
   });
 
   app.on('open-url', (event, url) => {
+    logToFile(`🌐 [OpenUrl] Caught URL: ${url}`);
     event.preventDefault();
     handleDeepLink(url);
   });
 }
 
 function createWindow() {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    showAppWindow();
+    return;
+  }
+
   const icon = getTrayIcon();
   mainWindow = new BrowserWindow({
-    width: 380,
-    height: 540,
+    title: 'QuazLink Desktop Runner',
+    width: 420,
+    height: 620,
     show: true,
-    frame: false,
-    resizable: false,
+    frame: true,
+    resizable: true,
     alwaysOnTop: true,
     skipTaskbar: false,
     icon: icon.isEmpty() ? undefined : icon,
@@ -128,8 +206,29 @@ function createWindow() {
 
   mainWindow.loadFile(htmlPath);
   mainWindow.center();
-  mainWindow.show();
   mainWindow.focus();
+
+  try {
+    const hwnd = mainWindow.getNativeWindowHandle().readInt32LE(0);
+    console.log('🪟 [Window] Native HWND allocated:', hwnd, 'Visible:', mainWindow.isVisible());
+  } catch (err: any) {
+    console.error('❌ [Window] Failed to get HWND:', err.message);
+  }
+
+  setTimeout(() => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.setAlwaysOnTop(false);
+      }
+    } catch {}
+  }, 1200);
+
+  mainWindow.on('close', (e) => {
+    if (!(app as any).isQuitting) {
+      e.preventDefault();
+      mainWindow?.hide();
+    }
+  });
 }
 
 function getTrayIcon(): Electron.NativeImage {
@@ -257,23 +356,22 @@ function initializeRunnerClient() {
   wsClient.connect();
 }
 
-app.whenReady().then(() => {
+if (gotTheLock) {
+  app.whenReady().then(() => {
   createWindow();
   setupTray();
   applyPowerManagement();
 
   // Check if launched directly with a deep link argument
-  const initialDeepLink = process.argv.find((arg) => arg.startsWith('quazlink://'));
+  const initialDeepLink = process.argv.find((arg) => arg.includes('quazlink://'));
   if (initialDeepLink) {
     handleDeepLink(initialDeepLink);
   } else {
     initializeRunnerClient();
   }
 
-  // If unpaired, show the window immediately so the user sees the control panel
-  if (!appConfig.deviceToken) {
-    showAppWindow();
-  }
+  // Always show the window on startup so the user sees the control panel
+  showAppWindow();
 
   // IPC handlers for mini UI
   ipcMain.on('get-state', (event) => {
@@ -343,6 +441,7 @@ app.whenReady().then(() => {
     }
   });
 });
+}
 
 app.on('window-all-closed', () => {
   // Keep alive in system tray on all platforms

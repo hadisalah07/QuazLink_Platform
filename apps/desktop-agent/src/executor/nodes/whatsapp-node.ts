@@ -56,8 +56,11 @@ export class WhatsAppNode implements IPlatformNode {
     }
 
     onProgress(`[WhatsAppNode] Engaging Autonomous AI Driver for ${this.platform}...`);
-    await page.goto(dest, { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForTimeout(3000);
+    if (!page.url().includes('whatsapp.com')) {
+      await page.goto(dest, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    }
+    await this.waitForWhatsAppReady(page, onProgress);
+    await page.waitForTimeout(2500);
 
     const history: any[] = [];
     let stepIndex = 0;
@@ -82,6 +85,18 @@ export class WhatsAppNode implements IPlatformNode {
           screenshotBase64: finalBuffer.toString('base64'),
           resultMessage: 'Published successfully to WhatsApp via AI Driver.',
         };
+      }
+
+      // If AI indicates waiting or page is still loading, wait without failing!
+      if (
+        instruction.action === 'wait' ||
+        (instruction.action === 'fail' && instruction.thought && /wait|load|loading|spinner|progress/i.test(instruction.thought))
+      ) {
+        onProgress('[WhatsAppNode:Driver] Page is still loading or buffering. Waiting 4s...');
+        await page.waitForTimeout(4000);
+        history.push({ step: stepIndex, action: 'wait', thought: instruction.thought });
+        stepIndex++;
+        continue;
       }
 
       await this.executeActionOnPage(page, instruction, content, images, onProgress);
@@ -239,10 +254,13 @@ export class WhatsAppNode implements IPlatformNode {
         // In media preview, locate the caption field
         onProgress('[WhatsAppNode:Direct] Writing caption in media preview...');
         const captionSelectors = [
+          'div[aria-label="Add a caption" i]',
           'div[aria-label="Add a caption..."]',
-          'div[aria-label="إضافة شرح..."]',
-          'div[aria-placeholder="Add a caption..."]',
+          'div[aria-label*="caption" i]',
+          'div[aria-label*="شرح" i]',
+          'div[aria-placeholder*="caption" i]',
           'div[contenteditable="true"][data-tab="10"]',
+          'div[contenteditable="true"]',
           'div[role="textbox"]',
         ];
 
@@ -256,7 +274,7 @@ export class WhatsAppNode implements IPlatformNode {
         }
 
         if (captionBox && content) {
-          await captionBox.click();
+          await captionBox.click({ force: true }).catch(() => {});
           await this.pasteTextViaClipboard(page, content);
           await page.waitForTimeout(1000);
         }
@@ -264,18 +282,20 @@ export class WhatsAppNode implements IPlatformNode {
         // Click media send button
         onProgress('[WhatsAppNode:Direct] Clicking send button...');
         const sendBtnSelectors = [
+          'div[aria-label*="Send" i]',
+          'button[aria-label*="Send" i]',
+          'span[data-icon="wds-ic-send-filled"]',
+          'div:has(span[data-icon="wds-ic-send-filled"])',
           'span[data-icon="send"]',
-          'div[aria-label="Send"]',
-          'button[aria-label="Send"]',
-          'div[aria-label="إرسال"]',
-          'button[aria-label="إرسال"]',
+          'div[aria-label*="إرسال" i]',
+          'button[aria-label*="إرسال" i]',
         ];
 
         let sent = false;
         for (const sSel of sendBtnSelectors) {
           const sLoc = page.locator(sSel).first();
           if (await sLoc.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await sLoc.click();
+            await sLoc.click({ force: true }).catch(() => {});
             sent = true;
             break;
           }
@@ -288,14 +308,23 @@ export class WhatsAppNode implements IPlatformNode {
     } else {
       // Text-only direct message
       onProgress('[WhatsAppNode:Direct] Writing text message via clipboard injection...');
-      await chatInput.click();
+      await chatInput.click({ force: true }).catch(() => {});
       await this.pasteTextViaClipboard(page, content);
       await page.waitForTimeout(800);
       await page.keyboard.press('Enter');
     }
 
-    onProgress('[WhatsAppNode:Direct] Waiting for transmission confirmation checkmark...');
-    await page.waitForTimeout(4000);
+    onProgress('[WhatsAppNode:Direct] Waiting for transmission confirmation...');
+    // Monitor transmission: wait until any pending clock icon disappears
+    for (let i = 0; i < 20; i++) {
+      const hasClock = await page
+        .locator('span[data-icon="msg-time"], span[data-icon="time"], span[data-icon="pending"]')
+        .isVisible()
+        .catch(() => false);
+      if (!hasClock && i >= 3) break;
+      await page.waitForTimeout(1000);
+    }
+    await page.waitForTimeout(2000);
 
     const proofBuffer = await page.screenshot({ type: 'jpeg', quality: 65 });
     onProgress(`[WhatsAppNode:Direct] Message sent successfully to ${phoneNumber}!`);
@@ -330,12 +359,13 @@ export class WhatsAppNode implements IPlatformNode {
 
     // Look for Status tab button in header/sidebar
     const statusTabSelectors = [
-      'button[aria-label="Status"]',
-      'button[aria-label="الحالة"]',
+      'button[aria-label="Status" i]',
+      'button[aria-label="الحالة" i]',
+      'button:has-text("wds-ic-status-filled")',
       'span[data-icon="status-v3"]',
       'span[data-icon="status-refreshed"]',
-      'button[title="Status"]',
-      'div[aria-label="Status"]',
+      'button[title="Status" i]',
+      'div[aria-label="Status" i]',
     ];
 
     let statusTabFound = false;
@@ -367,48 +397,183 @@ export class WhatsAppNode implements IPlatformNode {
     await this.dismissBlockingModals(page, onProgress);
 
     // Look for "Add status" or photo upload input in Status drawer
-    onProgress('[WhatsAppNode:Status] Selecting media for Status update...');
-    
-    // Check if add status button needs to be clicked first to reveal file input
-    let statusFileInput = page.locator('input[type="file"][accept*="image,video"], input[type="file"]').first();
-    if (await statusFileInput.count() === 0) {
-      const addStatusSelectors = [
-        'button[aria-label="Add status"]',
-        'button[aria-label="إضافة حالة"]',
-        'div[aria-label="Add status"]',
-        'div[aria-label="إضافة حالة"]',
-        'span[data-icon="status-add"]',
-        'span[data-icon="plus"]',
-        'span[data-icon="camera"]',
-        'div[role="button"]:has-text("My status")',
-        'div[role="button"]:has-text("حالتي")',
-      ];
-      for (const sel of addStatusSelectors) {
-        const btn = page.locator(sel).first();
-        if (await btn.isVisible({ timeout: 1500 }).catch(() => false)) {
-          await btn.click({ force: true }).catch(() => {});
-          await page.waitForTimeout(1500);
-          break;
+    onProgress('[WhatsAppNode:Status] Selecting media/content for Status update...');
+
+    if (images && images.length > 0) {
+      let mediaAttached = false;
+
+      // 1. First check if file input is already exposed in DOM
+      let statusFileInput = page
+        .locator('input[type="file"][accept*="image,video"], input[type="file"][accept*="image"], input[type="file"]')
+        .first();
+
+      if ((await statusFileInput.count()) > 0) {
+        try {
+          await statusFileInput.setInputFiles(images);
+          mediaAttached = true;
+          onProgress('[WhatsAppNode:Status] Media attached via direct DOM file input.');
+        } catch {}
+      }
+
+      // 2. If not attached, locate and trigger the header "New status" (+) button
+      if (!mediaAttached) {
+        const addStatusSelectors = [
+          'button[aria-label="Add Status" i]',
+          'button[aria-label*="Status" i]:has-text("ic-add-circle")',
+          'button:has-text("ic-add-circle")',
+          'button[aria-label*="Add Status" i]',
+          'button[aria-label*="حالة" i]',
+          'header button:has(span[data-icon*="plus"])',
+          'button:has(span[data-icon="plus-large"])',
+          'button:has(span[data-icon="plus"])',
+          'button:has(span[data-icon="status-v3-round-plus"])',
+          'div[role="button"]:has(span[data-icon*="plus"])',
+          'span[data-icon="plus-large"]',
+          'span[data-icon="status-v3-round-plus"]',
+          'span[data-icon="plus"]',
+          'span[data-icon="status-add"]',
+          'span[data-icon="camera"]',
+          'div[role="button"]:has-text("ic-add")',
+          'button[title="New status" i]',
+          'button[title="حالة جديدة" i]',
+        ];
+
+        let plusClicked = false;
+        for (const sel of addStatusSelectors) {
+          const btn = page.locator(sel).first();
+          if (await btn.isVisible().catch(() => false)) {
+            onProgress(`[WhatsAppNode:Status] Clicking Add Status button (${sel})...`);
+            // The click might trigger filechooser directly
+            const fcPromise = page.waitForEvent('filechooser', { timeout: 2000 }).catch(() => null);
+            
+            const clickable = btn.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
+            const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : btn;
+            await target.click({ force: true }).catch(async () => {
+              await target.dispatchEvent('click').catch(() => {});
+            });
+
+            const fc = await fcPromise;
+            if (fc) {
+              await fc.setFiles(images);
+              mediaAttached = true;
+              onProgress('[WhatsAppNode:Status] Media attached via file chooser trigger.');
+              break;
+            }
+            plusClicked = true;
+            await page.waitForTimeout(1000);
+            break;
+          }
+        }
+
+        // Fallback DOM evaluation to find and click the status plus button
+        if (!plusClicked && !mediaAttached) {
+          const clickedDom = await page.evaluate(() => {
+            const plusIcons = Array.from(document.querySelectorAll('span[data-icon*="plus"], span[data-icon*="status-add"], span[data-icon*="camera"]'));
+            for (const icon of plusIcons) {
+              const btn = icon.closest('button') || icon.closest('div[role="button"]') || icon;
+              if (btn && (btn as HTMLElement).offsetParent !== null) {
+                (btn as HTMLElement).click();
+                return true;
+              }
+            }
+            return false;
+          }).catch(() => false);
+
+          if (clickedDom) {
+            plusClicked = true;
+            onProgress('[WhatsAppNode:Status] Clicked Status Plus button via DOM inspection.');
+            await page.waitForTimeout(1000);
+          }
         }
       }
-      statusFileInput = page.locator('input[type="file"][accept*="image,video"], input[type="file"]').first();
-    }
 
-    if (images && images.length > 0 && (await statusFileInput.count() > 0)) {
-      await statusFileInput.setInputFiles(images);
-      onProgress('[WhatsAppNode:Status] Media attached. Waiting for Status preview screen...');
+      // 3. In WhatsApp Web, clicking Add Status reveals a dropdown menu:
+      // Option 1: "Photos & videos" / "الصور ومقاطع الفيديو"
+      // Option 2: "Text" / "نص"
+      if (!mediaAttached) {
+        const photoOptionSelectors = [
+          'button[aria-label="Photos & videos" i]',
+          'button:has-text("Photos & videos")',
+          'button:has-text("الصور ومقاطع الفيديو")',
+          'button:has-text("صور ومقاطع فيديو")',
+          'li:has-text("Photos & videos")',
+          'li:has-text("صور ومقاطع فيديو")',
+          'li:has-text("الصور ومقاطع الفيديو")',
+          'span:has-text("Photos & videos")',
+          'span:has-text("صور ومقاطع فيديو")',
+          'span:has-text("الصور ومقاطع الفيديو")',
+          'span[data-icon="status-media"]',
+          'span[data-icon="image"]',
+          'span[data-icon="attach-image"]',
+          'span[data-icon="camera"]',
+          'button[aria-label*="Photos" i]',
+          'button[aria-label*="صور" i]',
+        ];
+
+        for (const pSel of photoOptionSelectors) {
+          const pLoc = page.locator(pSel).first();
+          if (await pLoc.isVisible().catch(() => false)) {
+            onProgress(`[WhatsAppNode:Status] Selecting menu option (${pSel})...`);
+            const fcPromise = page.waitForEvent('filechooser', { timeout: 4000 }).catch(() => null);
+            
+            const clickable = pLoc.locator('xpath=ancestor-or-self::*[self::li or self::button or @role="button"][1]');
+            const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : pLoc;
+            await target.click({ force: true }).catch(async () => {
+              await target.dispatchEvent('click').catch(() => {});
+            });
+
+            const fc = await fcPromise;
+            if (fc) {
+              await fc.setFiles(images);
+              mediaAttached = true;
+              onProgress('[WhatsAppNode:Status] Media attached via menu file chooser.');
+              break;
+            }
+            await page.waitForTimeout(1000);
+            break;
+          }
+        }
+      }
+
+      // 4. Check if file input is now exposed in DOM after clicking menu item
+      if (!mediaAttached) {
+        statusFileInput = page
+          .locator('input[type="file"][accept*="image,video"], input[type="file"][accept*="image"], input[type="file"]')
+          .first();
+        if ((await statusFileInput.count()) > 0) {
+          try {
+            await statusFileInput.setInputFiles(images);
+            mediaAttached = true;
+            onProgress('[WhatsAppNode:Status] Media attached via newly rendered file input.');
+          } catch {}
+        }
+      }
+
+      // 5. CRITICAL: If media could not be attached, THROW ERROR so AI Driver can self-heal!
+      if (!mediaAttached) {
+        throw new Error(
+          'Media file input could not be triggered in WhatsApp Web Status drawer. Escalating to Autonomous AI Driver...'
+        );
+      }
+
+      onProgress('[WhatsAppNode:Status] Media attached successfully. Waiting for Status preview screen...');
       await page.waitForTimeout(3000);
 
-      // Write caption in Status preview
+      // Write caption in Status preview screen
       if (content) {
-        onProgress('[WhatsAppNode:Status] Typing Status caption...');
+        onProgress('[WhatsAppNode:Status] Typing Status caption in media preview...');
         const captionSelectors = [
-          'div[contenteditable="true"][role="textbox"]',
+          'div[aria-label="Add a caption" i]',
           'div[aria-label="Add a caption..."]',
-          'div[aria-label="إضافة شرح..."]',
-          'div[aria-placeholder="Add a caption..."]',
+          'div[aria-label*="caption" i]',
+          'div[aria-label*="شرح" i]',
+          'div[aria-placeholder*="caption" i]',
+          'div[aria-placeholder*="شرح" i]',
+          'footer div[contenteditable="true"]',
+          'div[contenteditable="true"][role="textbox"]',
           'div[role="textbox"]',
         ];
+
         for (const cSel of captionSelectors) {
           const captionBox = page.locator(cSel).first();
           if (await captionBox.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -423,12 +588,19 @@ export class WhatsAppNode implements IPlatformNode {
       // Click Send Status button
       onProgress('[WhatsAppNode:Status] Publishing status...');
       const sendStatusSelectors = [
+        'div[aria-label*="Send" i]',
+        'button[aria-label*="Send" i]',
+        'div[aria-label*="إرسال" i]',
+        'button[aria-label*="إرسال" i]',
+        'span[data-icon="wds-ic-send-filled"]',
+        'div:has(span[data-icon="wds-ic-send-filled"])',
+        'div:has-text("wds-ic-send-filled")',
         'span[data-icon="send"]',
-        'div[aria-label="Send"]',
-        'button[aria-label="Send"]',
-        'div[aria-label="إرسال"]',
-        'button[aria-label="إرسال"]',
+        'span[data-icon="status-send"]',
+        'button:has(span[data-icon*="send"])',
+        'div[role="button"]:has(span[data-icon*="send"])',
       ];
+
       let sent = false;
       for (const sSel of sendStatusSelectors) {
         const sendBtn = page.locator(sSel).first();
@@ -441,12 +613,151 @@ export class WhatsAppNode implements IPlatformNode {
       if (!sent) {
         await page.keyboard.press('Enter');
       }
+      await this.waitForStatusSendingToFinish(page, onProgress);
+    } else if (content) {
+      // Text-only WhatsApp Status
+      onProgress('[WhatsAppNode:Status] Mode: Text-only Status update...');
 
-      onProgress('[WhatsAppNode:Status] Waiting for status upload to complete...');
-      await page.waitForTimeout(4000);
+      const addStatusSelectors = [
+        'button[aria-label="Add Status" i]',
+        'button[aria-label*="Status" i]:has-text("ic-add-circle")',
+        'button:has-text("ic-add-circle")',
+        'button[aria-label*="Add Status" i]',
+        'button[aria-label*="حالة" i]',
+        'header button:has(span[data-icon*="plus"])',
+        'button:has(span[data-icon="plus-large"])',
+        'button:has(span[data-icon="plus"])',
+        'button:has(span[data-icon="status-v3-round-plus"])',
+        'div[role="button"]:has(span[data-icon*="plus"])',
+        'span[data-icon="plus-large"]',
+        'span[data-icon="status-v3-round-plus"]',
+        'span[data-icon="plus"]',
+        'span[data-icon="status-add"]',
+        'div[role="button"]:has-text("ic-add")',
+        'button[title="New status" i]',
+        'button[title="حالة جديدة" i]',
+      ];
+
+      let plusClicked = false;
+      for (const sel of addStatusSelectors) {
+        const btn = page.locator(sel).first();
+        if (await btn.isVisible().catch(() => false)) {
+          onProgress(`[WhatsAppNode:Status] Clicking Add Status button (${sel})...`);
+          const clickable = btn.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
+          const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : btn;
+          await target.click({ force: true }).catch(async () => {
+            await target.dispatchEvent('click').catch(() => {});
+          });
+          plusClicked = true;
+          await page.waitForTimeout(1200);
+          break;
+        }
+      }
+
+      if (!plusClicked) {
+        // Fallback DOM evaluation to find and click the status plus button
+        const clickedDom = await page.evaluate(() => {
+          const plusIcons = Array.from(document.querySelectorAll('span[data-icon*="plus"], span[data-icon*="status-add"]'));
+          for (const icon of plusIcons) {
+            const btn = icon.closest('button') || icon.closest('div[role="button"]') || icon;
+            if (btn && (btn as HTMLElement).offsetParent !== null) {
+              (btn as HTMLElement).click();
+              return true;
+            }
+          }
+          return false;
+        }).catch(() => false);
+
+        if (clickedDom) {
+          onProgress('[WhatsAppNode:Status] Clicked Status Plus button via DOM inspection.');
+          await page.waitForTimeout(1000);
+        }
+      }
+
+      // Look for "Text" / "نص" option
+      const textOptionSelectors = [
+        'button[aria-label="Text" i]',
+        'button:has-text("Text")',
+        'button:has-text("نص")',
+        'li:has-text("Text")',
+        'li:has-text("نص")',
+        'div[role="button"]:has-text("Text")',
+        'div[role="button"]:has-text("نص")',
+        'span:has-text("Text")',
+        'span:has-text("نص")',
+        'span[data-icon="pencil"]',
+        'span[data-icon="status-text"]',
+        'button[aria-label*="Text" i]',
+        'button[aria-label*="نص" i]',
+      ];
+
+      for (const tSel of textOptionSelectors) {
+        const tLoc = page.locator(tSel).first();
+        if (await tLoc.isVisible().catch(() => false)) {
+          onProgress(`[WhatsAppNode:Status] Clicking text status option (${tSel})...`);
+          const clickable = tLoc.locator('xpath=ancestor-or-self::*[self::li or self::button or @role="button"][1]');
+          const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : tLoc;
+          await target.click({ force: true }).catch(async () => {
+            await target.dispatchEvent('click').catch(() => {});
+          });
+          await page.waitForTimeout(1500);
+          break;
+        }
+      }
+
+      const textEditorSelectors = [
+        'div[aria-label="Type a status"]',
+        'div[aria-label="اكتب حالة"]',
+        'div[aria-placeholder="Type a status"]',
+        'div[aria-placeholder="اكتب حالة"]',
+        'div[contenteditable="true"][role="textbox"]',
+        'div[contenteditable="true"]',
+        'div[role="textbox"]',
+      ];
+
+      let textEditor = null;
+      for (const edSel of textEditorSelectors) {
+        const ed = page.locator(edSel).first();
+        if (await ed.isVisible({ timeout: 3500 }).catch(() => false)) {
+          textEditor = ed;
+          break;
+        }
+      }
+
+      if (!textEditor) {
+        throw new Error('Could not open WhatsApp text status editor. Escalating to AI Driver...');
+      }
+
+      onProgress('[WhatsAppNode:Status] Writing text status content...');
+      await textEditor.click({ force: true });
+      await this.pasteTextViaClipboard(page, content);
+      await page.waitForTimeout(1000);
+
+      const sendBtnSelectors = [
+        'span[data-icon="send"]',
+        'button[aria-label="Send"]',
+        'div[aria-label="Send"]',
+        'button[aria-label="إرسال"]',
+        'div[aria-label="إرسال"]',
+        'span[data-icon="status-send"]',
+      ];
+
+      let sent = false;
+      for (const sSel of sendBtnSelectors) {
+        const btn = page.locator(sSel).first();
+        if (await btn.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await btn.click({ force: true });
+          sent = true;
+          break;
+        }
+      }
+      if (!sent) {
+        await page.keyboard.press('Enter');
+      }
+
+      await this.waitForStatusSendingToFinish(page, onProgress);
     } else {
-      // Status without direct file input: create text status or notify
-      onProgress('[WhatsAppNode:Status] Media file input not directly exposed in Status view. Capturing proof...');
+      throw new Error('Cannot publish empty WhatsApp Status: no images or content provided.');
     }
 
     const proofBuffer = await page.screenshot({ type: 'jpeg', quality: 65 });
@@ -457,6 +768,75 @@ export class WhatsAppNode implements IPlatformNode {
       screenshotBase64: proofBuffer.toString('base64'),
       resultMessage: 'WhatsApp Status (Story) published successfully to all contacts.',
     };
+  }
+
+  /**
+   * Helper: Monitors status transmission until "Sending..." indicator disappears and status is confirmed live
+   */
+  private async waitForStatusSendingToFinish(page: Page, onProgress: (msg: string) => void): Promise<void> {
+    onProgress('[WhatsAppNode:Status] Monitoring status transmission and waiting for full upload...');
+    const MAX_WAIT_SECONDS = 60; // Allow up to 60 seconds for multiple media files
+    const startTime = Date.now();
+
+    // Give WhatsApp a brief moment to transition from preview modal to sending state in left pane
+    await page.waitForTimeout(2000);
+
+    for (let i = 0; i < MAX_WAIT_SECONDS; i++) {
+      const state = await page.evaluate(() => {
+        const bodyText = document.body.innerText || '';
+
+        // 1. Is preview modal still open?
+        const isPreviewOpen = !!document.querySelector(
+          'div[aria-label="Add a caption" i], div[aria-label*="caption" i], div[aria-label*="Send" i], span[data-icon="wds-ic-send-filled"]'
+        );
+
+        // 2. Is "Sending..." indicator present?
+        const isSending = /Sending\.\.\.|جاري الإرسال/i.test(bodyText);
+
+        // 3. Is clock/time icon present on "My status"?
+        const clockIcon = !!document.querySelector(
+          'span[data-icon="status-time"], span[data-icon="time"], span[data-icon="pending"], span[data-icon="msg-time"]'
+        );
+
+        // 4. Look for "My status" item specifically to check its subtext
+        const myStatusEl = Array.from(document.querySelectorAll('button, div[role="button"]')).find((el) => {
+          const t = (el.textContent || '').trim();
+          return t.includes('My status') || t.includes('حالتي');
+        });
+        const myStatusText = myStatusEl ? (myStatusEl.textContent || '').replace(/\s+/g, ' ').trim() : '';
+        const myStatusSending = /Sending\.\.\.|جاري الإرسال/i.test(myStatusText);
+
+        return {
+          isPreviewOpen,
+          isSending: isSending || myStatusSending,
+          clockIcon,
+          myStatusText: myStatusText.substring(0, 60),
+        };
+      }).catch(() => ({ isPreviewOpen: false, isSending: false, clockIcon: false, myStatusText: '' }));
+
+      // If still sending or preview is still open
+      if (state.isSending || state.isPreviewOpen || state.clockIcon) {
+        if (i % 3 === 0) {
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          onProgress(
+            `[WhatsAppNode:Status] Media uploading in progress (${elapsed}s elapsed, status: "${state.myStatusText || 'Sending...'}")...`
+          );
+        }
+        await page.waitForTimeout(1000);
+        continue;
+      }
+
+      // If preview closed and "Sending..." is no longer in text:
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      onProgress(
+        `[WhatsAppNode:Status] Transmission confirmed complete in ${elapsed}s! (Status: "${state.myStatusText || 'Live'}").`
+      );
+      // Wait extra 3 seconds grace period to ensure persistence and database flush
+      await page.waitForTimeout(3000);
+      return;
+    }
+
+    onProgress('[WhatsAppNode:Status] Max wait reached (60s). Finalizing task...');
   }
 
   /**
@@ -561,7 +941,9 @@ export class WhatsAppNode implements IPlatformNode {
   ): Promise<void> {
     const { action, selector, value } = actionObj;
 
-    if (action === 'navigate') {
+    if (action === 'wait') {
+      await page.waitForTimeout(3000);
+    } else if (action === 'navigate') {
       await page.goto(value || 'https://web.whatsapp.com', { waitUntil: 'domcontentloaded' });
     } else if (action === 'click' && selector) {
       // Find the first VISIBLE matching element (not a hidden span or container)
@@ -573,8 +955,14 @@ export class WhatsAppNode implements IPlatformNode {
         const item = allLocators.nth(i);
         if (await item.isVisible({ timeout: 500 }).catch(() => false)) {
           await item.scrollIntoViewIfNeeded().catch(() => {});
-          await item.click({ force: true, timeout: 5000 }).catch(async () => {
-            await item.dispatchEvent('click').catch(() => {});
+
+          // Smart clickable element detection:
+          // If the element is an inner span/svg, prefer clicking its parent button/clickable container!
+          const clickableParent = item.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
+          const targetToClick = (await clickableParent.count().catch(() => 0)) > 0 ? clickableParent : item;
+
+          await targetToClick.click({ force: true, timeout: 5000 }).catch(async () => {
+            await targetToClick.dispatchEvent('click').catch(() => {});
           });
           clicked = true;
           break;
@@ -582,12 +970,23 @@ export class WhatsAppNode implements IPlatformNode {
       }
 
       if (!clicked) {
-        // Fallback: try pressing Escape/Enter or force-click first
-        const loc = page.locator(selector).first();
-        await loc.click({ timeout: 3000, force: true }).catch(async () => {
-          await page.keyboard.press('Escape').catch(() => {});
-          await page.keyboard.press('Enter').catch(() => {});
-        });
+        // Fallback: click via evaluate or first locator directly. NEVER press Escape!
+        try {
+          const clickedViaEval = await page.evaluate((sel) => {
+            const el = document.querySelector(sel);
+            if (!el) return false;
+            const target = el.closest('button') || el.closest('div[role="button"]') || el;
+            (target as HTMLElement).click();
+            return true;
+          }, selector).catch(() => false);
+
+          if (!clickedViaEval) {
+            const loc = page.locator(selector).first();
+            await loc.click({ timeout: 2500, force: true }).catch(async () => {
+              await loc.dispatchEvent('click').catch(() => {});
+            });
+          }
+        } catch {}
       }
     } else if (action === 'type' && selector) {
       const loc = page.locator(selector).first();
@@ -601,6 +1000,18 @@ export class WhatsAppNode implements IPlatformNode {
         if (await fileInput.count() > 0) {
           await fileInput.setInputFiles(images);
           await page.waitForTimeout(2000);
+        } else if (selector) {
+          const loc = page.locator(selector).first();
+          if (await loc.isVisible().catch(() => false)) {
+            const [fc] = await Promise.all([
+              page.waitForEvent('filechooser', { timeout: 3000 }).catch(() => null),
+              loc.click({ force: true }).catch(() => {}),
+            ]);
+            if (fc) {
+              await fc.setFiles(images);
+              await page.waitForTimeout(2000);
+            }
+          }
         }
       }
     } else if (action === 'fail') {

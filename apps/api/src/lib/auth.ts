@@ -34,10 +34,16 @@ export function signToken(payload: TokenPayload): string {
   return jwt.sign(payload, getSecret(), { expiresIn: TOKEN_TTL });
 }
 
+// Signs a long-lived API integration key (10 years) for external webhooks/integrations
+export function signApiKey(payload: TokenPayload): string {
+  return 'ql_live_' + jwt.sign({ ...payload, type: 'api_key' }, getSecret(), { expiresIn: '3650d' });
+}
+
 // Returns the decoded payload, or null if the token is missing/invalid/expired.
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    const decoded = jwt.verify(token, getSecret());
+    const rawToken = token.startsWith('ql_live_') ? token.slice('ql_live_'.length) : token;
+    const decoded = jwt.verify(rawToken, getSecret());
     if (typeof decoded === 'object' && decoded && typeof (decoded as any).userId === 'string') {
       return { userId: (decoded as any).userId };
     }

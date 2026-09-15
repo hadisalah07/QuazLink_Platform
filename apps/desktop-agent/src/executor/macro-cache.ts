@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as os from 'os';
 
 export interface MacroAction {
-  action: 'click' | 'type' | 'upload' | 'done' | 'fail' | 'navigate';
+  action: 'click' | 'type' | 'upload' | 'done' | 'fail' | 'navigate' | 'wait';
   selector?: string;
   value?: string;
   url?: string;

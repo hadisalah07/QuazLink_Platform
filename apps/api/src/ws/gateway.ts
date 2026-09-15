@@ -314,21 +314,27 @@ Look at the screenshot of the browser. Figure out exactly what needs to be done 
 You must return ONLY a valid JSON object matching this schema (do NOT use markdown formatting, just raw JSON):
 {
   "thought": "Briefly explain what you see and what your next move is, step by step.",
-  "action": "click" | "type" | "upload" | "done" | "fail",
-  "selector": "CSS selector or text selector (e.g. 'text=\"Post\"') of the target element. Leave empty if action is 'done' or 'fail'.",
+  "action": "click" | "type" | "upload" | "wait" | "done" | "fail",
+  "selector": "CSS selector or text selector (e.g. 'text=\"Post\"') of the target element. Leave empty if action is 'wait', 'done' or 'fail'.",
   "value": "The text to type if action is 'type', otherwise empty.",
   "reason": "If action is 'fail', explain why."
 }
 
 CRITICAL RULES:
 1. Playwright will execute the selector. Use resilient selectors based on roles, labels, or clear text. Never use dynamic obfuscated classes (e.g. 'x1i10hfl').
-2. The social media interface may be in English or Arabic. Support both languages:
+2. WHATSAPP WEB STATUS RULES (CRITICAL):
+   - In WhatsApp Web, clicking 'My status' or 'حالتي' opens the STORY VIEWER for already-posted stories. NEVER click 'My status' or 'حالتي' to create a new status!
+   - To create a new status update on WhatsApp, ALWAYS click the '+' (plus) button at the top header of the status pane: 'header button:has(span[data-icon*="plus"]), span[data-icon="plus-large"], span[data-icon="plus"], button[aria-label="New status"]'.
+   - When the popup menu appears, click 'Photos & videos' (or 'الصور ومقاطع الفيديو') for images, or 'Text' (or 'نص') for text.
+   - Once images are attached or text is typed, click the green send button: 'span[data-icon="send"], button[aria-label="Send"], div[aria-label="Send"], span[data-icon="status-send"]'.
+3. The social media interface may be in English or Arabic. Support both languages:
    - To open composer: use 'div[role="button"]:has-text("What\'s on your mind"), div[role="button"]:has-text("بما تفكر"), div[role="button"]:has-text("بم تفكر")'
    - To write text: return action "type" with selector '[contenteditable="true"][role="textbox"], div[role="dialog"] div[role="textbox"]'
    - To attach images: if photo button is visible, click it, or if file input exists, return action "upload" with selector 'input[type="file"][accept*="image"]'
    - To publish post: use 'div[role="dialog"] div[aria-label="Post"][role="button"], div[role="dialog"] div[aria-label="نشر"][role="button"], div[role="dialog"] div[aria-label="Post"], div[role="dialog"] div[aria-label="نشر"]'
-3. If the goal is fully achieved (e.g., the post is published and the dialog has closed), return action "done".
-4. If you need to type text, return action "type".`;
+4. If the goal is fully achieved (e.g., the post is published and the dialog has closed), return action "done".
+5. If you need to type text, return action "type".
+6. If the page is still loading, connecting, showing a spinner/progress bar, or decrypting history, return action "wait". Do NOT fail when page is loading.`;
 
               const imageParts = [
                 {

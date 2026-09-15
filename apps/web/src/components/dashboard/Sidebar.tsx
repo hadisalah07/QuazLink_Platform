@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logout, type AuthUser } from "@/lib/api";
@@ -13,6 +13,7 @@ const navItems = [
   { name: "Accounts", href: "/accounts", icon: Users },
   { name: "Catalogs", href: "/catalogs", icon: ShoppingBag },
   { name: "Compose", href: "/compose", icon: PenSquare },
+  { name: "Invoices & WhatsApp", href: "/integrations", icon: Receipt },
   { name: "Runs", href: "/runs", icon: Zap },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

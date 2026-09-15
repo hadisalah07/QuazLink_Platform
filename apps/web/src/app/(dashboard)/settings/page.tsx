@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw, Laptop } from "lucide-react";
+import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw, Laptop, ArrowRight } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { DeviceManager } from "@/components/settings/DeviceManager";
 import { getMe, type AuthUser } from "@/lib/api";
@@ -191,29 +191,39 @@ export default function SettingsPage() {
 
       {activeTab === "api" && (
         <SpotlightCard className="p-6 md:p-8 rounded-2xl border border-white/10 bg-[var(--color-quaz-bg)] space-y-6 shadow-2xl">
-          <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Key className="w-5 h-5 text-purple-400" />
-              Developer API Keys
-            </h3>
-            <p className="text-xs text-gray-400 mt-1">Use these keys to trigger workflows remotely via webhooks or external applications.</p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Key className="w-5 h-5 text-purple-400" />
+                Developer API Keys &amp; Inbound Webhooks
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">Use these keys to trigger workflows and WhatsApp customer invoices remotely from external systems.</p>
+            </div>
+            <a
+              href="/integrations"
+              className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+            >
+              <span>فتح بوابة الفواتير والربط (Invoices Portal)</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
           </div>
 
-          <div className="p-4 rounded-xl bg-black/40 border border-white/10 flex items-center justify-between gap-4">
-            <div>
-              <span className="text-xs text-gray-500 font-mono">LIVE_KEY_9921_PROD</span>
-              <p className="text-sm text-white font-mono mt-0.5">ql_live_883f901192837482910293</p>
+          <div className="p-5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+                بوابة رسائل وفواتير الواتساب التلقائية واليدوية
+              </span>
+              <p className="text-xs text-gray-300">
+                يمكنك الآن إرسال فواتير ورسائل شكر وترحيب لعملائك يدوياً أو ربط متجر Gallary NextJS تلقائياً بنقرة واحدة.
+              </p>
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText("ql_live_883f901192837482910293");
-                setToastMessage("API Key copied to clipboard!");
-                setTimeout(() => setToastMessage(null), 2500);
-              }}
-              className="px-3.5 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-semibold hover:bg-cyan-500/20 transition-colors cursor-pointer"
+            <a
+              href="/integrations"
+              className="px-3.5 py-1.5 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 rounded-lg text-xs font-semibold hover:bg-cyan-500/30 transition-colors whitespace-nowrap cursor-pointer text-center"
             >
-              Copy Key
-            </button>
+              انتقل للبوابة الآن 🚀
+            </a>
           </div>
         </SpotlightCard>
       )}

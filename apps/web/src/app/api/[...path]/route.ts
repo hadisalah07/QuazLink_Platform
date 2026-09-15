@@ -7,6 +7,7 @@ const CANDIDATE_HOSTS = [
 ];
 
 const API_PORT = 3001;
+let preferredHost: string | null = null;
 
 async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
@@ -29,8 +30,11 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
     req.method !== "GET" && req.method !== "HEAD" ? await req.text() : undefined;
 
   const errors: string[] = [];
+  const hostsToTry = preferredHost
+    ? [preferredHost, ...CANDIDATE_HOSTS.filter((h) => h !== preferredHost)]
+    : CANDIDATE_HOSTS;
 
-  for (const host of CANDIDATE_HOSTS) {
+  for (const host of hostsToTry) {
     const targetUrl = `http://${host}:${API_PORT}${targetPath}`;
     try {
       const controller = new AbortController();
@@ -45,6 +49,7 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
       });
 
       clearTimeout(timeoutId);
+      preferredHost = host;
 
       const resHeaders = new Headers();
       res.headers.forEach((val, key) => {
@@ -65,6 +70,7 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
         headers: resHeaders,
       });
     } catch (err: any) {
+      if (host === preferredHost) preferredHost = null;
       const cause = err.cause ? ` [cause: ${err.cause.code || err.cause.message || err.cause}]` : "";
       errors.push(`${host}: ${err.message}${cause}`);
     }

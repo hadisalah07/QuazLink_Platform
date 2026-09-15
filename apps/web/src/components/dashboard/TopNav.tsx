@@ -11,16 +11,27 @@ export function TopNav() {
 
   React.useEffect(() => {
     async function check() {
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const data = await getDevices();
         setIsOnline(data.isOnline);
-        const onlineDev = data.devices.find(d => d.status === "online");
+        const onlineDev = data.devices.find((d) => d.status === "online");
         setActiveDeviceName(onlineDev ? onlineDev.name : null);
       } catch {}
     }
+
     check();
-    const interval = setInterval(check, 5000);
-    return () => clearInterval(interval);
+    const interval = setInterval(check, 20000);
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) check();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   return (

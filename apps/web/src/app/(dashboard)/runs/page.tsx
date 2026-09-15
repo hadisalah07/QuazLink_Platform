@@ -36,6 +36,8 @@ export default function RunsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [previewJob, setPreviewJob] = React.useState<Job | null>(null);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
+  const jobsRef = React.useRef(jobs);
+  jobsRef.current = jobs;
 
   const refresh = React.useCallback(async () => {
     try {
@@ -48,9 +50,39 @@ export default function RunsPage() {
   }, []);
 
   React.useEffect(() => {
-    refresh();
-    const t = setInterval(refresh, 3000);
-    return () => clearInterval(t);
+    let timer: NodeJS.Timeout;
+    let isCancelled = false;
+
+    async function cycle() {
+      if (typeof document !== "undefined" && !document.hidden) {
+        await refresh();
+      }
+      if (isCancelled) return;
+
+      const hasActiveJob = jobsRef.current.some((j) => {
+        const s = toUiStatus(j.status);
+        return s === "running" || j.status === "connecting" || j.status === "prepared";
+      });
+
+      const delay = hasActiveJob ? 5000 : 25000;
+      timer = setTimeout(cycle, delay);
+    }
+
+    cycle();
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        cycle();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [refresh]);
 
   const filteredJobs = jobs.filter((j) => {
