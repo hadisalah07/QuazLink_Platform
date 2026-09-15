@@ -90,6 +90,12 @@ export default function ComposePage() {
       }
       return igOnly;
     }
+    if (selectedAcc.platform === "whatsapp") {
+      return dests.length > 0 ? dests : [
+        { name: "WhatsApp Status (حالة الواتساب / قصة)", url: "https://web.whatsapp.com/status" },
+        { name: "Direct Customer Chat (محادثة مباشرة)", url: "https://web.whatsapp.com/send" },
+      ];
+    }
     return dests.length > 0 ? dests : [{ name: "Personal Profile (Timeline)", url: "https://www.facebook.com/" }];
   }, [selectedAcc]);
 

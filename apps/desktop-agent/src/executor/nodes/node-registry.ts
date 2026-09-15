@@ -1,6 +1,7 @@
 import { IPlatformNode } from './base-node';
 import { FacebookNode } from './facebook-node';
 import { InstagramNode } from './instagram-node';
+import { WhatsAppNode } from './whatsapp-node';
 import { MacroCache } from '../macro-cache';
 
 export class PlatformNodeRegistry {
@@ -9,6 +10,7 @@ export class PlatformNodeRegistry {
   constructor(macroCache: MacroCache) {
     this.registerNode(new FacebookNode(macroCache));
     this.registerNode(new InstagramNode(macroCache));
+    this.registerNode(new WhatsAppNode(macroCache));
   }
 
   public registerNode(node: IPlatformNode): void {

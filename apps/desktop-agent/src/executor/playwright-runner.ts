@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext } from 'playwright';
+import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -80,20 +80,35 @@ export class PlaywrightRunner {
         }
       }
 
-      browser = await chromium.launch({
-        headless: false,
-        args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
-      });
+      let page: Page;
 
-      context = await browser.newContext({
-        storageState,
-        viewport: { width: 1280, height: 800 },
-        permissions: ['clipboard-read', 'clipboard-write'],
-        userAgent:
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      });
+      const whatsappProfileDir = path.join(this.storageDir, `profile_${socialAccountId}_whatsapp`);
+      if (normPlatform === 'whatsapp' && fs.existsSync(whatsappProfileDir)) {
+        context = await chromium.launchPersistentContext(whatsappProfileDir, {
+          headless: false,
+          args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+          viewport: { width: 1280, height: 800 },
+          permissions: ['clipboard-read', 'clipboard-write'],
+          userAgent:
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        });
+        page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
+      } else {
+        browser = await chromium.launch({
+          headless: false,
+          args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+        });
 
-      const page = await context.newPage();
+        context = await browser.newContext({
+          storageState,
+          viewport: { width: 1280, height: 800 },
+          permissions: ['clipboard-read', 'clipboard-write'],
+          userAgent:
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        });
+
+        page = await context.newPage();
+      }
 
       // Delegate directly to the isolated platform node
       const nodeResult = await node.execute({
