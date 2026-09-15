@@ -50,7 +50,25 @@ router.get('/', async (req, res) => {
       },
     });
 
-    res.json(accounts);
+    const mappedAccounts = accounts.map((a) => {
+      if (a.platform === 'whatsapp') {
+        const hasWa = Array.isArray(a.destinations) && (a.destinations as any[]).some((d) => d?.url?.includes('whatsapp.com'));
+        if (!hasWa) {
+          const waDestinations = [
+            { name: 'WhatsApp Status (حالة الواتساب / قصة)', url: 'https://web.whatsapp.com/status' },
+            { name: 'Direct Customer Chat (محادثة مباشرة)', url: 'https://web.whatsapp.com/send' },
+          ];
+          prisma.socialAccount.update({
+            where: { id: a.id },
+            data: { destinations: waDestinations },
+          }).catch(() => {});
+          return { ...a, destinations: waDestinations };
+        }
+      }
+      return a;
+    });
+
+    res.json(mappedAccounts);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

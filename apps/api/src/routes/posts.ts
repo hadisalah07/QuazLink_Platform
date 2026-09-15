@@ -26,11 +26,35 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Account not found' });
     }
 
-    // Target safety: never let an empty/foreign URL silently fall back to the
-    // personal timeline in the worker. Require the target to be one of THIS
-    // account's detected page destinations.
+    // Target safety: verify destination validity
     const destinations = Array.isArray(account.destinations) ? (account.destinations as any[]) : [];
-    if (!targetUrl || !destinations.some((d) => d?.url === targetUrl)) {
+    let isValidTarget = false;
+
+    if (account.platform === 'whatsapp') {
+      isValidTarget = Boolean(
+        targetUrl && (
+          targetUrl.startsWith('https://web.whatsapp.com/status') ||
+          targetUrl.startsWith('https://web.whatsapp.com/send') ||
+          destinations.some((d) => d?.url === targetUrl)
+        )
+      );
+
+      // Self-heal account destinations in DB if missing whatsapp URLs
+      if (!destinations.some((d) => d?.url?.includes('whatsapp.com'))) {
+        const waDestinations = [
+          { name: 'WhatsApp Status (حالة الواتساب / قصة)', url: 'https://web.whatsapp.com/status' },
+          { name: 'Direct Customer Chat (محادثة مباشرة)', url: 'https://web.whatsapp.com/send' },
+        ];
+        prisma.socialAccount.update({
+          where: { id: account.id },
+          data: { destinations: waDestinations },
+        }).catch((e) => console.error('Failed to self-heal whatsapp destinations:', e.message));
+      }
+    } else {
+      isValidTarget = Boolean(targetUrl && destinations.some((d) => d?.url === targetUrl));
+    }
+
+    if (!isValidTarget) {
       return res.status(400).json({ error: 'A valid target page is required (must be one of the account destinations).' });
     }
 
