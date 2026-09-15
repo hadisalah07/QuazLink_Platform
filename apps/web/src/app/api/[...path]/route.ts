@@ -34,7 +34,7 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
     const targetUrl = `http://${host}:${API_PORT}${targetPath}`;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const res = await fetch(targetUrl, {
         method: req.method,
