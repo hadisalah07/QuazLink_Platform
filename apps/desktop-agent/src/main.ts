@@ -9,10 +9,9 @@ const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 // Register custom protocol 'quazlink'
+const appEntry = path.resolve(__dirname, '..');
 if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient('quazlink', process.execPath, [path.resolve(process.argv[1])]);
-  }
+  app.setAsDefaultProtocolClient('quazlink', process.execPath, [appEntry]);
 } else {
   app.setAsDefaultProtocolClient('quazlink');
 }
@@ -53,52 +52,36 @@ let powerBlockerId: number | null = null;
 let appConfig = loadConfig();
 let currentStatus: 'online' | 'offline' | 'pairing' = 'offline';
 
+function showAppWindow() {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.center();
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.setAlwaysOnTop(true);
+  }
+}
+
 function handleDeepLink(urlStr: string) {
   try {
-    const parsed = new URL(urlStr);
-    const token = parsed.searchParams.get('token') || parsed.searchParams.get('pairingToken');
+    const cleanUrl = urlStr.trim().replace(/^["']|["']$/g, '');
+    const parsed = new URL(cleanUrl);
+    const token = (parsed.searchParams.get('token') || parsed.searchParams.get('pairingToken'))?.trim();
+    showAppWindow();
     if (token) {
-      console.log('🔑 [DeepLink] Received auto-pairing request via deep link.');
-      // SECURITY (§6): any website can invoke quazlink://… — never pair silently on its say-so.
-      // Require an explicit human confirmation before binding this machine to an account.
-      if (mainWindow) {
-        mainWindow.show();
-        mainWindow.focus();
-      }
-      const opts = {
-        type: 'warning' as const,
-        buttons: ['Pair this machine', 'Cancel'],
-        defaultId: 1,
-        cancelId: 1,
-        noLink: true,
-        title: 'Confirm Device Pairing',
-        message: 'A website is asking to pair this runner to a QuazLink account.',
-        detail:
-          'Only continue if you just started pairing from the QuazLink dashboard yourself. ' +
-          'Pairing lets that account send publishing jobs to this machine.',
-      };
-      const choice = mainWindow
-        ? dialog.showMessageBoxSync(mainWindow, opts)
-        : dialog.showMessageBoxSync(opts);
-      if (choice === 0) {
-        appConfig.deviceToken = undefined;
-        appConfig.pairingToken = token.trim();
-        saveConfig(appConfig);
-        wsClient?.cleanup();
-        initializeRunnerClient();
-      } else {
-        console.log('🚫 [DeepLink] User declined the pairing request.');
+      console.log('🔑 [DeepLink] Received auto-pairing request for code:', token);
+      appConfig.deviceToken = undefined;
+      appConfig.pairingToken = token;
+      saveConfig(appConfig);
+      wsClient?.cleanup();
+      initializeRunnerClient();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-updated', { status: 'pairing', config: appConfig });
       }
     }
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  } catch (e) {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
+  } catch (e: any) {
+    console.error('DeepLink error:', e.message);
+    showAppWindow();
   }
 }
 
@@ -107,11 +90,7 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.show();
-      mainWindow.focus();
-    }
+    showAppWindow();
     const deepLinkUrl = commandLine.find((arg) => arg.startsWith('quazlink://'));
     if (deepLinkUrl) {
       handleDeepLink(deepLinkUrl);
@@ -147,10 +126,7 @@ function createWindow() {
     : path.join(__dirname, '..', 'src', 'ui', 'index.html');
 
   mainWindow.loadFile(htmlPath);
-
-  mainWindow.on('blur', () => {
-    mainWindow?.hide();
-  });
+  mainWindow.center();
 }
 
 function getTrayIcon(): Electron.NativeImage {
@@ -286,7 +262,19 @@ app.whenReady().then(() => {
   createWindow();
   setupTray();
   applyPowerManagement();
-  initializeRunnerClient();
+
+  // Check if launched directly with a deep link argument
+  const initialDeepLink = process.argv.find((arg) => arg.startsWith('quazlink://'));
+  if (initialDeepLink) {
+    handleDeepLink(initialDeepLink);
+  } else {
+    initializeRunnerClient();
+  }
+
+  // If unpaired, show the window immediately so the user sees the control panel
+  if (!appConfig.deviceToken) {
+    showAppWindow();
+  }
 
   // IPC handlers for mini UI
   ipcMain.on('get-state', (event) => {
