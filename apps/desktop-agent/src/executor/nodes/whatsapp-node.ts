@@ -325,6 +325,9 @@ export class WhatsAppNode implements IPlatformNode {
     }
 
     onProgress('[WhatsAppNode:Status] Opening WhatsApp Status tab...');
+    // Dismiss any blocking dialogs (like "What's new on WhatsApp Web")
+    await this.dismissBlockingModals(page, onProgress);
+
     // Look for Status tab button in header/sidebar
     const statusTabSelectors = [
       'button[aria-label="Status"]',
@@ -339,7 +342,10 @@ export class WhatsAppNode implements IPlatformNode {
     for (const sel of statusTabSelectors) {
       const loc = page.locator(sel).first();
       if (await loc.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await loc.click();
+        await loc.click({ force: true, timeout: 5000 }).catch(async () => {
+          await this.dismissBlockingModals(page, onProgress);
+          await loc.click({ force: true, timeout: 5000 }).catch(() => {});
+        });
         statusTabFound = true;
         break;
       }
@@ -358,10 +364,35 @@ export class WhatsAppNode implements IPlatformNode {
     }
 
     await page.waitForTimeout(2500);
+    await this.dismissBlockingModals(page, onProgress);
 
     // Look for "Add status" or photo upload input in Status drawer
     onProgress('[WhatsAppNode:Status] Selecting media for Status update...');
-    const statusFileInput = page.locator('input[type="file"][accept*="image,video"], input[type="file"]').first();
+    
+    // Check if add status button needs to be clicked first to reveal file input
+    let statusFileInput = page.locator('input[type="file"][accept*="image,video"], input[type="file"]').first();
+    if (await statusFileInput.count() === 0) {
+      const addStatusSelectors = [
+        'button[aria-label="Add status"]',
+        'button[aria-label="إضافة حالة"]',
+        'div[aria-label="Add status"]',
+        'div[aria-label="إضافة حالة"]',
+        'span[data-icon="status-add"]',
+        'span[data-icon="plus"]',
+        'span[data-icon="camera"]',
+        'div[role="button"]:has-text("My status")',
+        'div[role="button"]:has-text("حالتي")',
+      ];
+      for (const sel of addStatusSelectors) {
+        const btn = page.locator(sel).first();
+        if (await btn.isVisible({ timeout: 1500 }).catch(() => false)) {
+          await btn.click({ force: true }).catch(() => {});
+          await page.waitForTimeout(1500);
+          break;
+        }
+      }
+      statusFileInput = page.locator('input[type="file"][accept*="image,video"], input[type="file"]').first();
+    }
 
     if (images && images.length > 0 && (await statusFileInput.count() > 0)) {
       await statusFileInput.setInputFiles(images);
@@ -371,20 +402,43 @@ export class WhatsAppNode implements IPlatformNode {
       // Write caption in Status preview
       if (content) {
         onProgress('[WhatsAppNode:Status] Typing Status caption...');
-        const captionBox = page.locator('div[contenteditable="true"][role="textbox"], div[aria-label="Add a caption..."]').first();
-        if (await captionBox.isVisible({ timeout: 3000 }).catch(() => false)) {
-          await captionBox.click();
-          await this.pasteTextViaClipboard(page, content);
-          await page.waitForTimeout(800);
+        const captionSelectors = [
+          'div[contenteditable="true"][role="textbox"]',
+          'div[aria-label="Add a caption..."]',
+          'div[aria-label="إضافة شرح..."]',
+          'div[aria-placeholder="Add a caption..."]',
+          'div[role="textbox"]',
+        ];
+        for (const cSel of captionSelectors) {
+          const captionBox = page.locator(cSel).first();
+          if (await captionBox.isVisible({ timeout: 2000 }).catch(() => false)) {
+            await captionBox.click({ force: true }).catch(() => {});
+            await this.pasteTextViaClipboard(page, content);
+            await page.waitForTimeout(800);
+            break;
+          }
         }
       }
 
       // Click Send Status button
       onProgress('[WhatsAppNode:Status] Publishing status...');
-      const sendStatusBtn = page.locator('span[data-icon="send"], div[aria-label="Send"], button[aria-label="Send"]').first();
-      if (await sendStatusBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await sendStatusBtn.click();
-      } else {
+      const sendStatusSelectors = [
+        'span[data-icon="send"]',
+        'div[aria-label="Send"]',
+        'button[aria-label="Send"]',
+        'div[aria-label="إرسال"]',
+        'button[aria-label="إرسال"]',
+      ];
+      let sent = false;
+      for (const sSel of sendStatusSelectors) {
+        const sendBtn = page.locator(sSel).first();
+        if (await sendBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await sendBtn.click({ force: true });
+          sent = true;
+          break;
+        }
+      }
+      if (!sent) {
         await page.keyboard.press('Enter');
       }
 
@@ -406,11 +460,61 @@ export class WhatsAppNode implements IPlatformNode {
   }
 
   /**
+   * Helper: Dismisses any overlay modals, welcome popups, or notification requests
+   */
+  private async dismissBlockingModals(page: Page, onProgress?: (msg: string) => void): Promise<void> {
+    try {
+      const modalButtons = [
+        'div[role="dialog"] button:has-text("Continue")',
+        'div[role="dialog"] button:has-text("متابعة")',
+        'div[role="dialog"] div[role="button"]:has-text("Continue")',
+        'div[role="dialog"] div[role="button"]:has-text("متابعة")',
+        'button:has-text("Continue")',
+        'button:has-text("متابعة")',
+        'div[role="dialog"] button:has-text("Get started")',
+        'div[role="dialog"] button:has-text("ابدأ")',
+        'div[role="dialog"] button:has-text("OK")',
+        'div[role="dialog"] button:has-text("حسناً")',
+        'div[role="dialog"] button:has-text("Not now")',
+        'div[role="dialog"] button:has-text("ليس الآن")',
+        'div[role="dialog"] button[aria-label="Close"]',
+        'div[role="dialog"] button[aria-label="إغلاق"]',
+        'div[role="dialog"] span[data-icon="x"]',
+        'div[role="dialog"] span[data-icon="close"]',
+      ];
+
+      for (const sel of modalButtons) {
+        const loc = page.locator(sel).first();
+        if (await loc.isVisible({ timeout: 500 }).catch(() => false)) {
+          if (onProgress) onProgress(`[WhatsAppNode] Auto-dismissing blocking modal via ${sel}...`);
+          await loc.click({ force: true }).catch(() => {});
+          await page.waitForTimeout(800);
+          return;
+        }
+      }
+
+      // Check if ANY modal dialog is present and try pressing Escape
+      const hasDialog = await page.evaluate(() => {
+        const d = document.querySelector('div[role="dialog"][aria-modal="true"], div[data-animate-modal-popup="true"]');
+        return !!d;
+      }).catch(() => false);
+
+      if (hasDialog) {
+        if (onProgress) onProgress('[WhatsAppNode] Modal overlay detected. Dismissing with Escape...');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(800);
+      }
+    } catch {}
+  }
+
+  /**
    * Helper: Waits for WhatsApp Web to be authenticated and ready
    */
   private async waitForWhatsAppReady(page: Page, onProgress: (msg: string) => void): Promise<boolean> {
     const MAX_WAIT = 25;
     for (let i = 0; i < MAX_WAIT; i++) {
+      await this.dismissBlockingModals(page, onProgress);
+
       const status = await page.evaluate(() => {
         const hasQr = !!document.querySelector('canvas[aria-label="Scan this QR code to link a device!"]') || !!document.querySelector('div[data-ref]');
         const hasChatList = !!document.querySelector('#pane-side') || !!document.querySelector('div[aria-label="Chat list"]') || !!document.querySelector('header');
@@ -460,14 +564,37 @@ export class WhatsAppNode implements IPlatformNode {
     if (action === 'navigate') {
       await page.goto(value || 'https://web.whatsapp.com', { waitUntil: 'domcontentloaded' });
     } else if (action === 'click' && selector) {
-      const loc = page.locator(selector).first();
-      await loc.waitFor({ state: 'visible', timeout: 10000 });
-      await loc.click();
+      // Find the first VISIBLE matching element (not a hidden span or container)
+      const allLocators = page.locator(selector);
+      const count = await allLocators.count().catch(() => 0);
+      let clicked = false;
+
+      for (let i = 0; i < count; i++) {
+        const item = allLocators.nth(i);
+        if (await item.isVisible({ timeout: 500 }).catch(() => false)) {
+          await item.scrollIntoViewIfNeeded().catch(() => {});
+          await item.click({ force: true, timeout: 5000 }).catch(async () => {
+            await item.dispatchEvent('click').catch(() => {});
+          });
+          clicked = true;
+          break;
+        }
+      }
+
+      if (!clicked) {
+        // Fallback: try pressing Escape/Enter or force-click first
+        const loc = page.locator(selector).first();
+        await loc.click({ timeout: 3000, force: true }).catch(async () => {
+          await page.keyboard.press('Escape').catch(() => {});
+          await page.keyboard.press('Enter').catch(() => {});
+        });
+      }
     } else if (action === 'type' && selector) {
       const loc = page.locator(selector).first();
-      await loc.waitFor({ state: 'visible', timeout: 10000 });
-      await loc.click();
+      await loc.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+      await loc.click({ force: true }).catch(() => {});
       const textToType = value === '{CONTENT}' ? content : (value || content);
+      await this.pasteTextViaClipboard(page, textToType);
     } else if (action === 'upload') {
       if (images && images.length > 0) {
         const fileInput = page.locator(selector || 'input[type="file"]').first();
