@@ -69,8 +69,7 @@ export default function DownloadPage() {
         {/* Primary Download CTA */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
           <a
-            href="/downloads/QuazLink-Runner-Setup.exe"
-            download="QuazLink-Runner-Setup.exe"
+            href="https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.9.5/QuazLink-Runner-Setup.exe"
             className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(34,211,238,0.5)] hover:shadow-[0_0_45px_rgba(34,211,238,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
           >
             <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
