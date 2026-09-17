@@ -14,8 +14,33 @@ function logToFile(msg: string) {
     if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
     fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] [PID:${process.pid}] ${msg}\n`);
   } catch {}
-  console.log(msg);
 }
+
+// Redirect console logs to runner.log as well
+const origLog = console.log;
+const origErr = console.error;
+console.log = (...args: any[]) => {
+  origLog(...args);
+  try {
+    const text = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    logToFile(text);
+  } catch {}
+};
+console.error = (...args: any[]) => {
+  origErr(...args);
+  try {
+    const text = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    logToFile(`ERROR: ${text}`);
+  } catch {}
+};
+
+process.on('uncaughtException', (err) => {
+  logToFile(`💥 [Process] Uncaught Exception: ${err?.stack || err?.message || err}`);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  logToFile(`💥 [Process] Unhandled Rejection: ${reason?.stack || reason?.message || reason}`);
+});
 
 logToFile(`🚀 App launched with argv: ${JSON.stringify(process.argv)}`);
 
@@ -155,13 +180,6 @@ if (!gotTheLock) {
   };
 
   setInterval(checkPendingPair, 350);
-  try {
-    fs.watch(CONFIG_DIR, (_event, filename) => {
-      if (filename && filename.includes('pending_pair')) {
-        checkPendingPair();
-      }
-    });
-  } catch {}
 
   app.on('second-instance', (event, commandLine) => {
     logToFile(`⚡ [SecondInstance] Caught second instance with args: ${JSON.stringify(commandLine)}`);
@@ -190,16 +208,17 @@ function createWindow() {
     title: 'QuazLink Desktop Runner',
     width: 420,
     height: 670,
-    show: true,
+    show: false, // Prevents white unrendered flash on startup
     frame: true,
     resizable: true,
     alwaysOnTop: true,
     skipTaskbar: false,
     icon: icon.isEmpty() ? undefined : icon,
-    backgroundColor: '#0a0d14',
+    backgroundColor: '#070a10',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
       preload: path.join(__dirname, 'preload.js'),
     },
   });
@@ -208,24 +227,32 @@ function createWindow() {
     ? path.join(__dirname, 'ui', 'index.html')
     : path.join(__dirname, '..', 'src', 'ui', 'index.html');
 
-  mainWindow.loadFile(htmlPath);
-  mainWindow.center();
-  mainWindow.focus();
+  logToFile(`🪟 [Window] Loading UI from: ${htmlPath}`);
 
-  try {
-    const hwnd = mainWindow.getNativeWindowHandle().readInt32LE(0);
-    console.log('🪟 [Window] Native HWND allocated:', hwnd, 'Visible:', mainWindow.isVisible());
-  } catch (err: any) {
-    console.error('❌ [Window] Failed to get HWND:', err.message);
-  }
+  mainWindow.loadFile(htmlPath).catch((err) => {
+    logToFile(`❌ [Window] loadFile failed: ${err.message}`);
+  });
 
+  mainWindow.once('ready-to-show', () => {
+    logToFile('🪟 [Window] ready-to-show event received');
+    showAppWindow();
+  });
+
+  // Fallback: If ready-to-show takes too long, ensure window becomes visible
   setTimeout(() => {
-    try {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.setAlwaysOnTop(false);
-      }
-    } catch {}
-  }, 1200);
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      logToFile('🪟 [Window] Fallback timeout showing window');
+      showAppWindow();
+    }
+  }, 1500);
+
+  mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
+    logToFile(`❌ [Window] did-fail-load: code=${errorCode} desc=${errorDescription} url=${validatedURL}`);
+  });
+
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    logToFile(`❌ [Window] render-process-gone: reason=${details.reason} exitCode=${details.exitCode}`);
+  });
 
   mainWindow.on('close', (e) => {
     if (!(app as any).isQuitting) {
@@ -236,252 +263,273 @@ function createWindow() {
 }
 
 function getTrayIcon(): Electron.NativeImage {
-  const possiblePaths = [
-    path.join(__dirname, 'assets', 'icon.png'),
-    path.join(__dirname, '..', 'src', 'assets', 'icon.png'),
-    path.join(__dirname, '..', 'assets', 'icon.png'),
-    path.join(process.cwd(), 'src', 'assets', 'icon.png'),
+  const isWin = process.platform === 'win32';
+  const iconNames = isWin ? ['icon.ico', 'icon.png'] : ['icon.png', 'icon.ico'];
+  const possibleDirs = [
+    path.join(__dirname, 'assets'),
+    path.join(__dirname, '..', 'src', 'assets'),
+    path.join(__dirname, '..', 'assets'),
+    path.join(process.cwd(), 'src', 'assets'),
+    path.join(process.cwd(), 'dist', 'assets'),
   ];
-  for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      try {
-        const img = nativeImage.createFromPath(p);
-        if (!img.isEmpty()) {
-          return img.resize({ width: 24, height: 24 });
-        }
-      } catch {}
+  for (const name of iconNames) {
+    for (const dir of possibleDirs) {
+      const p = path.join(dir, name);
+      if (fs.existsSync(p)) {
+        try {
+          const img = nativeImage.createFromPath(p);
+          if (!img.isEmpty()) {
+            return isWin && name.endsWith('.ico') ? img : img.resize({ width: 24, height: 24 });
+          }
+        } catch {}
+      }
     }
   }
   return nativeImage.createEmpty();
 }
 
 function setupTray() {
-  const icon = getTrayIcon();
-  tray = new Tray(icon);
-  tray.setToolTip('QuazLink Local Automation Runner');
-
-  updateTrayMenu();
-
-  tray.on('click', () => {
-    if (mainWindow?.isVisible()) {
-      mainWindow.hide();
-    } else {
-      mainWindow?.center();
-      mainWindow?.show();
-      mainWindow?.focus();
+  try {
+    const icon = getTrayIcon();
+    if (icon.isEmpty()) {
+      logToFile('⚠️ [Tray] Tray icon is empty, skipping tray creation');
+      return;
     }
-  });
+    tray = new Tray(icon);
+    tray.setToolTip('QuazLink Local Automation Runner');
+
+    updateTrayMenu();
+
+    tray.on('click', () => {
+      if (mainWindow?.isVisible()) {
+        mainWindow.hide();
+      } else {
+        showAppWindow();
+      }
+    });
+  } catch (err: any) {
+    logToFile(`❌ [Tray] Tray setup failed: ${err?.message || err}`);
+  }
 }
 
 function updateTrayMenu() {
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: `QuazLink Runner: ${currentStatus === 'online' ? '🟢 Online' : '🔴 Offline'}`,
-      enabled: false,
-    },
-    { type: 'separator' },
-    {
-      label: 'Open Agent Control Panel',
-      click: () => mainWindow?.show(),
-    },
-    {
-      label: 'Keep System Awake (Anti-Sleep)',
-      type: 'checkbox',
-      checked: !!appConfig.keepAwake,
-      click: (item) => {
-        appConfig.keepAwake = item.checked;
-        saveConfig(appConfig);
-        applyPowerManagement();
+  if (!tray) return;
+  try {
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: `QuazLink Runner: ${currentStatus === 'online' ? '🟢 Online' : '🔴 Offline'}`,
+        enabled: false,
       },
-    },
-    {
-      label: 'Show Browser Window (Live Mode)',
-      type: 'checkbox',
-      checked: !!appConfig.showBrowser,
-      click: (item) => {
-        appConfig.showBrowser = item.checked;
-        saveConfig(appConfig);
-        wsClient?.setShowBrowser(appConfig.showBrowser);
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
-        }
+      { type: 'separator' },
+      {
+        label: 'Open Agent Control Panel',
+        click: () => showAppWindow(),
       },
-    },
-    { type: 'separator' },
-    {
-      label: 'Quit Agent',
-      click: () => {
-        wsClient?.cleanup();
-        app.quit();
+      {
+        label: 'Keep System Awake (Anti-Sleep)',
+        type: 'checkbox',
+        checked: !!appConfig.keepAwake,
+        click: (item) => {
+          appConfig.keepAwake = item.checked;
+          saveConfig(appConfig);
+          applyPowerManagement();
+        },
       },
-    },
-  ]);
+      {
+        label: 'Show Browser Window (Live Mode)',
+        type: 'checkbox',
+        checked: !!appConfig.showBrowser,
+        click: (item) => {
+          appConfig.showBrowser = item.checked;
+          saveConfig(appConfig);
+          wsClient?.setShowBrowser(appConfig.showBrowser);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
+          }
+        },
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit Agent',
+        click: () => {
+          wsClient?.cleanup();
+          app.quit();
+        },
+      },
+    ]);
 
-  tray?.setContextMenu(contextMenu);
+    tray.setContextMenu(contextMenu);
+  } catch (err: any) {
+    logToFile(`❌ [Tray] Failed to update tray menu: ${err?.message || err}`);
+  }
 }
 
 function applyPowerManagement() {
-  if (appConfig.keepAwake && !powerBlockerId) {
-    powerBlockerId = powerSaveBlocker.start('prevent-app-suspension');
-    console.log('⚡ [PowerManager] Keep-Awake enabled (Preventing OS sleep)');
-  } else if (!appConfig.keepAwake && powerBlockerId) {
-    powerSaveBlocker.stop(powerBlockerId);
-    powerBlockerId = null;
-    console.log('⚡ [PowerManager] Keep-Awake disabled');
+  try {
+    if (appConfig.keepAwake && !powerBlockerId) {
+      powerBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+      logToFile('⚡ [PowerManager] Keep-Awake enabled (Preventing OS sleep)');
+    } else if (!appConfig.keepAwake && powerBlockerId) {
+      powerSaveBlocker.stop(powerBlockerId);
+      powerBlockerId = null;
+      logToFile('⚡ [PowerManager] Keep-Awake disabled');
+    }
+  } catch (err: any) {
+    logToFile(`❌ [PowerManager] Error: ${err?.message || err}`);
   }
 }
 
 function initializeRunnerClient() {
-  wsClient = new RunnerWSClient(appConfig.serverUrl, {
-    token: appConfig.deviceToken,
-    pairingToken: appConfig.pairingToken,
-    showBrowser: !!appConfig.showBrowser,
-    onStatusChange: (status, info) => {
-      currentStatus = status;
-      updateTrayMenu();
+  try {
+    wsClient = new RunnerWSClient(appConfig.serverUrl, {
+      token: appConfig.deviceToken,
+      pairingToken: appConfig.pairingToken,
+      showBrowser: !!appConfig.showBrowser,
+      onStatusChange: (status, info) => {
+        currentStatus = status;
+        updateTrayMenu();
 
-      if (info?.forceUnpair) {
-        appConfig.deviceToken = undefined;
-        appConfig.pairingToken = undefined;
-        saveConfig(appConfig);
-      } else if (info?.deviceToken) {
-        appConfig.deviceToken = info.deviceToken;
-        appConfig.pairingToken = undefined;
-        saveConfig(appConfig);
-      } else if (info?.pairingError) {
-        appConfig.pairingToken = undefined;
-        saveConfig(appConfig);
-      }
+        if (info?.forceUnpair) {
+          appConfig.deviceToken = undefined;
+          appConfig.pairingToken = undefined;
+          saveConfig(appConfig);
+        } else if (info?.deviceToken) {
+          appConfig.deviceToken = info.deviceToken;
+          appConfig.pairingToken = undefined;
+          saveConfig(appConfig);
+        } else if (info?.pairingError) {
+          appConfig.pairingToken = undefined;
+          saveConfig(appConfig);
+        }
 
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('status-updated', { status, info, config: appConfig });
-      }
-    },
-    onConnectRequest: (platform, accountId) => {
-      openLoginBrowser(platform, accountId, wsClient);
-    },
-    // Auto-approve publishing jobs dispatched from paired cloud account
-    confirmJob: async (payload) => {
-      console.log(`🤖 [Desktop] Auto-approving ${payload?.platform || 'social'} job #${payload?.id}.`);
-      return true;
-    },
-    confirmSync: async (count) => {
-      console.log(`🤖 [Desktop] Auto-approving sync of ${count} pending post(s).`);
-      return true;
-    },
-  });
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('status-updated', { status, info, config: appConfig });
+        }
+      },
+      onConnectRequest: (platform, accountId) => {
+        openLoginBrowser(platform, accountId, wsClient);
+      },
+      // Auto-approve publishing jobs dispatched from paired cloud account
+      confirmJob: async (payload) => {
+        logToFile(`🤖 [Desktop] Auto-approving ${payload?.platform || 'social'} job #${payload?.id}.`);
+        return true;
+      },
+      confirmSync: async (count) => {
+        logToFile(`🤖 [Desktop] Auto-approving sync of ${count} pending post(s).`);
+        return true;
+      },
+    });
 
-  wsClient.connect();
+    wsClient.connect();
+  } catch (err: any) {
+    logToFile(`❌ [RunnerClient] Failed to initialize: ${err?.message || err}`);
+  }
 }
 
 if (gotTheLock) {
   app.whenReady().then(() => {
-  createWindow();
-  setupTray();
-  applyPowerManagement();
-
-  // Check if launched directly with a deep link argument
-  const initialDeepLink = process.argv.find((arg) => arg.includes('quazlink://'));
-  if (initialDeepLink) {
-    handleDeepLink(initialDeepLink);
-  } else {
-    initializeRunnerClient();
-  }
-
-  // Always show the window on startup so the user sees the control panel
-  showAppWindow();
-
-  // IPC handlers for mini UI
-  ipcMain.on('get-state', (event) => {
-    event.reply('status-updated', { status: currentStatus, config: appConfig });
-  });
-
-  ipcMain.on('pair-device', (_, pairingCode) => {
-    console.log(`🔑 [Main] Received pair-device request with code: ${pairingCode}`);
-    appConfig.deviceToken = undefined; // Crucial: clear old rejected token so ws-client pairs with new code
-    appConfig.pairingToken = pairingCode.trim();
-    saveConfig(appConfig);
-    wsClient?.cleanup();
-    initializeRunnerClient();
-  });
-
-  ipcMain.on('unpair-device', () => {
-    console.log('🔴 [Main] Received unpair-device request. Clearing tokens.');
-    appConfig.deviceToken = undefined;
-    appConfig.pairingToken = undefined;
-    saveConfig(appConfig);
-    wsClient?.cleanup();
-    initializeRunnerClient();
-  });
-
-  ipcMain.on('toggle-keep-awake', (_, enabled) => {
-    appConfig.keepAwake = enabled;
-    saveConfig(appConfig);
+    logToFile('🚀 [Main] App ready, launching window and services...');
+    createWindow();
+    setupTray();
     applyPowerManagement();
-    updateTrayMenu();
-  });
 
-  ipcMain.on('toggle-show-browser', (_, enabled) => {
-    appConfig.showBrowser = enabled;
-    saveConfig(appConfig);
-    wsClient?.setShowBrowser(enabled);
-    updateTrayMenu();
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
-    }
-  });
-
-  ipcMain.on('close-window', () => {
-    mainWindow?.hide();
-  });
-
-  // §5: the renderer can no longer reach `shell` directly. Open external links here, but only
-  // after validating the URL — https (or http on localhost for dev) to a known QuazLink host.
-  ipcMain.on('open-external', (_event, url: unknown) => {
-    if (typeof url !== 'string') return;
-    let parsed: URL;
-    try {
-      parsed = new URL(url);
-    } catch {
-      return;
-    }
-    const ALLOWED_HOSTS = new Set([
-      'quazlink.site',
-      'www.quazlink.site',
-      'app.quazlink.site',
-      'localhost',
-      '127.0.0.1',
-    ]);
-    const isHttps = parsed.protocol === 'https:';
-    const isLocalDev =
-      parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
-    if ((isHttps || isLocalDev) && ALLOWED_HOSTS.has(parsed.hostname)) {
-      shell.openExternal(parsed.toString());
+    // Check if launched directly with a deep link argument
+    const initialDeepLink = process.argv.find((arg) => arg.includes('quazlink://'));
+    if (initialDeepLink) {
+      handleDeepLink(initialDeepLink);
     } else {
-      console.warn(`⛔ [Security] Blocked open-external to a disallowed URL: ${url}`);
+      initializeRunnerClient();
     }
-  });
 
-  ipcMain.on('open-login-window', async (event, payload: { platform: string; accountId: string }) => {
-    // Optional manual fallback from the desktop UI itself
-    if (wsClient) {
-      openLoginBrowser(payload.platform, payload.accountId, wsClient);
-    }
+    // IPC handlers for mini UI
+    ipcMain.on('get-state', (event) => {
+      event.reply('status-updated', { status: currentStatus, config: appConfig });
+    });
+
+    ipcMain.on('pair-device', (_, pairingCode) => {
+      logToFile(`🔑 [Main] Received pair-device request with code: ${pairingCode}`);
+      appConfig.deviceToken = undefined; // Crucial: clear old rejected token so ws-client pairs with new code
+      appConfig.pairingToken = pairingCode.trim();
+      saveConfig(appConfig);
+      wsClient?.cleanup();
+      initializeRunnerClient();
+    });
+
+    ipcMain.on('unpair-device', () => {
+      logToFile('🔴 [Main] Received unpair-device request. Clearing tokens.');
+      appConfig.deviceToken = undefined;
+      appConfig.pairingToken = undefined;
+      saveConfig(appConfig);
+      wsClient?.cleanup();
+      initializeRunnerClient();
+    });
+
+    ipcMain.on('toggle-keep-awake', (_, enabled) => {
+      appConfig.keepAwake = enabled;
+      saveConfig(appConfig);
+      applyPowerManagement();
+      updateTrayMenu();
+    });
+
+    ipcMain.on('toggle-show-browser', (_, enabled) => {
+      appConfig.showBrowser = enabled;
+      saveConfig(appConfig);
+      wsClient?.setShowBrowser(enabled);
+      updateTrayMenu();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
+      }
+    });
+
+    ipcMain.on('close-window', () => {
+      mainWindow?.hide();
+    });
+
+    // §5: the renderer can no longer reach `shell` directly. Open external links here, but only
+    // after validating the URL — https (or http on localhost for dev) to a known QuazLink host.
+    ipcMain.on('open-external', (_event, url: unknown) => {
+      if (typeof url !== 'string') return;
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return;
+      }
+      const ALLOWED_HOSTS = new Set([
+        'quazlink.site',
+        'www.quazlink.site',
+        'app.quazlink.site',
+        'localhost',
+        '127.0.0.1',
+      ]);
+      const isHttps = parsed.protocol === 'https:';
+      const isLocalDev =
+        parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1');
+      if ((isHttps || isLocalDev) && ALLOWED_HOSTS.has(parsed.hostname)) {
+        shell.openExternal(parsed.toString());
+      } else {
+        console.warn(`⛔ [Security] Blocked open-external to a disallowed URL: ${url}`);
+      }
+    });
+
+    ipcMain.on('open-login-window', async (event, payload: { platform: string; accountId: string }) => {
+      // Optional manual fallback from the desktop UI itself
+      if (wsClient) {
+        openLoginBrowser(payload.platform, payload.accountId, wsClient);
+      }
+    });
   });
-});
 }
 
 app.on('window-all-closed', () => {
   // Keep alive in system tray on all platforms
 });
 
-// §7: process-signal handling lives here (once), not inside RunnerWSClient — a new client is
-// created on every pair/unpair/deep-link, so per-instance listeners used to accumulate and leak.
-// This references the module-level `wsClient`, so it always cleans up the current instance.
 const shutdown = (signal: string) => {
-  console.log(`\n🛑 [Main] Received ${signal}. Cleaning up runner and quitting...`);
+  logToFile(`🛑 [Main] Received ${signal}. Cleaning up runner and quitting...`);
   wsClient?.cleanup();
   app.quit();
 };
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
+
