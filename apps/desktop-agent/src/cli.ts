@@ -105,7 +105,7 @@ async function main() {
     },
     onConnectRequest: (platform, accountId) => {
       console.log(`\n🔑 [CLI] Received account connection request for ${platform.toUpperCase()} (${accountId})`);
-      openLoginBrowser(platform, accountId, client);
+      openLoginBrowser(platform, accountId, client, (msg) => console.log(`[LOGIN] ${msg}`));
     },
     // §14: inject headless approval so the WS client never touches Electron dialogs (which threw
     // in plain Node — require('electron') returns a path string — and silently blocked all jobs).

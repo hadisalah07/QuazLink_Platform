@@ -379,12 +379,22 @@ function applyPowerManagement() {
   }
 }
 
+function logToTerminal(message: string, type: 'highlight' | 'success' | 'warn' | 'red' = 'highlight') {
+  logToFile(`[UI] ${message}`);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('terminal-log', { message, type });
+  }
+}
+
 function initializeRunnerClient() {
   try {
     wsClient = new RunnerWSClient(appConfig.serverUrl, {
       token: appConfig.deviceToken,
       pairingToken: appConfig.pairingToken,
       showBrowser: !!appConfig.showBrowser,
+      onLog: (msg, type) => {
+        logToTerminal(msg, type);
+      },
       onStatusChange: (status, info) => {
         currentStatus = status;
         updateTrayMenu();
@@ -407,7 +417,8 @@ function initializeRunnerClient() {
         }
       },
       onConnectRequest: (platform, accountId) => {
-        openLoginBrowser(platform, accountId, wsClient);
+        logToTerminal(`[CONNECT] Received request to connect ${platform.toUpperCase()}`, 'highlight');
+        openLoginBrowser(platform, accountId, wsClient, (msg, type) => logToTerminal(msg, type));
       },
       // Auto-approve publishing jobs dispatched from paired cloud account
       confirmJob: async (payload) => {
@@ -515,7 +526,7 @@ if (gotTheLock) {
     ipcMain.on('open-login-window', async (event, payload: { platform: string; accountId: string }) => {
       // Optional manual fallback from the desktop UI itself
       if (wsClient) {
-        openLoginBrowser(payload.platform, payload.accountId, wsClient);
+        openLoginBrowser(payload.platform, payload.accountId, wsClient, (msg, type) => logToTerminal(msg, type));
       }
     });
   });

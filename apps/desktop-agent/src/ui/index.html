@@ -613,6 +613,12 @@
       }
     });
 
+    if (q?.onTerminalLog) {
+      q.onTerminalLog(({ message, type }) => {
+        addLog(message, type || '');
+      });
+    }
+
     try {
       q.getState();
     } catch (e) {

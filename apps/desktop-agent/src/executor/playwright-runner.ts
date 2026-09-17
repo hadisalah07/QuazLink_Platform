@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { Browser, BrowserContext, Page } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -6,6 +6,10 @@ import http from 'http';
 import https from 'https';
 import { MacroCache } from './macro-cache';
 import { PlatformNodeRegistry } from './nodes/node-registry';
+import {
+  launchPersistentBrowserContext,
+  launchStandardBrowser,
+} from './browser-launcher';
 
 export interface ExecutionResult {
   success: boolean;
@@ -107,20 +111,29 @@ export class PlaywrightRunner {
 
       const whatsappProfileDir = path.join(this.storageDir, `profile_${socialAccountId}_whatsapp`);
       if (normPlatform === 'whatsapp' && fs.existsSync(whatsappProfileDir)) {
-        context = await chromium.launchPersistentContext(whatsappProfileDir, {
-          headless: isHeadless,
-          args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
-          viewport: { width: 1280, height: 800 },
-          permissions: ['clipboard-read', 'clipboard-write'],
-          userAgent:
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        });
+        const res = await launchPersistentBrowserContext(
+          whatsappProfileDir,
+          {
+            headless: isHeadless,
+            args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+            viewport: { width: 1280, height: 800 },
+            permissions: ['clipboard-read', 'clipboard-write'],
+            userAgent:
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          },
+          (msg) => onProgress(msg)
+        );
+        context = res.context;
         page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
       } else {
-        browser = await chromium.launch({
-          headless: isHeadless,
-          args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
-        });
+        const res = await launchStandardBrowser(
+          {
+            headless: isHeadless,
+            args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+          },
+          (msg) => onProgress(msg)
+        );
+        browser = res.browser;
 
         context = await browser.newContext({
           storageState,

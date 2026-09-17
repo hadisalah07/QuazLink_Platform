@@ -9,6 +9,7 @@ export interface RunnerWSOptions {
   showBrowser?: boolean;
   onStatusChange?: (status: 'online' | 'offline' | 'pairing', info?: any) => void;
   onConnectRequest?: (platform: string, accountId: string) => void;
+  onLog?: (message: string, type?: 'highlight' | 'success' | 'warn' | 'red') => void;
   // Interactive prompts are injected by the host so this client stays Electron-free
   // (Electron main supplies dialogs; the headless CLI supplies auto-approve). Returning
   // a resolved boolean decides whether the runner acts on the message.
@@ -41,6 +42,7 @@ export class RunnerWSClient {
   private otaSelectors: any = {};
   private onStatusChange?: (status: 'online' | 'offline' | 'pairing', info?: any) => void;
   private onConnectRequest?: (platform: string, accountId: string) => void;
+  private onLog?: (message: string, type?: 'highlight' | 'success' | 'warn' | 'red') => void;
   private confirmJob?: (payload: any) => Promise<boolean>;
   private confirmSync?: (count: number) => Promise<boolean>;
   private isCleanedUp = false;
@@ -60,6 +62,7 @@ export class RunnerWSClient {
     }
     this.onStatusChange = options.onStatusChange;
     this.onConnectRequest = options.onConnectRequest;
+    this.onLog = options.onLog;
     this.confirmJob = options.confirmJob;
     this.confirmSync = options.confirmSync;
 
@@ -263,6 +266,7 @@ export class RunnerWSClient {
     // ── Verified & fresh. Route the job. ───────────────────────────────────────────────────
     if (msg.type === 'job:connect') {
       console.log(`📥 [WSClient] Verified HMAC. Enqueuing Connect Job for ${payload.platform}`);
+      this.onLog?.(`📥 [Cloud] Connection request received for ${payload.platform?.toUpperCase() || 'Account'}`, 'highlight');
       if (this.onConnectRequest) {
         this.onConnectRequest(payload.platform, payload.accountId);
       } else {
@@ -335,6 +339,7 @@ export class RunnerWSClient {
         jobData,
         this.otaSelectors,
         (progressMsg) => {
+          this.onLog?.(progressMsg, 'highlight');
           this.send({
             type: 'job:progress',
             jobId: id,

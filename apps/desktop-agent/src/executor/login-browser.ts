@@ -1,7 +1,12 @@
-import { chromium } from 'playwright';
+import { Browser, BrowserContext, Page } from 'playwright';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import {
+  launchPersistentBrowserContext,
+  launchStandardBrowser,
+  LogCallback,
+} from './browser-launcher';
 
 export interface WSClientMessenger {
   send(payload: any): void;
@@ -10,44 +15,55 @@ export interface WSClientMessenger {
 export async function openLoginBrowser(
   platform: string,
   accountId: string,
-  client: WSClientMessenger | null
+  client: WSClientMessenger | null,
+  logger?: LogCallback
 ): Promise<void> {
+  const targetPlatform = platform.toLowerCase();
   try {
-    const targetPlatform = platform.toLowerCase();
     console.log(`\n🔑 [LoginBrowser] Launching interactive login window for ${targetPlatform.toUpperCase()} (Account ID: ${accountId})...`);
-    
+    logger?.(`🔑 [Login] Launching login window for ${targetPlatform.toUpperCase()}...`, 'highlight');
+
     const sessionDir = path.join(os.homedir(), '.quazlink', 'sessions');
     if (!fs.existsSync(sessionDir)) {
       fs.mkdirSync(sessionDir, { recursive: true });
     }
 
-    let browser: any = null;
-    let context: any = null;
-    let page: any = null;
+    let browser: Browser | null = null;
+    let context: BrowserContext | null = null;
+    let page: Page | null = null;
 
     if (targetPlatform === 'whatsapp') {
       const profileDir = path.join(sessionDir, `profile_${accountId}_whatsapp`);
-      context = await chromium.launchPersistentContext(profileDir, {
-        headless: false,
-        args: [
-          '--disable-blink-features=AutomationControlled',
-          '--no-sandbox',
-          '--start-maximized',
-        ],
-        viewport: null,
-        userAgent:
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-      });
+      const res = await launchPersistentBrowserContext(
+        profileDir,
+        {
+          headless: false,
+          args: [
+            '--disable-blink-features=AutomationControlled',
+            '--no-sandbox',
+            '--start-maximized',
+          ],
+          viewport: null,
+          userAgent:
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        },
+        logger
+      );
+      context = res.context;
       page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
     } else {
-      browser = await chromium.launch({
-        headless: false,
-        args: [
-          '--disable-blink-features=AutomationControlled',
-          '--no-sandbox',
-          '--start-maximized',
-        ],
-      });
+      const res = await launchStandardBrowser(
+        {
+          headless: false,
+          args: [
+            '--disable-blink-features=AutomationControlled',
+            '--no-sandbox',
+            '--start-maximized',
+          ],
+        },
+        logger
+      );
+      browser = res.browser;
       context = await browser.newContext({
         viewport: null, // Use full maximized window size
         userAgent:
@@ -66,14 +82,17 @@ export async function openLoginBrowser(
         : 'https://www.facebook.com/login';
 
     console.log(`🌐 [LoginBrowser] Navigating to ${url}...`);
+    logger?.(`🌐 [Login] Navigating to ${url}...`, 'highlight');
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch((e: any) => {
       console.warn(`⚠️ [LoginBrowser] Initial page.goto notice: ${e.message}`);
     });
 
     if (targetPlatform === 'whatsapp') {
       console.log(`📱 [LoginBrowser] Please scan the WhatsApp Web QR code with your mobile phone.`);
+      logger?.(`📱 [WhatsApp] Please scan the QR code on your screen using your phone.`, 'warn');
     } else {
       console.log(`👁️ [LoginBrowser] Login window is now open on your screen! Please enter your credentials.`);
+      logger?.(`👁️ [Login] Please enter your credentials in the browser window.`, 'warn');
     }
 
     const closeBrowser = async () => {
@@ -84,6 +103,7 @@ export async function openLoginBrowser(
     // 10-Minute Timeout logic
     const timeoutTimer = setTimeout(() => {
       console.warn('⏱️ [LoginTimeout] Login window was open for more than 10 minutes without success.');
+      logger?.('⏱️ [Login] Window timeout exceeded 10 minutes.', 'warn');
       cleanup();
       closeBrowser();
     }, 10 * 60 * 1000);
@@ -91,11 +111,12 @@ export async function openLoginBrowser(
     let isSuccess = false;
 
     const handleSuccess = async () => {
-      if (isSuccess) return;
+      if (isSuccess || !context) return;
       isSuccess = true;
       cleanup();
 
       console.log(`\n🎉 [Login] Authentication detected for ${targetPlatform}! Saving session...`);
+      logger?.(`🎉 [Login] Authentication detected for ${targetPlatform.toUpperCase()}! Saving session...`, 'success');
       try {
         const sessionFile = path.join(sessionDir, `${accountId}_${targetPlatform}_session.json`);
         await context.storageState({ path: sessionFile }).catch(() => {});
@@ -104,6 +125,7 @@ export async function openLoginBrowser(
         } catch {}
 
         console.log(`✅ [Login] Successfully saved authenticated session for ${targetPlatform}`);
+        logger?.(`✅ [Login] Session saved! Cloud account is now ACTIVE.`, 'success');
         if (client) {
           client.send({
             type: 'job:connect_success',
@@ -118,11 +140,13 @@ export async function openLoginBrowser(
         }, 3500);
       } catch (err: any) {
         console.error('❌ [Login] Error writing storage state:', err.message);
+        logger?.(`❌ [Login] Failed to save session: ${err.message}`, 'red');
       }
     };
 
     // Check 1: Listen for frame navigation (for platforms with URL redirects)
     page.on('framenavigated', async (frame: any) => {
+      if (!page) return;
       if (frame === page.mainFrame()) {
         const u = frame.url();
         const isNotLoginPage =
@@ -142,7 +166,7 @@ export async function openLoginBrowser(
 
     // Check 2: Polling cookie and DOM check (vital for React/SPA & WhatsApp QR login)
     const pollInterval = setInterval(async () => {
-      if (isSuccess) return;
+      if (isSuccess || !page || !context) return;
       try {
         if (targetPlatform === 'whatsapp') {
           const isWhatsAppReady = await page.evaluate(() => {
@@ -190,6 +214,7 @@ export async function openLoginBrowser(
       cleanup();
       if (!isSuccess && client) {
         console.log(`🚫 [Login] User closed browser without completing login for ${targetPlatform}.`);
+        logger?.(`🚫 [Login] Browser closed before completing login for ${targetPlatform.toUpperCase()}.`, 'warn');
         client.send({
           type: 'job:cancelled',
           jobId: accountId,
@@ -206,5 +231,14 @@ export async function openLoginBrowser(
     }
   } catch (err: any) {
     console.error('❌ [LoginBrowser] Error launching login window:', err.message);
+    logger?.(`❌ [Login Error] Could not open browser: ${err.message}`, 'red');
+    if (client) {
+      client.send({
+        type: 'job:cancelled',
+        jobId: accountId,
+        isConnectJob: true,
+        error: `Browser launch failed: ${err.message}`,
+      });
+    }
   }
 }

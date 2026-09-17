@@ -20,4 +20,6 @@ contextBridge.exposeInMainWorld('quazlink', {
   // (which can carry sender internals) never leaks into page scripts.
   onStatusUpdated: (cb: (data: any) => void) =>
     ipcRenderer.on('status-updated', (_event: any, data: any) => cb(data)),
+  onTerminalLog: (cb: (data: { message: string; type?: string }) => void) =>
+    ipcRenderer.on('terminal-log', (_event: any, data: any) => cb(data)),
 });
