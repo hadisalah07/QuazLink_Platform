@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('quazlink', {
   // ── fire-and-forget commands ──────────────────────────────────────────────
   closeWindow: () => ipcRenderer.send('close-window'),
   toggleKeepAwake: (enabled: boolean) => ipcRenderer.send('toggle-keep-awake', enabled),
+  toggleShowBrowser: (enabled: boolean) => ipcRenderer.send('toggle-show-browser', enabled),
   pairDevice: (code: string) => ipcRenderer.send('pair-device', code),
   unpairDevice: () => ipcRenderer.send('unpair-device'),
   getState: () => ipcRenderer.send('get-state'),

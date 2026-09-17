@@ -36,6 +36,7 @@ interface LocalConfig {
   deviceToken?: string;
   pairingToken?: string;
   keepAwake?: boolean;
+  showBrowser?: boolean;
 }
 
 function loadConfig(): LocalConfig {
@@ -44,12 +45,15 @@ function loadConfig(): LocalConfig {
   }
   if (fs.existsSync(CONFIG_FILE)) {
     try {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      if (cfg.showBrowser === undefined) cfg.showBrowser = false;
+      return cfg;
     } catch {}
   }
   return {
     serverUrl: process.env.CLOUD_GATEWAY_URL || 'wss://api.quazlink.site',
     keepAwake: true,
+    showBrowser: false,
   };
 }
 
@@ -185,7 +189,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     title: 'QuazLink Desktop Runner',
     width: 420,
-    height: 620,
+    height: 670,
     show: true,
     frame: true,
     resizable: true,
@@ -290,6 +294,19 @@ function updateTrayMenu() {
         applyPowerManagement();
       },
     },
+    {
+      label: 'Show Browser Window (Live Mode)',
+      type: 'checkbox',
+      checked: !!appConfig.showBrowser,
+      click: (item) => {
+        appConfig.showBrowser = item.checked;
+        saveConfig(appConfig);
+        wsClient?.setShowBrowser(appConfig.showBrowser);
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
+        }
+      },
+    },
     { type: 'separator' },
     {
       label: 'Quit Agent',
@@ -318,6 +335,7 @@ function initializeRunnerClient() {
   wsClient = new RunnerWSClient(appConfig.serverUrl, {
     token: appConfig.deviceToken,
     pairingToken: appConfig.pairingToken,
+    showBrowser: !!appConfig.showBrowser,
     onStatusChange: (status, info) => {
       currentStatus = status;
       updateTrayMenu();
@@ -401,6 +419,16 @@ if (gotTheLock) {
     saveConfig(appConfig);
     applyPowerManagement();
     updateTrayMenu();
+  });
+
+  ipcMain.on('toggle-show-browser', (_, enabled) => {
+    appConfig.showBrowser = enabled;
+    saveConfig(appConfig);
+    wsClient?.setShowBrowser(enabled);
+    updateTrayMenu();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
+    }
   });
 
   ipcMain.on('close-window', () => {

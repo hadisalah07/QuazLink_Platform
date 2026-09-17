@@ -469,6 +469,18 @@
       </label>
     </div>
 
+    <!-- Browser Visibility Toggle -->
+    <div class="toggle-card">
+      <div class="toggle-info">
+        <div class="toggle-title">Show Browser Window</div>
+        <div class="toggle-desc">Watch live browser actions (silent in background when OFF)</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="showBrowserToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <!-- Terminal Console Stream -->
     <div class="logs-container">
       <div class="logs-header">
@@ -503,6 +515,7 @@
     const pairingCodeInput = document.getElementById('pairingCodeInput');
     const pairBtn = document.getElementById('pairBtn');
     const keepAwakeToggle = document.getElementById('keepAwakeToggle');
+    const showBrowserToggle = document.getElementById('showBrowserToggle');
     const closeBtn = document.getElementById('closeBtn');
     const logsBox = document.getElementById('logsBox');
     const openWebBtn = document.getElementById('openWebBtn');
@@ -530,6 +543,11 @@
     keepAwakeToggle.addEventListener('change', (e) => {
       q.toggleKeepAwake(e.target.checked);
       addLog(`[SETTINGS] Keep-Awake set to ${e.target.checked}`, 'warn');
+    });
+
+    showBrowserToggle.addEventListener('change', (e) => {
+      q.toggleShowBrowser(e.target.checked);
+      addLog(`[SETTINGS] Browser window set to ${e.target.checked ? 'VISIBLE (Foreground)' : 'SILENT (Background)'}`, 'warn');
     });
 
     pairingCodeInput.addEventListener('keydown', (e) => {
@@ -588,6 +606,10 @@
 
       if (config?.keepAwake !== undefined) {
         keepAwakeToggle.checked = config.keepAwake;
+      }
+
+      if (config?.showBrowser !== undefined) {
+        showBrowserToggle.checked = !!config.showBrowser;
       }
     });
 

@@ -19,6 +19,7 @@ export class PlaywrightRunner {
   private logFile: string;
   private macroCache: MacroCache;
   private registry: PlatformNodeRegistry;
+  private showBrowser: boolean = false;
 
   private debugLog(msg: string) {
     try {
@@ -44,6 +45,25 @@ export class PlaywrightRunner {
     }
     this.macroCache = new MacroCache();
     this.registry = new PlatformNodeRegistry(this.macroCache);
+
+    try {
+      const cfgPath = path.join(baseDir, 'config.json');
+      if (fs.existsSync(cfgPath)) {
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf-8'));
+        if (typeof cfg.showBrowser === 'boolean') {
+          this.showBrowser = cfg.showBrowser;
+        }
+      }
+    } catch {}
+  }
+
+  public setShowBrowser(show: boolean) {
+    this.showBrowser = show;
+    this.debugLog(`🖥️ [PlaywrightRunner] Browser mode set to ${show ? 'VISIBLE (Foreground Window)' : 'SILENT (Background Headless)'}`);
+  }
+
+  public getShowBrowser(): boolean {
+    return this.showBrowser;
   }
 
   public async executeTask(
@@ -80,12 +100,15 @@ export class PlaywrightRunner {
         }
       }
 
+      const isHeadless = !this.showBrowser;
+      onProgress(`Launching browser engine (${isHeadless ? 'Silent Background Mode' : 'Visible Inspection Window'})...`);
+
       let page: Page;
 
       const whatsappProfileDir = path.join(this.storageDir, `profile_${socialAccountId}_whatsapp`);
       if (normPlatform === 'whatsapp' && fs.existsSync(whatsappProfileDir)) {
         context = await chromium.launchPersistentContext(whatsappProfileDir, {
-          headless: false,
+          headless: isHeadless,
           args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
           viewport: { width: 1280, height: 800 },
           permissions: ['clipboard-read', 'clipboard-write'],
@@ -95,7 +118,7 @@ export class PlaywrightRunner {
         page = context.pages().length > 0 ? context.pages()[0] : await context.newPage();
       } else {
         browser = await chromium.launch({
-          headless: false,
+          headless: isHeadless,
           args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
         });
 

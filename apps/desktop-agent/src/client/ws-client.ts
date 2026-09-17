@@ -6,6 +6,7 @@ import { PlaywrightRunner } from '../executor/playwright-runner';
 export interface RunnerWSOptions {
   token?: string;
   pairingToken?: string;
+  showBrowser?: boolean;
   onStatusChange?: (status: 'online' | 'offline' | 'pairing', info?: any) => void;
   onConnectRequest?: (platform: string, accountId: string) => void;
   // Interactive prompts are injected by the host so this client stays Electron-free
@@ -63,12 +64,19 @@ export class RunnerWSClient {
     this.confirmSync = options.confirmSync;
 
     this.runner = new PlaywrightRunner();
+    if (options.showBrowser !== undefined) {
+      this.runner.setShowBrowser(options.showBrowser);
+    }
     this.queue = new LocalJobQueue(this.handleTaskExecution.bind(this));
 
     // NOTE: process-signal (SIGINT/SIGTERM/exit) handlers are intentionally NOT registered
     // here. A new RunnerWSClient is created on every (re)pair, and per-instance process
     // listeners accumulate and leak. The entry points (main.ts / cli.ts) own signal handling
     // and call cleanup() on the current instance.
+  }
+
+  public setShowBrowser(show: boolean) {
+    this.runner.setShowBrowser(show);
   }
 
   public connect() {

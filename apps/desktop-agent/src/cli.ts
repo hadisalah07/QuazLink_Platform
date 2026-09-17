@@ -13,6 +13,7 @@ interface LocalConfig {
   deviceToken?: string;
   pairingToken?: string;
   keepAwake?: boolean;
+  showBrowser?: boolean;
 }
 
 function loadConfig(): LocalConfig {
@@ -21,12 +22,15 @@ function loadConfig(): LocalConfig {
   }
   if (fs.existsSync(CONFIG_FILE)) {
     try {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
+      if (cfg.showBrowser === undefined) cfg.showBrowser = false;
+      return cfg;
     } catch {}
   }
   return {
     serverUrl: process.env.CLOUD_GATEWAY_URL || 'wss://api.quazlink.site',
     keepAwake: true,
+    showBrowser: false,
   };
 }
 
