@@ -376,6 +376,31 @@
 - اجتياز بناء TypeScript لمشروع الرانر `apps/desktop-agent` بنجاح (0 أخطاء).
 - اجتياز تجميع مشروع Next.js في `apps/web` بنجاح وتوليد كافة المسارات (0 أخطاء).
 
+---
+
+## تحديث: حل مشكلة عدم فتح المتصفح على أجهزة المستخدمين النظيفة (Browser Launcher Fallback)
+
+### 1. تشخيص المشكلة (Root Cause):
+- على جهاز المطور، كان Playwright يقوم بتشغيل المتصفح اعتماداً على كود Chromium المدمج المخزن في `%LOCALAPPDATA%\ms-playwright`.
+- على أجهزة المستخدمين الجديدة/النظيفة، مجلد `ms-playwright` غير موجود لأن التطبيق لا يتطلب تثبيت Node أو تشغيل `npx playwright install`.
+- عند طلب الربط (`job:connect`)، كان الاستدعاء يفشل صامتاً مع خطأ `Executable doesn't exist...` دون إشعار واجهة التطبيق أو المنصة السحابية.
+
+### 2. الحل الهندسي المنفذ:
+- **وحدة تشغيل مرنة ذكية (`browser-launcher.ts`):**
+  - فحص المتصفحات المثبتة على نظام ويندوز بترتيب الأفضلية:
+    1. **Google Chrome** (`channel: 'chrome'`).
+    2. **Microsoft Edge** (`channel: 'msedge'`) — متوفر ومثبت مسبقاً على 100% من أجهزة Windows 10 & 11.
+    3. البناء الافتراضي (Playwright Bundled Chromium).
+  - تنظيف أقفال الجلسات العالقة (`SingletonLock` / `SingletonCookie`) تلقائياً قبل الإطلاق لمنع تجميد البروفايل.
+- **تحديث محركات التشغيل:**
+  - تحديث [login-browser.ts](file:///d:/WB_API_GT/apps/desktop-agent/src/executor/login-browser.ts) لاستخدام المعالج المرن لكافة المنصات وخصوصاً بروفايل الواتساب.
+  - تحديث [playwright-runner.ts](file:///d:/WB_API_GT/apps/desktop-agent/src/executor/playwright-runner.ts) لدعم نفس المتصفحات أثناء تنفيذ المهام الخلفية المجدولة.
+- **بث السجلات الحية إلى كونسول التطبيق (Live Execution Terminal):**
+  - ربط حدث IPC جديد (`terminal-log`) لعرض خطوات الربط والتشغيل لحظة بلحظة أمام المستخدم في واجهة الرانر.
+- **إعادة التغليف والرفع:**
+  - بناء وتوليد ملف التثبيت الرسمي `QuazLink Runner Setup 26.9.5.exe`.
+  - تحديث وتثبيت الملف في إصدار GitHub Release `v26.9.5`.
+
 
 
 
