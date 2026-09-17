@@ -401,6 +401,39 @@
   - بناء وتوليد ملف التثبيت الرسمي `QuazLink Runner Setup 26.9.5.exe`.
   - تحديث وتثبيت الملف في إصدار GitHub Release `v26.9.5`.
 
+---
+
+## ميزة جديدة: نظام الفحص والترقية التلقائية بنقرة واحدة (In-App One-Click Auto-Updater)
+
+### 1. الهندسة المعمارية (Architecture):
+- **وحدة الترقية المركزية (`app-updater.ts`):**
+  - استعلام مباشر من مستودع GitHub Releases الرسمي (`api.github.com/repos/hadisalah07/QuazLink_Platform/releases/latest`).
+  - مقارنة دقيقة للإصدارات باستخدام الـ Semantic Versioning (`isNewerVersion`).
+  - رصد وتحديد مسار ملف التثبيت الرسمي `QuazLink-Runner-Setup.exe`.
+- **نظام التنزيل المتدفق الآمن (Secure Streaming Downloader):**
+  - دعم تتبع الـ Redirects (حتى 6 قفزات) عبر HTTPS حصراً.
+  - حساب نسبة التقدم وحجم البيانات لحظياً (`percent`, `downloadedMB`, `totalMB`).
+  - فحص سلامة الملف وحجمه (التأكد من اكتمال التنزيل وأن الحجم يتطابق مع المعايير > 20MB).
+- **التثبيت والإقلاع السلس (Seamless Process Handover):**
+  - إغلاق اتصالات الـ WebSocket وتحرير قفل التطبيق وموانع السكون بأمان قبل الترقية.
+  - إطلاق مثبت NSIS كعملية منفصلة (`detached: true`) وإنهاء العملية القديمة تلقائياً (`process.exit(0)`).
+  - يقوم المثبت بتحديث الملفات وتشغيل النسخة الجديدة فوراً دون أي تدخل يدوي من المستخدم.
+
+### 2. تدابير الحماية والأمان السيبراني (Bank-Grade Security):
+- **حظر الـ RCE ورفض الروابط العشوائية:**
+  - واجهة الـ UI لا ترسل أي روابط؛ الـ Main Process هو المتحكم الوحيد بالروابط المستخرجة من الـ GitHub Releases المعتمدة.
+- **Strict Domain Allowlist:**
+  - التحميل مقصور حصراً على `github.com/hadisalah07/QuazLink_Platform/` وخوادم الـ CDN الموثقة لـ GitHub (`objects.githubusercontent.com`).
+- **العزل في مجلد مؤقت آمن:**
+  - حفظ الملف في مسار معزول `%TEMP%\quazlink-update\QuazLink-Runner-Setup.exe` مع تنظيف النسخ السابقة تلقائياً لمنع التداخل.
+
+### 3. واجهة المستخدم الفخمة (Rich UI Experience):
+- إضافة رقم الإصدار الحالي `v26.9.5` بجانب لوجو التطبيق في شريط العنوان.
+- زر `🔄 Check Update` في الـ Header مع أيقونة دوارة تفاعلية.
+- كارت تنبيه نيون متحرك (`#updateBanner`) يظهر فور توفر إصدار جديد مع زر `Update Now & Restart`.
+- شريط تقدم مباشر (Liquid Neon Progress Bar) يُظهر النسبة وحجم البيانات المحملة أثناء التنزيل.
+- فحص تلقائي صامت في الخلفية بعد 4.5 ثوانٍ من تشغيل التطبيق لتنبيه المستخدم فور صدور أي إصدار جديد.
+
 
 
 
