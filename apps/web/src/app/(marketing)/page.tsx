@@ -9,33 +9,65 @@ import Link from "next/link";
 
 export default function LandingPage() {
   const [videoEnded, setVideoEnded] = React.useState(false);
+  const videoRef = React.useRef<HTMLVideoElement | null>(null);
+
+  const handleFinish = React.useCallback(() => {
+    setVideoEnded(true);
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  }, []);
+
+  React.useEffect(() => {
+    // Guaranteed safety fallback: Force transition after 2.4 seconds
+    const safetyTimer = setTimeout(() => {
+      handleFinish();
+    }, 2400);
+
+    return () => clearTimeout(safetyTimer);
+  }, [handleFinish]);
 
   return (
     <div className="relative w-full max-w-full flex flex-col items-center overflow-x-hidden">
       <Aurora />
 
       {/* Hero Section */}
-      <section className="relative w-full h-screen flex items-center justify-center z-0 overflow-hidden">
+      <section 
+        className="relative w-full h-screen flex items-center justify-center z-0 overflow-hidden cursor-pointer"
+        onClick={handleFinish}
+      >
         
         {/* Video Background */}
         <motion.div 
           className="absolute inset-0 z-0 flex items-center justify-center mix-blend-screen pointer-events-none"
           initial={{ opacity: 1, scale: 1 }}
           animate={{ opacity: videoEnded ? 0 : 1, scale: videoEnded ? 1.05 : 1 }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
         >
           <video
+            ref={videoRef}
             src="/videos/hero-animation.mp4"
             autoPlay
             muted
             playsInline
+            preload="auto"
             controlsList="nodownload"
             onContextMenu={(e) => e.preventDefault()}
-            onEnded={() => setVideoEnded(true)}
+            onEnded={handleFinish}
+            onError={handleFinish}
+            onTimeUpdate={(e) => {
+              const video = e.currentTarget;
+              if (video.duration && video.currentTime >= video.duration - 0.3) {
+                handleFinish();
+              }
+            }}
             onLoadedMetadata={(e) => {
               const video = e.currentTarget;
-              video.defaultPlaybackRate = 4.0;
-              video.playbackRate = 4.0;
+              video.defaultPlaybackRate = 3.5;
+              video.playbackRate = 3.5;
+              video.play().catch(() => {
+                handleFinish();
+              });
             }}
             className="w-full max-w-5xl object-contain opacity-90"
             style={{ 
@@ -48,9 +80,9 @@ export default function LandingPage() {
         {/* Text Content - Fades in AFTER video fades out */}
         <motion.div
           className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-10 pointer-events-none"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: videoEnded ? 1 : 0, y: videoEnded ? 0 : 30 }}
-          transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: videoEnded ? 1 : 0, y: videoEnded ? 0 : 24 }}
+          transition={{ duration: 0.8, delay: videoEnded ? 0.2 : 0, ease: "easeOut" }}
         >
           <div className="flex flex-col items-center space-y-8 pointer-events-auto">
             <div className="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md">
