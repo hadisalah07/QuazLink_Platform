@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, Search, Laptop } from "lucide-react";
+import { Bell, Search, Laptop, Download } from "lucide-react";
 import { getDevices } from "@/lib/api";
 
 export function TopNav() {
@@ -63,6 +63,16 @@ export function TopNav() {
           <span className="hidden sm:inline">
             {isOnline ? (activeDeviceName ? `${activeDeviceName} (Active)` : "Runner (Online)") : "Runner (Offline)"}
           </span>
+        </Link>
+
+        {/* Quick Download Button */}
+        <Link
+          href="/download"
+          title="Download QuazLink Runner App for Windows (.exe)"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 text-xs font-semibold transition-all shadow-[0_0_15px_rgba(34,211,238,0.15)] cursor-pointer"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Download App</span>
         </Link>
 
         <button className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5">

@@ -102,6 +102,75 @@ export function DeviceManager() {
         </div>
       )}
 
+      {/* Official App Download & Setup Banner */}
+      <SpotlightCard className="p-6 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-[var(--color-quaz-bg)] to-blue-950/20 shadow-2xl relative overflow-hidden space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 p-0.5 shadow-[0_0_25px_rgba(34,211,238,0.4)] flex-shrink-0">
+              <div className="w-full h-full bg-[#0b0f17] rounded-[14px] flex items-center justify-center">
+                <img src="/logo.png" alt="QuazLink Runner" className="w-9 h-9 object-contain" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-base font-bold text-white">QuazLink Desktop Runner</h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                  v26.9.5 Official Release
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  Windows 10 / 11
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed max-w-xl">
+                برنامج الأتمتة المكتبي الرسمي لمنصة QuazLink. يتم تثبيته على جهازك لتنفيذ مهام الواتساب وفيسبوك وإنستغرام من اتصالك المنزلي الحقيقي بنسبة أمان 100% وبدون أي حظر.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-auto flex-shrink-0">
+            <a
+              href="/downloads/QuazLink-Runner-Setup.exe"
+              download="QuazLink-Runner-Setup.exe"
+              className="px-5 py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl text-xs shadow-[0_0_25px_rgba(34,211,238,0.4)] hover:shadow-[0_0_35px_rgba(34,211,238,0.6)] transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              <span>تحميل البرنامج للكمبيوتر (Installer .exe)</span>
+            </a>
+
+            <a
+              href="quazlink://open"
+              className="px-4 py-3 bg-white/10 hover:bg-white/15 border border-white/10 text-white rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
+              title="فتح البرنامج إذا كان مثبتاً بالفعل على جهازك"
+            >
+              <Laptop className="w-4 h-4 text-cyan-400" />
+              <span>تشغيل البرنامج المثبت</span>
+            </a>
+          </div>
+        </div>
+
+        {/* 3 Steps Guide */}
+        <div className="pt-4 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+            <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold flex items-center justify-center text-xs flex-shrink-0">
+              1
+            </span>
+            <span className="text-gray-300">حمّل وشغّل ملف التثبيت <strong>.exe</strong> (تثبيت تلقائي في 5 ثوانٍ)</span>
+          </div>
+          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+            <span className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold flex items-center justify-center text-xs flex-shrink-0">
+              2
+            </span>
+            <span className="text-gray-300">اضغط <strong>Open &amp; Auto-Pair</strong> لربط جهازك بحسابك فورياً</span>
+          </div>
+          <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+            <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold flex items-center justify-center text-xs flex-shrink-0">
+              3
+            </span>
+            <span className="text-gray-300">يبدأ الرانر العمل في الخلفية وينفذ مهام الواتساب تلقائياً 🚀</span>
+          </div>
+        </div>
+      </SpotlightCard>
+
       {/* Pairing Code Card */}
       {pairingData && (
         <SpotlightCard className="p-5 rounded-2xl border border-cyan-500/40 bg-cyan-950/20 space-y-3">
