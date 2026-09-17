@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/cli.ts",
     "dev:gui": "electron .",
-    "build": "tsc",
+    "build": "tsc && node -e \"fs.cpSync('src/ui', 'dist/ui', {recursive: true}); fs.cpSync('src/assets', 'dist/assets', {recursive: true});\"",
     "dist": "electron-builder --config electron-builder.yml",
     "build:dist": "npm run build && npm run dist",
     "start": "node dist/cli.js"
