@@ -18,7 +18,7 @@ export function StarField({ interactive = true }: { interactive?: boolean }) {
   if (!init) return null;
 
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none">
+    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden max-w-full">
       <Particles
         id="tsparticles"
         options={{

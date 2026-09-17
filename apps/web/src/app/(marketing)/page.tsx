@@ -11,11 +11,11 @@ export default function LandingPage() {
   const [videoEnded, setVideoEnded] = React.useState(false);
 
   return (
-    <div className="relative w-full flex flex-col items-center">
+    <div className="relative w-full max-w-full flex flex-col items-center overflow-x-hidden">
       <Aurora />
 
       {/* Hero Section */}
-      <section className="relative w-full h-screen flex items-center justify-center z-0">
+      <section className="relative w-full h-screen flex items-center justify-center z-0 overflow-hidden">
         
         {/* Video Background */}
         <motion.div 
