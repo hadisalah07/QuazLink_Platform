@@ -4,6 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import { RunnerWSClient } from './client/ws-client';
 import { openLoginBrowser } from './executor/login-browser';
+import { AppUpdater } from './updater/app-updater';
 
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
@@ -529,6 +530,57 @@ if (gotTheLock) {
         openLoginBrowser(payload.platform, payload.accountId, wsClient, (msg, type) => logToTerminal(msg, type));
       }
     });
+
+    // ── In-App Auto-Updater ─────────────────────────────────────────────
+    const appUpdater = new AppUpdater();
+
+    ipcMain.handle('check-update', async () => {
+      try {
+        const result = await appUpdater.checkForUpdates(app.getVersion(), (msg, type) => {
+          logToTerminal(msg, type);
+        });
+        return result;
+      } catch (err: any) {
+        logToTerminal(`[UPDATE] Check failed: ${err.message}`, 'red');
+        return { hasUpdate: false, error: err.message };
+      }
+    });
+
+    ipcMain.on('start-update', async () => {
+      try {
+        logToTerminal('[UPDATE] 📥 Starting update package download...', 'highlight');
+        await appUpdater.downloadAndInstall(
+          undefined,
+          (percent, downloadedMB, totalMB) => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('update-progress', { percent, downloadedMB, totalMB });
+            }
+          },
+          (msg, type) => logToTerminal(msg, type),
+          async () => {
+            wsClient?.cleanup();
+            if (powerBlockerId) {
+              try {
+                powerSaveBlocker.stop(powerBlockerId);
+              } catch {}
+            }
+          }
+        );
+      } catch (err: any) {
+        logToTerminal(`[UPDATE] ❌ Installation failed: ${err.message}`, 'red');
+      }
+    });
+
+    // Silent background check 4.5s after launch
+    setTimeout(async () => {
+      try {
+        const check = await appUpdater.checkForUpdates(app.getVersion());
+        if (check.hasUpdate && mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update-available', check);
+          logToTerminal(`[UPDATE] 🚀 Update ${check.latestVersion} available! Click 'Update Now' in the runner.`, 'success');
+        }
+      } catch {}
+    }, 4500);
   });
 }
 

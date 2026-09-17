@@ -22,4 +22,12 @@ contextBridge.exposeInMainWorld('quazlink', {
     ipcRenderer.on('status-updated', (_event: any, data: any) => cb(data)),
   onTerminalLog: (cb: (data: { message: string; type?: string }) => void) =>
     ipcRenderer.on('terminal-log', (_event: any, data: any) => cb(data)),
+
+  // ── in-app updater APIs ──────────────────────────────────────────────────
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  startUpdate: () => ipcRenderer.send('start-update'),
+  onUpdateProgress: (cb: (data: { percent: number; downloadedMB: string; totalMB: string }) => void) =>
+    ipcRenderer.on('update-progress', (_event: any, data: any) => cb(data)),
+  onUpdateAvailable: (cb: (data: any) => void) =>
+    ipcRenderer.on('update-available', (_event: any, data: any) => cb(data)),
 });
