@@ -99,8 +99,27 @@ export class WhatsAppNode implements IPlatformNode {
         continue;
       }
 
+      // Loop detection safeguard: prevent endless repetition of identical failing clicks
+      const actionKey = `${instruction.action}:${instruction.selector || ''}`;
+      const repeatCount = history.filter((h) => `${h.action}:${h.selector || ''}` === actionKey).length;
+      if (repeatCount >= 2 && instruction.action === 'click') {
+        onProgress('[WhatsAppNode:Driver] Repeating selector detected! Applying smart self-healing recovery...');
+        await page.evaluate(() => {
+          // If trying to open status menu, try direct click on Add Status or My status row
+          const addBtn = document.querySelector('button[aria-label="Add Status"], button:has-text("ic-add-circle")') ||
+                         document.querySelector('button[aria-label*="Status" i]') ||
+                         Array.from(document.querySelectorAll('button')).find(b => (b.textContent || '').includes('Click to add status'));
+          if (addBtn) (addBtn as HTMLElement).click();
+
+          // If menu is open, try direct click on Photos & videos
+          const photoBtn = Array.from(document.querySelectorAll('button, li')).find(el => (el.textContent || '').includes('Photos & videos') || (el.textContent || '').includes('الصور ومقاطع الفيديو'));
+          if (photoBtn) (photoBtn as HTMLElement).click();
+        }).catch(() => {});
+        await page.waitForTimeout(2000);
+      }
+
       await this.executeActionOnPage(page, instruction, content, images, onProgress);
-      history.push({ step: stepIndex, action: instruction.action, thought: instruction.thought });
+      history.push({ step: stepIndex, action: instruction.action, selector: instruction.selector, thought: instruction.thought });
       stepIndex++;
       await page.waitForTimeout(1500);
     }
@@ -397,159 +416,129 @@ export class WhatsAppNode implements IPlatformNode {
     await this.dismissBlockingModals(page, onProgress);
 
     // Look for "Add status" or photo upload input in Status drawer
-    onProgress('[WhatsAppNode:Status] Selecting media/content for Status update...');
+    onProgress('[WhatsAppNode:Status] Waiting for Status pane to render...');
+    await page.waitForTimeout(2000);
 
     if (images && images.length > 0) {
       let mediaAttached = false;
 
-      // 1. First check if file input is already exposed in DOM
-      let statusFileInput = page
-        .locator('input[type="file"][accept*="image,video"], input[type="file"][accept*="image"], input[type="file"]')
-        .first();
+      // 1. Locate and trigger the Add Status (⊕) button in the Status pane
+      const addStatusSelectors = [
+        'button[aria-label="Add Status" i]',
+        'button[aria-label*="Status" i]:has-text("ic-add-circle")',
+        'button:has-text("ic-add-circle")',
+        'button[aria-label*="حالة" i]',
+        'div[aria-label*="Status tab drawer" i] button:has-text("ic-add-circle")',
+        'div[data-testid="status-tab-drawer"] button:has-text("ic-add-circle")',
+        'button:has-text("Click to add status update")',
+        'button:has-text("انقر لإضافة")',
+        'div[role="button"]:has-text("ic-add")',
+        'span[data-icon="plus-large"]',
+        'span[data-icon="status-v3-round-plus"]',
+        'span[data-icon="plus"]',
+      ];
 
-      if ((await statusFileInput.count()) > 0) {
-        try {
-          await statusFileInput.setInputFiles(images);
-          mediaAttached = true;
-          onProgress('[WhatsAppNode:Status] Media attached via direct DOM file input.');
-        } catch {}
-      }
-
-      // 2. If not attached, locate and trigger the header "New status" (+) button
-      if (!mediaAttached) {
-        const addStatusSelectors = [
-          'button[aria-label="Add Status" i]',
-          'button[aria-label*="Status" i]:has-text("ic-add-circle")',
-          'button:has-text("ic-add-circle")',
-          'button[aria-label*="Add Status" i]',
-          'button[aria-label*="حالة" i]',
-          'header button:has(span[data-icon*="plus"])',
-          'button:has(span[data-icon="plus-large"])',
-          'button:has(span[data-icon="plus"])',
-          'button:has(span[data-icon="status-v3-round-plus"])',
-          'div[role="button"]:has(span[data-icon*="plus"])',
-          'span[data-icon="plus-large"]',
-          'span[data-icon="status-v3-round-plus"]',
-          'span[data-icon="plus"]',
-          'span[data-icon="status-add"]',
-          'span[data-icon="camera"]',
-          'div[role="button"]:has-text("ic-add")',
-          'button[title="New status" i]',
-          'button[title="حالة جديدة" i]',
-        ];
-
-        let plusClicked = false;
-        for (const sel of addStatusSelectors) {
-          const btn = page.locator(sel).first();
-          if (await btn.isVisible().catch(() => false)) {
-            onProgress(`[WhatsAppNode:Status] Clicking Add Status button (${sel})...`);
-            // The click might trigger filechooser directly
-            const fcPromise = page.waitForEvent('filechooser', { timeout: 2000 }).catch(() => null);
-            
-            const clickable = btn.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
-            const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : btn;
-            await target.click({ force: true }).catch(async () => {
-              await target.dispatchEvent('click').catch(() => {});
-            });
-
-            const fc = await fcPromise;
-            if (fc) {
-              await fc.setFiles(images);
-              mediaAttached = true;
-              onProgress('[WhatsAppNode:Status] Media attached via file chooser trigger.');
-              break;
-            }
-            plusClicked = true;
-            await page.waitForTimeout(1000);
-            break;
-          }
-        }
-
-        // Fallback DOM evaluation to find and click the status plus button
-        if (!plusClicked && !mediaAttached) {
-          const clickedDom = await page.evaluate(() => {
-            const plusIcons = Array.from(document.querySelectorAll('span[data-icon*="plus"], span[data-icon*="status-add"], span[data-icon*="camera"]'));
-            for (const icon of plusIcons) {
-              const btn = icon.closest('button') || icon.closest('div[role="button"]') || icon;
-              if (btn && (btn as HTMLElement).offsetParent !== null) {
-                (btn as HTMLElement).click();
-                return true;
-              }
-            }
-            return false;
-          }).catch(() => false);
-
-          if (clickedDom) {
-            plusClicked = true;
-            onProgress('[WhatsAppNode:Status] Clicked Status Plus button via DOM inspection.');
-            await page.waitForTimeout(1000);
-          }
+      let addBtn = null;
+      for (const sel of addStatusSelectors) {
+        const loc = page.locator(sel).first();
+        if (await loc.isVisible().catch(() => false)) {
+          addBtn = loc;
+          break;
         }
       }
 
-      // 3. In WhatsApp Web, clicking Add Status reveals a dropdown menu:
-      // Option 1: "Photos & videos" / "الصور ومقاطع الفيديو"
-      // Option 2: "Text" / "نص"
-      if (!mediaAttached) {
-        const photoOptionSelectors = [
-          'button[aria-label="Photos & videos" i]',
-          'button:has-text("Photos & videos")',
-          'button:has-text("الصور ومقاطع الفيديو")',
-          'button:has-text("صور ومقاطع فيديو")',
-          'li:has-text("Photos & videos")',
-          'li:has-text("صور ومقاطع فيديو")',
-          'li:has-text("الصور ومقاطع الفيديو")',
-          'span:has-text("Photos & videos")',
-          'span:has-text("صور ومقاطع فيديو")',
-          'span:has-text("الصور ومقاطع الفيديو")',
-          'span[data-icon="status-media"]',
-          'span[data-icon="image"]',
-          'span[data-icon="attach-image"]',
-          'span[data-icon="camera"]',
-          'button[aria-label*="Photos" i]',
-          'button[aria-label*="صور" i]',
-        ];
+      if (!addBtn) {
+        // Wait up to 6s for the Add Status button to render in the DOM
+        const primaryLoc = page.locator(addStatusSelectors[0]);
+        await primaryLoc.waitFor({ state: 'visible', timeout: 6000 }).catch(() => {});
+        if (await primaryLoc.isVisible().catch(() => false)) {
+          addBtn = primaryLoc;
+        }
+      }
 
+      if (addBtn) {
+        onProgress('[WhatsAppNode:Status] Clicking Add Status button (⊕)...');
+        await addBtn.click({ force: true }).catch(async () => {
+          await addBtn.dispatchEvent('click').catch(() => {});
+        });
+        await page.waitForTimeout(1000);
+      }
+
+      // 2. Locate the popup menu item: "Photos & videos" / "الصور ومقاطع الفيديو"
+      const photoOptionSelectors = [
+        'button[role="menuitem"][aria-label*="Photos" i]',
+        'button[role="menuitem"]:has-text("Photos & videos")',
+        'button[role="menuitem"]:has-text("الصور ومقاطع الفيديو")',
+        'button[role="menuitem"]:has-text("صور ومقاطع فيديو")',
+        'button[aria-label="Photos & videos" i]',
+        'button:has-text("Photos & videos")',
+        'button:has-text("الصور ومقاطع الفيديو")',
+        'li:has-text("Photos & videos")',
+        'li:has-text("الصور ومقاطع الفيديو")',
+        'span:has-text("Photos & videos")',
+        'span:has-text("الصور ومقاطع الفيديو")',
+      ];
+
+      let photoBtn = null;
+      for (let attempt = 0; attempt < 8; attempt++) {
         for (const pSel of photoOptionSelectors) {
           const pLoc = page.locator(pSel).first();
           if (await pLoc.isVisible().catch(() => false)) {
-            onProgress(`[WhatsAppNode:Status] Selecting menu option (${pSel})...`);
-            const fcPromise = page.waitForEvent('filechooser', { timeout: 4000 }).catch(() => null);
-            
-            const clickable = pLoc.locator('xpath=ancestor-or-self::*[self::li or self::button or @role="button"][1]');
-            const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : pLoc;
-            await target.click({ force: true }).catch(async () => {
-              await target.dispatchEvent('click').catch(() => {});
-            });
-
-            const fc = await fcPromise;
-            if (fc) {
-              await fc.setFiles(images);
-              mediaAttached = true;
-              onProgress('[WhatsAppNode:Status] Media attached via menu file chooser.');
-              break;
-            }
-            await page.waitForTimeout(1000);
+            photoBtn = pLoc;
             break;
           }
         }
+        if (photoBtn) break;
+        await page.waitForTimeout(500);
       }
 
-      // 4. Check if file input is now exposed in DOM after clicking menu item
+      // 3. Trigger FileChooser from "Photos & videos" option
+      if (photoBtn) {
+        onProgress('[WhatsAppNode:Status] Selecting Photos & videos menu option...');
+        const fcPromise = page.waitForEvent('filechooser', { timeout: 8000 }).catch(() => null);
+        await photoBtn.click({ force: true }).catch(async () => {
+          await photoBtn.dispatchEvent('click').catch(() => {});
+        });
+        const fc = await fcPromise;
+        if (fc) {
+          await fc.setFiles(images);
+          mediaAttached = true;
+          onProgress(`[WhatsAppNode:Status] ${images.length} media file(s) attached via file chooser.`);
+        }
+      }
+
+      // 4. Fallback: Check if file input is exposed directly in DOM
       if (!mediaAttached) {
-        statusFileInput = page
+        const statusFileInput = page
           .locator('input[type="file"][accept*="image,video"], input[type="file"][accept*="image"], input[type="file"]')
           .first();
         if ((await statusFileInput.count()) > 0) {
           try {
             await statusFileInput.setInputFiles(images);
             mediaAttached = true;
-            onProgress('[WhatsAppNode:Status] Media attached via newly rendered file input.');
+            onProgress('[WhatsAppNode:Status] Media attached via direct DOM file input.');
           } catch {}
         }
       }
 
-      // 5. CRITICAL: If media could not be attached, THROW ERROR so AI Driver can self-heal!
+      // 5. Fallback 2: Check "Click to add status update" row
+      if (!mediaAttached) {
+        const myStatusRow = page
+          .locator('button:has-text("Click to add status update"), button:has-text("انقر لإضافة تحديث حالة")')
+          .first();
+        if (await myStatusRow.isVisible().catch(() => false)) {
+          const fcPromise = page.waitForEvent('filechooser', { timeout: 5000 }).catch(() => null);
+          await myStatusRow.click({ force: true }).catch(() => {});
+          const fc = await fcPromise;
+          if (fc) {
+            await fc.setFiles(images);
+            mediaAttached = true;
+            onProgress('[WhatsAppNode:Status] Media attached via My Status row click.');
+          }
+        }
+      }
+
+      // 6. If media could not be attached, escalate to AI Driver
       if (!mediaAttached) {
         throw new Error(
           'Media file input could not be triggered in WhatsApp Web Status drawer. Escalating to Autonomous AI Driver...'
@@ -557,26 +546,27 @@ export class WhatsAppNode implements IPlatformNode {
       }
 
       onProgress('[WhatsAppNode:Status] Media attached successfully. Waiting for Status preview screen...');
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(3500);
 
       // Write caption in Status preview screen
       if (content) {
         onProgress('[WhatsAppNode:Status] Typing Status caption in media preview...');
         const captionSelectors = [
           'div[aria-label="Add a caption" i]',
+          'div[aria-placeholder="Add a caption" i]',
           'div[aria-label="Add a caption..."]',
           'div[aria-label*="caption" i]',
           'div[aria-label*="شرح" i]',
           'div[aria-placeholder*="caption" i]',
           'div[aria-placeholder*="شرح" i]',
-          'footer div[contenteditable="true"]',
           'div[contenteditable="true"][role="textbox"]',
+          'div[contenteditable="true"]',
           'div[role="textbox"]',
         ];
 
         for (const cSel of captionSelectors) {
           const captionBox = page.locator(cSel).first();
-          if (await captionBox.isVisible({ timeout: 2000 }).catch(() => false)) {
+          if (await captionBox.isVisible({ timeout: 3000 }).catch(() => false)) {
             await captionBox.click({ force: true }).catch(() => {});
             await this.pasteTextViaClipboard(page, content);
             await page.waitForTimeout(800);
@@ -605,7 +595,9 @@ export class WhatsAppNode implements IPlatformNode {
       for (const sSel of sendStatusSelectors) {
         const sendBtn = page.locator(sSel).first();
         if (await sendBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await sendBtn.click({ force: true });
+          const clickableSend = sendBtn.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
+          const targetSend = (await clickableSend.count().catch(() => 0)) > 0 ? clickableSend : sendBtn;
+          await targetSend.click({ force: true });
           sent = true;
           break;
         }

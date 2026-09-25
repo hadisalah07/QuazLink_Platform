@@ -324,9 +324,9 @@ CRITICAL RULES:
 1. Playwright will execute the selector. Use resilient selectors based on roles, labels, or clear text. Never use dynamic obfuscated classes (e.g. 'x1i10hfl').
 2. WHATSAPP WEB STATUS RULES (CRITICAL):
    - In WhatsApp Web, clicking 'My status' or 'حالتي' opens the STORY VIEWER for already-posted stories. NEVER click 'My status' or 'حالتي' to create a new status!
-   - To create a new status update on WhatsApp, ALWAYS click the '+' (plus) button at the top header of the status pane: 'header button:has(span[data-icon*="plus"]), span[data-icon="plus-large"], span[data-icon="plus"], button[aria-label="New status"]'.
-   - When the popup menu appears, click 'Photos & videos' (or 'الصور ومقاطع الفيديو') for images, or 'Text' (or 'نص') for text.
-   - Once images are attached or text is typed, click the green send button: 'span[data-icon="send"], button[aria-label="Send"], div[aria-label="Send"], span[data-icon="status-send"]'.
+   - To create a new status update on WhatsApp, ALWAYS click the Add Status button: 'button[aria-label="Add Status" i], button[aria-label*="Status" i]:has-text("ic-add-circle"), button[aria-label*="حالة" i], button:has-text("Click to add status update")'.
+   - When the popup menu appears, click 'button[role="menuitem"][aria-label*="Photos" i], button[role="menuitem"]:has-text("Photos & videos"), button:has-text("الصور ومقاطع الفيديو")' for images, or 'button[role="menuitem"]:has-text("Text"), button:has-text("نص")' for text.
+   - In the Status preview screen, write caption in 'div[aria-label="Add a caption" i], div[aria-placeholder="Add a caption" i], div[role="textbox"]', then click the send button: 'span[data-icon="wds-ic-send-filled"], div:has(span[data-icon="wds-ic-send-filled"]), div[aria-label*="Send" i], button[aria-label*="Send" i]'.
 3. The social media interface may be in English or Arabic. Support both languages:
    - To open composer: use 'div[role="button"]:has-text("What\'s on your mind"), div[role="button"]:has-text("بما تفكر"), div[role="button"]:has-text("بم تفكر")'
    - To write text: return action "type" with selector '[contenteditable="true"][role="textbox"], div[role="dialog"] div[role="textbox"]'
