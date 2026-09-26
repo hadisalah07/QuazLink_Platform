@@ -31,11 +31,12 @@ export interface Job {
   id: string;
   status: string;
   result: string | null;
+  targetUrl?: string | null;
   screenshotUrl: string | null;
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
-  post: { id: string; content: string | null } | null;
+  post: { id: string; content: string | null; mediaUrls?: string[] } | null;
   socialAccount: { id: string; platform: string } | null;
 }
 
