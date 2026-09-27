@@ -172,6 +172,22 @@ export function screenshotUrl(jobId: string): string {
   return `${API}/api/jobs/${jobId}/screenshot`;
 }
 
+export async function retryJob(jobId: string): Promise<{ success: boolean; job: Job; dispatched: boolean }> {
+  const res = await apiFetch(`/api/jobs/${jobId}/retry`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  return jsonOrThrow(res);
+}
+
+export async function retryAllFailedJobs(): Promise<{ success: boolean; count: number; dispatchedCount: number }> {
+  const res = await apiFetch(`/api/jobs/retry-all-failed`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  return jsonOrThrow(res);
+}
+
 export interface Catalog {
   id: string;
   name: string;

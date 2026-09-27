@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as fs from 'fs';
 import prisma from '../prisma';
+import { dispatchJobToLocalRunner } from '../ws/gateway';
 
 const router = Router();
 
@@ -125,6 +126,116 @@ router.get('/:id/screenshot', async (req, res) => {
   }
 });
 
+// Retry ALL failed jobs for the user
+router.post('/retry-all-failed', async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const failedJobs = await prisma.job.findMany({
+      where: {
+        post: { campaign: { userId } },
+        status: { in: ['failed', 'error'] },
+      },
+      include: { post: true, socialAccount: true },
+      take: 20,
+    });
+
+    if (failedJobs.length === 0) {
+      return res.json({ success: true, count: 0, message: 'No failed jobs to retry.' });
+    }
+
+    let dispatchedCount = 0;
+    for (const job of failedJobs) {
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          status: 'pending',
+          result: null,
+          screenshotUrl: null,
+          startedAt: null,
+          completedAt: null,
+          updatedAt: new Date(),
+        },
+      });
+
+      const isDispatched = await dispatchJobToLocalRunner(userId, {
+        id: job.id,
+        postId: job.postId,
+        content: job.post.content,
+        mediaUrls: job.post.mediaUrls,
+        targetUrl: job.targetUrl,
+        platform: job.socialAccount.platform,
+        socialAccountId: job.socialAccountId,
+      });
+      if (isDispatched) dispatchedCount++;
+    }
+
+    res.json({
+      success: true,
+      count: failedJobs.length,
+      dispatchedCount,
+      message: `Retried ${failedJobs.length} failed job(s).`,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Retry a single failed or stuck job and immediately dispatch to active runner
+router.post('/:id/retry', async (req, res) => {
+  try {
+    const userId = req.userId!;
+    
+    // Ensure the job exists and belongs to the caller
+    const job = await prisma.job.findFirst({
+      where: { id: req.params.id, post: { campaign: { userId } } },
+      include: { post: true, socialAccount: true },
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    // Allow retry for failed, error, or stale dispatched jobs
+    if (!['failed', 'error', 'posted_unconfirmed', 'dispatched'].includes(job.status)) {
+      return res.status(400).json({ error: `Cannot retry job in status '${job.status}'. Only failed jobs can be retried.` });
+    }
+
+    // Reset job state
+    const updatedJob = await prisma.job.update({
+      where: { id: job.id },
+      data: {
+        status: 'pending',
+        result: null,
+        screenshotUrl: null,
+        startedAt: null,
+        completedAt: null,
+        updatedAt: new Date(),
+      },
+      include: { post: true, socialAccount: true },
+    });
+
+    // Try instant dispatch if user runner is online
+    const isDispatched = await dispatchJobToLocalRunner(userId, {
+      id: updatedJob.id,
+      postId: updatedJob.postId,
+      content: updatedJob.post.content,
+      mediaUrls: updatedJob.post.mediaUrls,
+      targetUrl: updatedJob.targetUrl,
+      platform: updatedJob.socialAccount.platform,
+      socialAccountId: updatedJob.socialAccountId,
+    });
+
+    res.json({
+      success: true,
+      job: updatedJob,
+      dispatched: isDispatched,
+      message: isDispatched ? 'Job re-dispatched to runner immediately.' : 'Job queued for execution.',
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Reset a stuck job back to pending
 router.post('/:id/reset', async (req, res) => {
   try {
@@ -133,6 +244,7 @@ router.post('/:id/reset', async (req, res) => {
     // Ensure the job exists and belongs to the caller
     const job = await prisma.job.findFirst({
       where: { id: req.params.id, post: { campaign: { userId } } },
+      include: { post: true, socialAccount: true },
     });
 
     if (!job) {
@@ -140,18 +252,33 @@ router.post('/:id/reset', async (req, res) => {
     }
 
     // Only allow resetting if it's explicitly failed or errored. 
-    // Dispatched jobs might be currently publishing, so resetting them would cause a double post.
-    if (!['failed', 'error'].includes(job.status)) {
+    if (!['failed', 'error', 'posted_unconfirmed', 'dispatched'].includes(job.status)) {
       return res.status(400).json({ error: `Cannot reset job in status '${job.status}'. Only failed jobs can be reset.` });
     }
 
     // Update job status to pending
     const updatedJob = await prisma.job.update({
       where: { id: job.id },
-      data: { status: 'pending' },
+      data: {
+        status: 'pending',
+        result: null,
+        screenshotUrl: null,
+        startedAt: null,
+        completedAt: null,
+        updatedAt: new Date(),
+      },
+      include: { post: true, socialAccount: true },
     });
 
-    // Removed BullMQ re-queueing. The Desktop Agent handles pending jobs.
+    await dispatchJobToLocalRunner(userId, {
+      id: updatedJob.id,
+      postId: updatedJob.postId,
+      content: updatedJob.post.content,
+      mediaUrls: updatedJob.post.mediaUrls,
+      targetUrl: updatedJob.targetUrl,
+      platform: updatedJob.socialAccount.platform,
+      socialAccountId: updatedJob.socialAccountId,
+    });
 
     res.json(updatedJob);
   } catch (error: any) {

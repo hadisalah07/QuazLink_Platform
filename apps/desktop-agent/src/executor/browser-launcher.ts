@@ -4,52 +4,102 @@ import path from 'path';
 
 export type LogCallback = (message: string, type?: 'highlight' | 'success' | 'warn' | 'red') => void;
 
+export interface BrowserCandidate {
+  channel?: string;
+  executablePath?: string;
+  name: string;
+}
+
 /**
- * Returns candidate Chromium channels to launch in order of preference.
- * Prioritizes installed system browsers (Google Chrome, Microsoft Edge)
- * so that end-user Windows machines run instantly without needing Playwright binary downloads.
+ * Returns candidate Chromium browsers to launch in order of preference.
+ * Prioritizes direct system executable paths (Google Chrome, Microsoft Edge)
+ * so that end-user Windows machines run reliably without depending on registry lookups.
  */
-export function getAvailableBrowserChannels(): (string | undefined)[] {
-  const detected: string[] = [];
+export function getBrowserCandidates(): BrowserCandidate[] {
+  const candidates: BrowserCandidate[] = [];
 
   if (process.platform === 'win32') {
     const localAppData = process.env.LOCALAPPDATA || '';
     const programFiles = process.env['ProgramFiles'] || 'C:\\Program Files';
     const programFilesX86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
 
+    // 1. Direct Chrome executable paths
     const chromePaths = [
       path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
       path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
       path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     ];
-    if (chromePaths.some((p) => fs.existsSync(p))) {
-      detected.push('chrome');
+    for (const p of chromePaths) {
+      if (fs.existsSync(p)) {
+        candidates.push({ executablePath: p, name: `Google Chrome (${p})` });
+        break;
+      }
     }
 
+    // 2. Direct Edge executable paths
     const edgePaths = [
       path.join(programFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
       path.join(programFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
       path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
     ];
-    if (edgePaths.some((p) => fs.existsSync(p))) {
-      detected.push('msedge');
+    for (const p of edgePaths) {
+      if (fs.existsSync(p)) {
+        candidates.push({ executablePath: p, name: `Microsoft Edge (${p})` });
+        break;
+      }
+    }
+
+    // 3. Direct Brave executable paths (common privacy Chromium alternative)
+    const bravePaths = [
+      path.join(programFiles, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+      path.join(programFilesX86, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+      path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    ];
+    for (const p of bravePaths) {
+      if (fs.existsSync(p)) {
+        candidates.push({ executablePath: p, name: `Brave Browser (${p})` });
+        break;
+      }
     }
   } else if (process.platform === 'darwin') {
-    if (fs.existsSync('/Applications/Google Chrome.app')) detected.push('chrome');
-    if (fs.existsSync('/Applications/Microsoft Edge.app')) detected.push('msedge');
+    const macChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    const macEdge = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
+    if (fs.existsSync(macChrome)) candidates.push({ executablePath: macChrome, name: 'Google Chrome' });
+    if (fs.existsSync(macEdge)) candidates.push({ executablePath: macEdge, name: 'Microsoft Edge' });
   } else {
     // Linux checks
-    const linuxChrome = ['/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium'];
-    if (linuxChrome.some((p) => fs.existsSync(p))) detected.push('chrome');
+    const linuxPaths = [
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/microsoft-edge',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+    ];
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) {
+        candidates.push({ executablePath: p, name: path.basename(p) });
+        break;
+      }
+    }
   }
 
-  // Ensure 'chrome' and 'msedge' are always attempted as fallbacks even if heuristic path didn't detect them
-  if (!detected.includes('chrome')) detected.push('chrome');
-  if (!detected.includes('msedge')) detected.push('msedge');
+  // Registry / Named channels fallback
+  candidates.push({ channel: 'chrome', name: 'Google Chrome (Channel Registry)' });
+  candidates.push({ channel: 'msedge', name: 'Microsoft Edge (Channel Registry)' });
 
-  // Final fallback: Playwright bundled Chromium (channel: undefined)
-  const channels: (string | undefined)[] = [...detected, undefined];
-  return channels;
+  // Final fallback: Bundled Chromium
+  candidates.push({ name: 'Playwright Bundled Chromium' });
+
+  return candidates;
+}
+
+// Retain legacy export for backwards compatibility
+export function getAvailableBrowserChannels(): (string | undefined)[] {
+  return ['chrome', 'msedge', undefined];
 }
 
 /**
@@ -70,7 +120,7 @@ export function cleanOrphanProfileLocks(profileDir: string): void {
 }
 
 /**
- * Launch a persistent browser context with automatic channel fallback.
+ * Launch a persistent browser context with automatic channel and executable fallback.
  */
 export async function launchPersistentBrowserContext(
   userDataDir: string,
@@ -79,69 +129,76 @@ export async function launchPersistentBrowserContext(
 ): Promise<{ context: BrowserContext; channelUsed: string }> {
   cleanOrphanProfileLocks(userDataDir);
 
-  const channels = getAvailableBrowserChannels();
+  const candidates = getBrowserCandidates();
   let lastError: any = null;
 
-  for (const channel of channels) {
+  for (const candidate of candidates) {
     try {
       const launchOpts = { ...options };
-      if (channel) {
-        launchOpts.channel = channel;
+      if (candidate.executablePath) {
+        launchOpts.executablePath = candidate.executablePath;
+        delete launchOpts.channel;
+      } else if (candidate.channel) {
+        launchOpts.channel = candidate.channel;
+        delete launchOpts.executablePath;
       } else {
         delete launchOpts.channel;
+        delete launchOpts.executablePath;
       }
 
-      const channelLabel = channel ? channel.toUpperCase() : 'Bundled Chromium';
-      logger?.(`Attempting to launch browser (${channelLabel})...`, 'highlight');
+      logger?.(`Attempting to launch browser (${candidate.name})...`, 'highlight');
 
       const context = await chromium.launchPersistentContext(userDataDir, launchOpts);
-      logger?.(`Browser context launched successfully via ${channelLabel}.`, 'success');
-      return { context, channelUsed: channel || 'chromium' };
+      logger?.(`Browser context launched successfully via ${candidate.name}.`, 'success');
+      return { context, channelUsed: candidate.name };
     } catch (err: any) {
       lastError = err;
-      const channelLabel = channel ? channel.toUpperCase() : 'Bundled Chromium';
-      console.warn(`⚠️ [BrowserLauncher] Channel ${channelLabel} failed: ${err.message}`);
+      console.warn(`⚠️ [BrowserLauncher] Candidate ${candidate.name} failed: ${err.message}`);
     }
   }
 
-  const errText = `Could not launch browser context on any channel (Chrome/Edge/Chromium). Error: ${lastError?.message || 'Unknown'}`;
+  const errText = `Could not launch browser context on any channel (Chrome/Edge/Chromium). Error: ${lastError?.message || 'No browser found'}. Please ensure Google Chrome is installed on this machine (https://www.google.com/chrome).`;
   logger?.(errText, 'red');
   throw new Error(errText);
 }
 
 /**
- * Launch a standard browser instance with automatic channel fallback.
+ * Launch a standard browser instance with automatic channel and executable fallback.
  */
 export async function launchStandardBrowser(
   options: any,
   logger?: LogCallback
 ): Promise<{ browser: Browser; channelUsed: string }> {
-  const channels = getAvailableBrowserChannels();
+  const candidates = getBrowserCandidates();
   let lastError: any = null;
 
-  for (const channel of channels) {
+  for (const candidate of candidates) {
     try {
       const launchOpts = { ...options };
-      if (channel) {
-        launchOpts.channel = channel;
+      if (candidate.executablePath) {
+        launchOpts.executablePath = candidate.executablePath;
+        delete launchOpts.channel;
+      } else if (candidate.channel) {
+        launchOpts.channel = candidate.channel;
+        delete launchOpts.executablePath;
       } else {
         delete launchOpts.channel;
+        delete launchOpts.executablePath;
       }
 
-      const channelLabel = channel ? channel.toUpperCase() : 'Bundled Chromium';
-      logger?.(`Attempting to launch browser (${channelLabel})...`, 'highlight');
+      logger?.(`Attempting to launch browser (${candidate.name})...`, 'highlight');
 
       const browser = await chromium.launch(launchOpts);
-      logger?.(`Browser launched successfully via ${channelLabel}.`, 'success');
-      return { browser, channelUsed: channel || 'chromium' };
+      logger?.(`Browser launched successfully via ${candidate.name}.`, 'success');
+      return { browser, channelUsed: candidate.name };
     } catch (err: any) {
       lastError = err;
-      const channelLabel = channel ? channel.toUpperCase() : 'Bundled Chromium';
-      console.warn(`⚠️ [BrowserLauncher] Channel ${channelLabel} failed: ${err.message}`);
+      console.warn(`⚠️ [BrowserLauncher] Candidate ${candidate.name} failed: ${err.message}`);
     }
   }
 
-  const errText = `Could not launch browser on any channel (Chrome/Edge/Chromium). Error: ${lastError?.message || 'Unknown'}`;
+  const errText = `Could not launch browser on any channel (Chrome/Edge/Chromium). Error: ${lastError?.message || 'No browser found'}. Please ensure Google Chrome is installed on this machine (https://www.google.com/chrome).`;
   logger?.(errText, 'red');
   throw new Error(errText);
 }
+

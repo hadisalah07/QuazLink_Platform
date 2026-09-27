@@ -21,9 +21,10 @@ import {
   Calendar,
   Layers,
   ArrowUpRight,
-  Hash
+  Hash,
+  RotateCcw
 } from "lucide-react";
-import { getJobs, screenshotUrl, type Job } from "@/lib/api";
+import { getJobs, screenshotUrl, retryJob, retryAllFailedJobs, type Job } from "@/lib/api";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,8 @@ export default function RunsPage() {
   const [previewJob, setPreviewJob] = React.useState<Job | null>(null);
   const [copiedId, setCopiedId] = React.useState<string | null>(null);
   const [expandedJobIds, setExpandedJobIds] = React.useState<Set<string>>(new Set());
+  const [retryingId, setRetryingId] = React.useState<string | null>(null);
+  const [retrySuccessMsg, setRetrySuccessMsg] = React.useState<string | null>(null);
   const jobsRef = React.useRef(jobs);
   jobsRef.current = jobs;
 
@@ -95,6 +98,37 @@ export default function RunsPage() {
       setError(e.message);
     }
   }, []);
+
+  const handleRetry = React.useCallback(async (jobId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setRetryingId(jobId);
+    setError(null);
+    try {
+      await retryJob(jobId);
+      setRetrySuccessMsg(`تمت جدولة إعادة إرسال المهمة #${jobId.slice(0, 8)} فوراً!`);
+      setTimeout(() => setRetrySuccessMsg(null), 4000);
+      await refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRetryingId(null);
+    }
+  }, [refresh]);
+
+  const handleRetryAll = React.useCallback(async () => {
+    setRetryingId("all");
+    setError(null);
+    try {
+      const res = await retryAllFailedJobs();
+      setRetrySuccessMsg(`تمت إعادة جدولة ${res.count} مهمة فاشلة للإرسال فوراً!`);
+      setTimeout(() => setRetrySuccessMsg(null), 4000);
+      await refresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setRetryingId(null);
+    }
+  }, [refresh]);
 
   React.useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -131,6 +165,8 @@ export default function RunsPage() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [refresh]);
+
+  const failedCount = jobs.filter((j) => toUiStatus(j.status) === "error").length;
 
   const filteredJobs = jobs.filter((j) => {
     const status = toUiStatus(j.status);
@@ -169,7 +205,18 @@ export default function RunsPage() {
           </p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-3">
+          {failedCount > 0 && (
+            <button
+              onClick={handleRetryAll}
+              disabled={retryingId === "all"}
+              className="px-4 py-2 bg-amber-500/15 border border-amber-500/30 text-amber-300 rounded-xl hover:bg-amber-500/25 transition-all flex items-center gap-2 text-sm font-semibold cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(245,158,11,0.25)] disabled:opacity-50"
+            >
+              <RotateCcw className={cn("w-4 h-4 text-amber-400", retryingId === "all" && "animate-spin")} />
+              <span>{retryingId === "all" ? "جاري إعادة إرسال الكل..." : `إعادة محاولة كل الفاشل (${failedCount})`}</span>
+            </button>
+          )}
+
           <button
             onClick={refresh}
             className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 text-sm font-medium cursor-pointer"
@@ -179,6 +226,15 @@ export default function RunsPage() {
           </button>
         </div>
       </div>
+
+      {retrySuccessMsg && (
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-sm text-emerald-300 flex items-center justify-between">
+          <span>{retrySuccessMsg}</span>
+          <button onClick={() => setRetrySuccessMsg(null)} className="text-emerald-400 hover:text-white cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-300">
@@ -245,6 +301,8 @@ export default function RunsPage() {
                     onPreviewScreenshot={() => setPreviewJob(job)}
                     onCopy={handleCopy}
                     copiedId={copiedId}
+                    onRetry={handleRetry}
+                    isRetrying={retryingId === job.id || retryingId === "all"}
                   />
                 ))
               )}
@@ -290,6 +348,8 @@ function RunRow({
   onPreviewScreenshot,
   onCopy,
   copiedId,
+  onRetry,
+  isRetrying,
 }: {
   job: Job;
   isExpanded: boolean;
@@ -297,6 +357,8 @@ function RunRow({
   onPreviewScreenshot: () => void;
   onCopy: (text: string, id: string, e?: React.MouseEvent) => void;
   copiedId: string | null;
+  onRetry: (id: string, e?: React.MouseEvent) => void;
+  isRetrying: boolean;
 }) {
   const status = toUiStatus(job.status);
   const fullContent = job.post?.content || "";
@@ -407,23 +469,38 @@ function RunRow({
           {new Date(job.createdAt).toLocaleString()}
         </td>
 
-        {/* Cell 4: View Proof Button */}
+        {/* Cell 4: View Proof & Retry Button */}
         <td className="px-6 py-4 text-right">
-          {job.screenshotUrl ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onPreviewScreenshot();
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all text-xs font-semibold cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.2)]"
-            >
-              <ImageIcon className="w-3.5 h-3.5" />
-              <span>View Proof</span>
-            </button>
-          ) : (
-            <span className="text-gray-600 text-xs">—</span>
-          )}
+          <div className="flex items-center justify-end gap-2">
+            {status === "error" && (
+              <button
+                type="button"
+                onClick={(e) => onRetry(job.id, e)}
+                disabled={isRetrying}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all text-xs font-semibold cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] disabled:opacity-50"
+                title="إعادة إرسال المهمة الآن للرانر المحلي"
+              >
+                <RotateCcw className={cn("w-3.5 h-3.5", isRetrying && "animate-spin")} />
+                <span>{isRetrying ? "جاري..." : "إعادة المحاولة"}</span>
+              </button>
+            )}
+
+            {job.screenshotUrl ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPreviewScreenshot();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-all text-xs font-semibold cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(6,182,212,0.2)]"
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>View Proof</span>
+              </button>
+            ) : status !== "error" ? (
+              <span className="text-gray-600 text-xs">—</span>
+            ) : null}
+          </div>
         </td>
       </tr>
 
@@ -606,28 +683,52 @@ function RunRow({
                 </div>
               )}
 
-              {/* Execution Result Box & View Proof Action */}
+              {/* Execution Result Box & Actions */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs">
-                <div className="text-gray-400 flex items-center gap-2">
-                  <span className="font-semibold text-gray-300">نتيجة التنفيذ:</span>
-                  <span className="text-gray-200 font-mono">
-                    {job.result || (status === "success" ? "تم الإرسال بنجاح عبر الرانر المحلي" : "قيد المعالجة")}
-                  </span>
+                <div className="text-gray-400 flex flex-col gap-1 max-w-xl">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-300">نتيجة التنفيذ:</span>
+                    <span className={cn(
+                      "font-mono font-medium",
+                      status === "error" ? "text-red-400" : status === "success" ? "text-emerald-400" : "text-gray-200"
+                    )}>
+                      {job.result || (status === "success" ? "تم الإرسال بنجاح عبر الرانر المحلي" : "قيد المعالجة")}
+                    </span>
+                  </div>
+                  {status === "error" && (
+                    <p className="text-[11px] text-amber-400/90 leading-relaxed font-sans">
+                      💡 ملاحظة: إذا كان الخطأ متعلقاً بعدم وجود المتصفح (Browser executable not found)، تأكد من تثبيت متصفح Google Chrome على جهاز الرانر المحلي (Runner) ثم اضغط على زر إعادة المحاولة.
+                    </p>
+                  )}
                 </div>
 
-                {job.screenshotUrl && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPreviewScreenshot();
-                    }}
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold transition-all shadow-md hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer"
-                  >
-                    <ImageIcon className="w-4 h-4" />
-                    <span>معاينة لقطة الشاشة (View Proof)</span>
-                  </button>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {status === "error" && (
+                    <button
+                      type="button"
+                      onClick={(e) => onRetry(job.id, e)}
+                      disabled={isRetrying}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold transition-all shadow-md hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] cursor-pointer disabled:opacity-50"
+                    >
+                      <RotateCcw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
+                      <span>{isRetrying ? "جاري الإرسال للرانر..." : "إعادة إرسال الفاتورة الآن (Retry)"}</span>
+                    </button>
+                  )}
+
+                  {job.screenshotUrl && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPreviewScreenshot();
+                      }}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold transition-all shadow-md hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      <span>معاينة لقطة الشاشة (View Proof)</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </td>
