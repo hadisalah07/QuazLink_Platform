@@ -1,4 +1,4 @@
-import { Page } from 'playwright';
+import { Page, Locator } from 'playwright';
 import { IPlatformNode, NodeExecutionParams, NodeExecutionResult } from './base-node';
 import { MacroCache, MacroAction } from '../macro-cache';
 
@@ -257,18 +257,18 @@ export class WhatsAppNode implements IPlatformNode {
       for (const sel of attachBtnSelectors) {
         const btn = page.locator(sel).first();
         if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await btn.click();
-          await page.waitForTimeout(1000);
+          await this.humanMoveAndClick(page, btn);
+          await this.humanDelay(600, 1200);
           break;
         }
       }
 
       // Target the file input directly
       const fileInput = page.locator('input[type="file"][accept*="image"], input[type="file"]').first();
-      if (await fileInput.count() > 0) {
+      if ((await fileInput.count().catch(() => 0)) > 0) {
         await fileInput.setInputFiles(images);
         onProgress('[WhatsAppNode:Direct] Media file selected. Waiting for preview dialog...');
-        await page.waitForTimeout(3000);
+        await this.humanDelay(2500, 4000);
 
         // In media preview, locate the caption field
         onProgress('[WhatsAppNode:Direct] Writing caption in media preview...');
@@ -293,18 +293,19 @@ export class WhatsAppNode implements IPlatformNode {
         }
 
         if (captionBox && content) {
-          await captionBox.click({ force: true }).catch(() => {});
+          await this.humanMoveAndClick(page, captionBox);
           await this.pasteTextViaClipboard(page, content);
-          await page.waitForTimeout(1000);
+          await this.humanDelay(1200, 2200);
         }
 
         // Click media send button
-        onProgress('[WhatsAppNode:Direct] Clicking send button...');
+        onProgress('[WhatsAppNode:Direct] Reviewing and clicking send button...');
+        await this.humanDelay(1000, 2000);
         const sendBtnSelectors = [
-          'div[aria-label*="Send" i]',
-          'button[aria-label*="Send" i]',
           'span[data-icon="wds-ic-send-filled"]',
           'div:has(span[data-icon="wds-ic-send-filled"])',
+          'div[aria-label*="Send" i]',
+          'button[aria-label*="Send" i]',
           'span[data-icon="send"]',
           'div[aria-label*="إرسال" i]',
           'button[aria-label*="إرسال" i]',
@@ -314,44 +315,128 @@ export class WhatsAppNode implements IPlatformNode {
         for (const sSel of sendBtnSelectors) {
           const sLoc = page.locator(sSel).first();
           if (await sLoc.isVisible({ timeout: 2000 }).catch(() => false)) {
-            await sLoc.click({ force: true }).catch(() => {});
-            sent = true;
-            break;
+            const clickable = sLoc.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
+            const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : sLoc;
+            sent = await this.humanMoveAndClick(page, target);
+            if (sent) break;
           }
         }
 
         if (!sent) {
+          await this.humanDelay(400, 800);
           await page.keyboard.press('Enter');
         }
       }
     } else {
       // Text-only direct message
       onProgress('[WhatsAppNode:Direct] Writing text message via clipboard injection...');
-      await chatInput.click({ force: true }).catch(() => {});
+      await this.humanMoveAndClick(page, chatInput);
       await this.pasteTextViaClipboard(page, content);
-      await page.waitForTimeout(800);
+      await this.humanDelay(800, 1500);
       await page.keyboard.press('Enter');
     }
 
-    onProgress('[WhatsAppNode:Direct] Waiting for transmission confirmation...');
-    // Monitor transmission: wait until any pending clock icon disappears
-    for (let i = 0; i < 20; i++) {
-      const hasClock = await page
-        .locator('span[data-icon="msg-time"], span[data-icon="time"], span[data-icon="pending"]')
-        .isVisible()
-        .catch(() => false);
-      if (!hasClock && i >= 3) break;
+    onProgress('[WhatsAppNode:Direct] Verifying message transmission (Waiting for Checkmark ✔️)...');
+
+    const MAX_CONFIRM_SECONDS = 25;
+    let transmissionConfirmed = false;
+    let failureReason: string | null = null;
+
+    for (let i = 0; i < MAX_CONFIRM_SECONDS; i++) {
+      const status = await page
+        .evaluate(() => {
+          // Find all outgoing message bubbles in the active conversation
+          const outMsgs = document.querySelectorAll(
+            'div.message-out, div[class*="message-out"], div[data-id*="true_"]'
+          );
+          if (!outMsgs || outMsgs.length === 0) return { found: false };
+
+          const lastMsg = outMsgs[outMsgs.length - 1];
+
+          // 1. Check for red alert / error icon (message failed to transmit)
+          const errorEl = lastMsg.querySelector(
+            'span[data-icon="alert-warning"], span[data-icon="msg-error"], button[aria-label*="retry" i], span[data-icon="retry"]'
+          );
+          const hasError = !!errorEl;
+
+          // 2. Check for checkmark (single check msg-check, double check msg-dblcheck, or read msg-dblcheck-ack)
+          const checkEl = lastMsg.querySelector(
+            'span[data-icon="msg-check"], span[data-icon="check"], span[data-icon="msg-dblcheck"], span[data-icon="dblcheck"], span[data-icon="msg-dblcheck-ack"]'
+          );
+          const hasCheck = !!checkEl;
+
+          // 3. Check for clock / time / pending icon
+          const clockEl = lastMsg.querySelector(
+            'span[data-icon="msg-time"], span[data-icon="time"], span[data-icon="pending"]'
+          );
+          const hasClock = !!clockEl;
+
+          return { found: true, hasError, hasCheck, hasClock };
+        })
+        .catch(() => ({ found: false, hasError: false, hasCheck: false, hasClock: false }));
+
+      // If last message has a confirmed checkmark and no error: transmission is 100% verified!
+      if (status.found && status.hasCheck && !status.hasError) {
+        transmissionConfirmed = true;
+        break;
+      }
+
+      // If explicit red error icon is present
+      if (status.found && status.hasError) {
+        failureReason = 'WhatsApp server rejected message delivery (❗ Red alert icon detected).';
+        break;
+      }
+
+      // Fallback: check via global Playwright locators if DOM evaluation didn't match specific classes
+      if (!status.found) {
+        const hasCheck = await page
+          .locator(
+            'div.message-out span[data-icon="msg-check"], div.message-out span[data-icon="msg-dblcheck"], span[data-icon="msg-check"], span[data-icon="msg-dblcheck"]'
+          )
+          .last()
+          .isVisible({ timeout: 400 })
+          .catch(() => false);
+        const hasError = await page
+          .locator('div.message-out span[data-icon="alert-warning"], span[data-icon="alert-warning"]')
+          .last()
+          .isVisible({ timeout: 400 })
+          .catch(() => false);
+
+        if (hasCheck && !hasError) {
+          transmissionConfirmed = true;
+          break;
+        }
+        if (hasError) {
+          failureReason = 'WhatsApp server rejected message delivery (❗ Red alert icon detected).';
+          break;
+        }
+      }
+
+      if (i > 0 && i % 5 === 0) {
+        onProgress(`[WhatsAppNode:Direct] Awaiting transmission confirmation (${i}s elapsed, status: pending 🕒)...`);
+      }
+
       await page.waitForTimeout(1000);
     }
-    await page.waitForTimeout(2000);
 
+    // Capture visual proof screenshot
+    await page.waitForTimeout(1000);
     const proofBuffer = await page.screenshot({ type: 'jpeg', quality: 65 });
-    onProgress(`[WhatsAppNode:Direct] Message sent successfully to ${phoneNumber}!`);
+
+    if (!transmissionConfirmed) {
+      const errDetail =
+        failureReason ||
+        `Message remained queued locally (🕒 clock icon) after ${MAX_CONFIRM_SECONDS}s without leaving the device. Please verify your mobile phone is powered on, connected to internet, and WhatsApp is opened to sync.`;
+      onProgress(`❌ [WhatsAppNode:Direct] Delivery check failed: ${errDetail}`);
+      throw new Error(errDetail);
+    }
+
+    onProgress(`[WhatsAppNode:Direct] Message sent successfully (Checkmark ✔️ confirmed) to ${phoneNumber}!`);
 
     return {
       success: true,
       screenshotBase64: proofBuffer.toString('base64'),
-      resultMessage: `Message sent successfully to WhatsApp recipient ${phoneNumber}.`,
+      resultMessage: `Message sent and confirmed delivered (✔️) to WhatsApp recipient ${phoneNumber}.`,
     };
   }
 
@@ -391,12 +476,8 @@ export class WhatsAppNode implements IPlatformNode {
     for (const sel of statusTabSelectors) {
       const loc = page.locator(sel).first();
       if (await loc.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await loc.click({ force: true, timeout: 5000 }).catch(async () => {
-          await this.dismissBlockingModals(page, onProgress);
-          await loc.click({ force: true, timeout: 5000 }).catch(() => {});
-        });
-        statusTabFound = true;
-        break;
+        statusTabFound = await this.humanMoveAndClick(page, loc);
+        if (statusTabFound) break;
       }
     }
 
@@ -412,30 +493,32 @@ export class WhatsAppNode implements IPlatformNode {
       });
     }
 
-    await page.waitForTimeout(2500);
+    await this.humanDelay(1800, 3000);
     await this.dismissBlockingModals(page, onProgress);
 
     // Look for "Add status" or photo upload input in Status drawer
     onProgress('[WhatsAppNode:Status] Waiting for Status pane to render...');
-    await page.waitForTimeout(2000);
+    await this.humanDelay(1200, 2200);
 
     if (images && images.length > 0) {
       let mediaAttached = false;
 
       // 1. Locate and trigger the Add Status (⊕) button in the Status pane
       const addStatusSelectors = [
-        'button[aria-label="Add Status" i]',
-        'button[aria-label*="Status" i]:has-text("ic-add-circle")',
-        'button:has-text("ic-add-circle")',
-        'button[aria-label*="حالة" i]',
-        'div[aria-label*="Status tab drawer" i] button:has-text("ic-add-circle")',
-        'div[data-testid="status-tab-drawer"] button:has-text("ic-add-circle")',
-        'button:has-text("Click to add status update")',
-        'button:has-text("انقر لإضافة")',
-        'div[role="button"]:has-text("ic-add")',
+        'button[aria-label="Add status" i]',
+        'button[aria-label="إضافة حالة" i]',
+        'header button:has(span[data-icon*="plus"])',
+        'button:has(span[data-icon="plus"])',
+        'button:has(span[data-icon="plus-large"])',
+        'button:has(span[data-icon="status-v3-round-plus"])',
+        'div[role="button"]:has(span[data-icon*="plus"])',
+        'button[aria-label*="Status" i]:has(span[data-icon*="plus"])',
+        'button[aria-label*="حالة" i]:has(span[data-icon*="plus"])',
+        'span[data-icon="plus"]',
         'span[data-icon="plus-large"]',
         'span[data-icon="status-v3-round-plus"]',
-        'span[data-icon="plus"]',
+        'button[aria-label="Add Status" i]',
+        'button:has-text("ic-add-circle")',
       ];
 
       let addBtn = null;
@@ -458,23 +541,26 @@ export class WhatsAppNode implements IPlatformNode {
 
       if (addBtn) {
         onProgress('[WhatsAppNode:Status] Clicking Add Status button (⊕)...');
-        await addBtn.click({ force: true }).catch(async () => {
-          await addBtn.dispatchEvent('click').catch(() => {});
-        });
-        await page.waitForTimeout(1000);
+        await this.humanMoveAndClick(page, addBtn);
+        await this.humanDelay(800, 1500);
       }
 
-      // 2. Locate the popup menu item: "Photos & videos" / "الصور ومقاطع الفيديو"
+      // 2. Prepare file chooser listener concurrently
+      const fcPromise = page.waitForEvent('filechooser', { timeout: 7000 }).catch(() => null);
+
+      // Locate the popup menu item: "Photos & videos" / "الصور ومقاطع الفيديو"
       const photoOptionSelectors = [
         'button[role="menuitem"][aria-label*="Photos" i]',
         'button[role="menuitem"]:has-text("Photos & videos")',
         'button[role="menuitem"]:has-text("الصور ومقاطع الفيديو")',
         'button[role="menuitem"]:has-text("صور ومقاطع فيديو")',
+        'li:has-text("Photos & videos")',
+        'li:has-text("الصور ومقاطع الفيديو")',
         'button[aria-label="Photos & videos" i]',
         'button:has-text("Photos & videos")',
         'button:has-text("الصور ومقاطع الفيديو")',
-        'li:has-text("Photos & videos")',
-        'li:has-text("الصور ومقاطع الفيديو")',
+        'div[role="button"]:has-text("Photos & videos")',
+        'div[role="button"]:has-text("الصور ومقاطع الفيديو")',
         'span:has-text("Photos & videos")',
         'span:has-text("الصور ومقاطع الفيديو")',
       ];
@@ -489,16 +575,13 @@ export class WhatsAppNode implements IPlatformNode {
           }
         }
         if (photoBtn) break;
-        await page.waitForTimeout(500);
+        await this.humanDelay(300, 600);
       }
 
       // 3. Trigger FileChooser from "Photos & videos" option
       if (photoBtn) {
         onProgress('[WhatsAppNode:Status] Selecting Photos & videos menu option...');
-        const fcPromise = page.waitForEvent('filechooser', { timeout: 8000 }).catch(() => null);
-        await photoBtn.click({ force: true }).catch(async () => {
-          await photoBtn.dispatchEvent('click').catch(() => {});
-        });
+        await this.humanMoveAndClick(page, photoBtn);
         const fc = await fcPromise;
         if (fc) {
           await fc.setFiles(images);
@@ -512,7 +595,7 @@ export class WhatsAppNode implements IPlatformNode {
         const statusFileInput = page
           .locator('input[type="file"][accept*="image,video"], input[type="file"][accept*="image"], input[type="file"]')
           .first();
-        if ((await statusFileInput.count()) > 0) {
+        if ((await statusFileInput.count().catch(() => 0)) > 0) {
           try {
             await statusFileInput.setInputFiles(images);
             mediaAttached = true;
@@ -527,9 +610,9 @@ export class WhatsAppNode implements IPlatformNode {
           .locator('button:has-text("Click to add status update"), button:has-text("انقر لإضافة تحديث حالة")')
           .first();
         if (await myStatusRow.isVisible().catch(() => false)) {
-          const fcPromise = page.waitForEvent('filechooser', { timeout: 5000 }).catch(() => null);
-          await myStatusRow.click({ force: true }).catch(() => {});
-          const fc = await fcPromise;
+          const rowFcPromise = page.waitForEvent('filechooser', { timeout: 5000 }).catch(() => null);
+          await this.humanMoveAndClick(page, myStatusRow);
+          const fc = await rowFcPromise;
           if (fc) {
             await fc.setFiles(images);
             mediaAttached = true;
@@ -545,8 +628,8 @@ export class WhatsAppNode implements IPlatformNode {
         );
       }
 
-      onProgress('[WhatsAppNode:Status] Media attached successfully. Waiting for Status preview screen...');
-      await page.waitForTimeout(3500);
+      onProgress('[WhatsAppNode:Status] Media attached successfully. Allowing human review time for preview...');
+      await this.humanDelay(2000, 3500);
 
       // Write caption in Status preview screen
       if (content) {
@@ -567,24 +650,27 @@ export class WhatsAppNode implements IPlatformNode {
         for (const cSel of captionSelectors) {
           const captionBox = page.locator(cSel).first();
           if (await captionBox.isVisible({ timeout: 3000 }).catch(() => false)) {
-            await captionBox.click({ force: true }).catch(() => {});
+            await this.humanMoveAndClick(page, captionBox);
             await this.pasteTextViaClipboard(page, content);
-            await page.waitForTimeout(800);
             break;
           }
         }
       }
 
+      // Human review before sending status: 1500ms - 2800ms
+      onProgress('[WhatsAppNode:Status] Reviewing status preview before transmission...');
+      await this.humanDelay(1500, 2800);
+
       // Click Send Status button
       onProgress('[WhatsAppNode:Status] Publishing status...');
       const sendStatusSelectors = [
+        'span[data-icon="wds-ic-send-filled"]',
+        'div[role="button"]:has(span[data-icon="wds-ic-send-filled"])',
+        'button:has(span[data-icon="wds-ic-send-filled"])',
         'div[aria-label*="Send" i]',
         'button[aria-label*="Send" i]',
         'div[aria-label*="إرسال" i]',
         'button[aria-label*="إرسال" i]',
-        'span[data-icon="wds-ic-send-filled"]',
-        'div:has(span[data-icon="wds-ic-send-filled"])',
-        'div:has-text("wds-ic-send-filled")',
         'span[data-icon="send"]',
         'span[data-icon="status-send"]',
         'button:has(span[data-icon*="send"])',
@@ -597,12 +683,12 @@ export class WhatsAppNode implements IPlatformNode {
         if (await sendBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
           const clickableSend = sendBtn.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
           const targetSend = (await clickableSend.count().catch(() => 0)) > 0 ? clickableSend : sendBtn;
-          await targetSend.click({ force: true });
-          sent = true;
-          break;
+          sent = await this.humanMoveAndClick(page, targetSend);
+          if (sent) break;
         }
       }
       if (!sent) {
+        await this.humanDelay(400, 800);
         await page.keyboard.press('Enter');
       }
       await this.waitForStatusSendingToFinish(page, onProgress);
@@ -611,23 +697,19 @@ export class WhatsAppNode implements IPlatformNode {
       onProgress('[WhatsAppNode:Status] Mode: Text-only Status update...');
 
       const addStatusSelectors = [
-        'button[aria-label="Add Status" i]',
-        'button[aria-label*="Status" i]:has-text("ic-add-circle")',
-        'button:has-text("ic-add-circle")',
-        'button[aria-label*="Add Status" i]',
-        'button[aria-label*="حالة" i]',
+        'button[aria-label="Add status" i]',
+        'button[aria-label="إضافة حالة" i]',
+        'button:has(span[data-icon="plus"])',
+        'div[role="button"]:has(span[data-icon*="plus"])',
         'header button:has(span[data-icon*="plus"])',
         'button:has(span[data-icon="plus-large"])',
-        'button:has(span[data-icon="plus"])',
         'button:has(span[data-icon="status-v3-round-plus"])',
-        'div[role="button"]:has(span[data-icon*="plus"])',
+        'button[aria-label*="Status" i]:has-text("ic-add-circle")',
+        'button:has-text("ic-add-circle")',
+        'button[aria-label*="حالة" i]',
+        'span[data-icon="plus"]',
         'span[data-icon="plus-large"]',
         'span[data-icon="status-v3-round-plus"]',
-        'span[data-icon="plus"]',
-        'span[data-icon="status-add"]',
-        'div[role="button"]:has-text("ic-add")',
-        'button[title="New status" i]',
-        'button[title="حالة جديدة" i]',
       ];
 
       let plusClicked = false;
@@ -637,12 +719,8 @@ export class WhatsAppNode implements IPlatformNode {
           onProgress(`[WhatsAppNode:Status] Clicking Add Status button (${sel})...`);
           const clickable = btn.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
           const target = (await clickable.count().catch(() => 0)) > 0 ? clickable : btn;
-          await target.click({ force: true }).catch(async () => {
-            await target.dispatchEvent('click').catch(() => {});
-          });
-          plusClicked = true;
-          await page.waitForTimeout(1200);
-          break;
+          plusClicked = await this.humanMoveAndClick(page, target);
+          if (plusClicked) break;
         }
       }
 
@@ -662,7 +740,7 @@ export class WhatsAppNode implements IPlatformNode {
 
         if (clickedDom) {
           onProgress('[WhatsAppNode:Status] Clicked Status Plus button via DOM inspection.');
-          await page.waitForTimeout(1000);
+          await this.humanDelay(800, 1500);
         }
       }
 
@@ -909,9 +987,68 @@ export class WhatsAppNode implements IPlatformNode {
   }
 
   /**
-   * Zero-Ban Human-Like Clipboard Injection
+   * Randomized human delay with natural Gaussian/jitter distribution
+   */
+  private async humanDelay(minMs: number = 700, maxMs: number = 1800): Promise<void> {
+    const delta = maxMs - minMs;
+    const ms = Math.floor(minMs + Math.random() * (delta > 0 ? delta : 500));
+    await new Promise((r) => setTimeout(r, ms));
+  }
+
+  /**
+   * Zero-Ban Human-Like Mouse Trajectory & Click
+   * Moves mouse realistically across intermediate points, hovers, pauses, clicks with physical down/up duration, and pauses after click.
+   */
+  private async humanMoveAndClick(
+    page: Page,
+    target: Locator | string,
+    options: { timeout?: number; clickDelay?: number } = {}
+  ): Promise<boolean> {
+    try {
+      const loc = typeof target === 'string' ? page.locator(target).first() : target;
+      await loc.waitFor({ state: 'visible', timeout: options.timeout || 6000 }).catch(() => {});
+      if (!(await loc.isVisible().catch(() => false))) return false;
+
+      await loc.scrollIntoViewIfNeeded().catch(() => {});
+      const box = await loc.boundingBox().catch(() => null);
+
+      if (box && box.width > 0 && box.height > 0) {
+        // Human offset: between 25% and 75% of element box (never exact mathematical center)
+        const offsetX = box.x + box.width * (0.25 + Math.random() * 0.5);
+        const offsetY = box.y + box.height * (0.25 + Math.random() * 0.5);
+
+        // Human curve movement: 4 to 8 intermediate micro-steps
+        const moveSteps = Math.floor(Math.random() * 5) + 4;
+        await page.mouse.move(offsetX, offsetY, { steps: moveSteps }).catch(() => {});
+
+        // Natural micro-hover (120 - 280ms)
+        await this.humanDelay(120, 280);
+
+        // Genuine physical down/up click with random human press duration
+        const downUpDelay = options.clickDelay || (Math.floor(Math.random() * 80) + 70);
+        await page.mouse.down().catch(() => {});
+        await this.humanDelay(downUpDelay, downUpDelay + 40);
+        await page.mouse.up().catch(() => {});
+      } else {
+        // Fallback if bounding box isn't directly exposed
+        await loc.click({ force: true, delay: Math.floor(Math.random() * 70) + 60 }).catch(() => {});
+      }
+
+      // Natural post-click reaction pause (450ms - 900ms)
+      await this.humanDelay(450, 900);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Zero-Ban Human-Like Clipboard Injection with Review Pauses
    */
   private async pasteTextViaClipboard(page: Page, text: string): Promise<void> {
+    // Natural human preparation pause before pasting
+    await this.humanDelay(350, 700);
+
     await page.evaluate((val) => {
       return navigator.clipboard.writeText(val).catch(() => {});
     }, text);
@@ -919,10 +1056,13 @@ export class WhatsAppNode implements IPlatformNode {
     const isMac = process.platform === 'darwin';
     const modifier = isMac ? 'Meta' : 'Control';
     await page.keyboard.press(`${modifier}+V`);
+
+    // Natural human reading/verification pause after pasting text
+    await this.humanDelay(800, 1600);
   }
 
   /**
-   * Static Macro Action Execution helper
+   * Static Macro & AI Driver Action Execution helper
    */
   private async executeActionOnPage(
     page: Page,
@@ -934,18 +1074,26 @@ export class WhatsAppNode implements IPlatformNode {
     const { action, selector, value } = actionObj;
 
     if (action === 'wait') {
-      await page.waitForTimeout(3000);
+      await this.humanDelay(2500, 4000);
     } else if (action === 'navigate') {
       await page.goto(value || 'https://web.whatsapp.com', { waitUntil: 'domcontentloaded' });
+      await this.humanDelay(1500, 2500);
     } else if (action === 'click' && selector) {
       // Find the first VISIBLE matching element (not a hidden span or container)
       const allLocators = page.locator(selector);
       const count = await allLocators.count().catch(() => 0);
       let clicked = false;
 
+      // Smart filechooser interceptor: if this click might trigger file selection, listen for it!
+      const isMediaTrigger = images && images.length > 0 && /photo|media|video|صور|إضافة|plus|attach|file/i.test(selector);
+      let fcPromise: Promise<any> | null = null;
+      if (isMediaTrigger) {
+        fcPromise = page.waitForEvent('filechooser', { timeout: 4500 }).catch(() => null);
+      }
+
       for (let i = 0; i < count; i++) {
         const item = allLocators.nth(i);
-        if (await item.isVisible({ timeout: 500 }).catch(() => false)) {
+        if (await item.isVisible({ timeout: 600 }).catch(() => false)) {
           await item.scrollIntoViewIfNeeded().catch(() => {});
 
           // Smart clickable element detection:
@@ -953,55 +1101,47 @@ export class WhatsAppNode implements IPlatformNode {
           const clickableParent = item.locator('xpath=ancestor-or-self::*[self::button or @role="button"][1]');
           const targetToClick = (await clickableParent.count().catch(() => 0)) > 0 ? clickableParent : item;
 
-          await targetToClick.click({ force: true, timeout: 5000 }).catch(async () => {
-            await targetToClick.dispatchEvent('click').catch(() => {});
-          });
-          clicked = true;
+          clicked = await this.humanMoveAndClick(page, targetToClick);
           break;
         }
       }
 
       if (!clicked) {
-        // Fallback: click via evaluate or first locator directly. NEVER press Escape!
-        try {
-          const clickedViaEval = await page.evaluate((sel) => {
-            const el = document.querySelector(sel);
-            if (!el) return false;
-            const target = el.closest('button') || el.closest('div[role="button"]') || el;
-            (target as HTMLElement).click();
-            return true;
-          }, selector).catch(() => false);
+        // Fallback: click via first visible locator directly
+        const loc = page.locator(selector).first();
+        clicked = await this.humanMoveAndClick(page, loc);
+      }
 
-          if (!clickedViaEval) {
-            const loc = page.locator(selector).first();
-            await loc.click({ timeout: 2500, force: true }).catch(async () => {
-              await loc.dispatchEvent('click').catch(() => {});
-            });
-          }
-        } catch {}
+      // If file chooser was triggered during click, set files immediately!
+      if (fcPromise) {
+        const fc = await fcPromise;
+        if (fc && images && images.length > 0) {
+          onProgress(`[WhatsAppNode:Driver] File chooser intercepted! Attaching ${images.length} media file(s)...`);
+          await fc.setFiles(images);
+          await this.humanDelay(2000, 3500);
+        }
       }
     } else if (action === 'type' && selector) {
       const loc = page.locator(selector).first();
-      await loc.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
-      await loc.click({ force: true }).catch(() => {});
+      await this.humanMoveAndClick(page, loc);
       const textToType = value === '{CONTENT}' ? content : (value || content);
       await this.pasteTextViaClipboard(page, textToType);
     } else if (action === 'upload') {
       if (images && images.length > 0) {
         const fileInput = page.locator(selector || 'input[type="file"]').first();
-        if (await fileInput.count() > 0) {
+        if ((await fileInput.count().catch(() => 0)) > 0) {
           await fileInput.setInputFiles(images);
-          await page.waitForTimeout(2000);
+          await this.humanDelay(2000, 3500);
         } else if (selector) {
           const loc = page.locator(selector).first();
           if (await loc.isVisible().catch(() => false)) {
             const [fc] = await Promise.all([
-              page.waitForEvent('filechooser', { timeout: 3000 }).catch(() => null),
-              loc.click({ force: true }).catch(() => {}),
+              page.waitForEvent('filechooser', { timeout: 4000 }).catch(() => null),
+              this.humanMoveAndClick(page, loc),
             ]);
             if (fc) {
               await fc.setFiles(images);
-              await page.waitForTimeout(2000);
+              await this.humanDelay(2000, 3500);
             }
           }
         }

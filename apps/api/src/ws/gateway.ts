@@ -160,6 +160,15 @@ export function setupWebSocketGateway(server: HttpServer) {
 
           if (msg.type === 'job:completed' && typeof msg.jobId === 'string') {
             console.log(`✅ Job #${msg.jobId} Completed by Desktop Runner!`);
+            // Check if job was marked as resent
+            const existingJob = await prisma.job.findUnique({
+              where: { id: msg.jobId },
+              select: { result: true },
+            }).catch(() => null);
+            const isResent = existingJob?.result?.includes('[RESENT]');
+            const completionMsg = msg.result || 'Published successfully via Local Runner';
+            const finalResult = isResent ? `[RESENT] ${completionMsg}` : completionMsg;
+
             // Scope the update to jobs THIS device's user owns — a runner must not
             // be able to mutate another tenant's job by guessing an id.
             const scoped = await prisma.job.updateMany({
@@ -168,7 +177,7 @@ export function setupWebSocketGateway(server: HttpServer) {
                 status: 'completed',
                 completedAt: new Date(),
                 screenshotUrl: msg.screenshotUrl || null,
-                result: msg.result || 'Published successfully via Local Runner',
+                result: finalResult,
               },
             });
             if (scoped.count === 0) {
@@ -185,12 +194,20 @@ export function setupWebSocketGateway(server: HttpServer) {
                 data: { status: 'failed' },
               });
             } else {
+              const existingJob = await prisma.job.findUnique({
+                where: { id: msg.jobId },
+                select: { result: true },
+              }).catch(() => null);
+              const isResent = existingJob?.result?.includes('[RESENT]');
+              const errorMsg = msg.error || 'Execution failed on local runner';
+              const finalResult = isResent ? `[RESENT] ${errorMsg}` : errorMsg;
+
               const scoped = await prisma.job.updateMany({
                 where: { id: msg.jobId, post: { campaign: { userId: ws.userId } } },
                 data: {
                   status: 'failed',
                   completedAt: new Date(),
-                  result: msg.error || 'Execution failed on local runner',
+                  result: finalResult,
                 },
               });
               if (scoped.count === 0) {

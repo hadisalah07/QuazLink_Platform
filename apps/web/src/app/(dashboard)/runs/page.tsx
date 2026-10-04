@@ -74,6 +74,7 @@ export default function RunsPage() {
   const [expandedJobIds, setExpandedJobIds] = React.useState<Set<string>>(new Set());
   const [retryingId, setRetryingId] = React.useState<string | null>(null);
   const [retrySuccessMsg, setRetrySuccessMsg] = React.useState<string | null>(null);
+  const [resentJobIds, setResentJobIds] = React.useState<Set<string>>(new Set());
   const jobsRef = React.useRef(jobs);
   jobsRef.current = jobs;
 
@@ -103,9 +104,10 @@ export default function RunsPage() {
     if (e) e.stopPropagation();
     setRetryingId(jobId);
     setError(null);
+    setResentJobIds((prev) => new Set(prev).add(jobId));
     try {
       await retryJob(jobId);
-      setRetrySuccessMsg(`تمت جدولة إعادة إرسال المهمة #${jobId.slice(0, 8)} فوراً!`);
+      setRetrySuccessMsg(`تمت جدولة إعادة إرسال المهمة #${jobId.slice(0, 8)} فوراً للرانر!`);
       setTimeout(() => setRetrySuccessMsg(null), 4000);
       await refresh();
     } catch (err: any) {
@@ -278,10 +280,10 @@ export default function RunsPage() {
           <table className="w-full text-left text-sm text-gray-400">
             <thead className="bg-white/5 border-b border-white/10 text-xs uppercase text-gray-400">
               <tr>
-                <th className="px-6 py-4 font-semibold w-[42%]">Post Content &amp; Details</th>
-                <th className="px-6 py-4 font-semibold w-[20%]">Execution Status</th>
-                <th className="px-6 py-4 font-semibold w-[18%]">Timestamp</th>
-                <th className="px-6 py-4 font-semibold text-right w-[20%]">Proof Screenshot</th>
+                <th className="px-6 py-4 font-semibold w-[40%]">Post Content &amp; Details</th>
+                <th className="px-6 py-4 font-semibold w-[22%]">Execution Status</th>
+                <th className="px-6 py-4 font-semibold w-[16%]">Timestamp</th>
+                <th className="px-6 py-4 font-semibold text-right w-[22%]">Actions &amp; Proof</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
@@ -303,6 +305,7 @@ export default function RunsPage() {
                     copiedId={copiedId}
                     onRetry={handleRetry}
                     isRetrying={retryingId === job.id || retryingId === "all"}
+                    isResent={resentJobIds.has(job.id) || !!job.result?.includes("[RESENT]")}
                   />
                 ))
               )}
@@ -350,6 +353,7 @@ function RunRow({
   copiedId,
   onRetry,
   isRetrying,
+  isResent,
 }: {
   job: Job;
   isExpanded: boolean;
@@ -359,6 +363,7 @@ function RunRow({
   copiedId: string | null;
   onRetry: (id: string, e?: React.MouseEvent) => void;
   isRetrying: boolean;
+  isResent: boolean;
 }) {
   const status = toUiStatus(job.status);
   const fullContent = job.post?.content || "";
@@ -442,23 +447,29 @@ function RunRow({
         {/* Cell 2: Status */}
         <td className="px-6 py-4">
           <div className="flex flex-col">
-            <div className="flex items-center space-x-2">
-              {status === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-              {status === "error" && <XCircle className="w-4 h-4 text-red-400" />}
-              {status === "warn" && <AlertTriangle className="w-4 h-4 text-amber-400" />}
-              {status === "running" && <Clock className="w-4 h-4 text-blue-400 animate-pulse" />}
+            <div className="flex items-center space-x-2 flex-wrap gap-1.5">
+              {status === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
+              {status === "error" && <XCircle className="w-4 h-4 text-red-400 shrink-0" />}
+              {status === "warn" && <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
+              {status === "running" && <Clock className="w-4 h-4 text-blue-400 animate-pulse shrink-0" />}
               <span className="capitalize font-semibold text-xs text-gray-200">
                 {job.status.replace(/_/g, " ")}
               </span>
+              {isResent && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.25)]">
+                  <RotateCcw className="w-2.5 h-2.5 text-cyan-400" />
+                  Resent
+                </span>
+              )}
             </div>
             {status === "error" && job.result && (
               <div className="text-xs text-red-400/80 mt-1 max-w-xs leading-relaxed font-mono" dir="auto">
-                {job.result}
+                {job.result.replace(/\[RESENT\]\s*/g, '')}
               </div>
             )}
             {status === "warn" && job.result && (
               <div className="text-xs text-amber-400/80 mt-1 max-w-xs leading-relaxed font-mono" dir="auto">
-                {job.result}
+                {job.result.replace(/\[RESENT\]\s*/g, '')}
               </div>
             )}
           </div>
@@ -469,21 +480,33 @@ function RunRow({
           {new Date(job.createdAt).toLocaleString()}
         </td>
 
-        {/* Cell 4: View Proof & Retry Button */}
+        {/* Cell 4: View Proof & Resend Action Button */}
         <td className="px-6 py-4 text-right">
-          <div className="flex items-center justify-end gap-2">
-            {status === "error" && (
-              <button
-                type="button"
-                onClick={(e) => onRetry(job.id, e)}
-                disabled={isRetrying}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all text-xs font-semibold cursor-pointer shadow-sm hover:shadow-[0_0_12px_rgba(245,158,11,0.2)] disabled:opacity-50"
-                title="إعادة إرسال المهمة الآن للرانر المحلي"
-              >
-                <RotateCcw className={cn("w-3.5 h-3.5", isRetrying && "animate-spin")} />
-                <span>{isRetrying ? "جاري..." : "إعادة المحاولة"}</span>
-              </button>
-            )}
+          <div className="flex items-center justify-end gap-2 flex-wrap">
+            {/* Universal Resend Button for ALL operations */}
+            <button
+              type="button"
+              onClick={(e) => onRetry(job.id, e)}
+              disabled={isRetrying || status === "running"}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all border shadow-sm disabled:opacity-50 disabled:cursor-not-allowed",
+                isResent
+                  ? "bg-cyan-500/15 border-cyan-500/35 text-cyan-300 hover:bg-cyan-500/25 hover:shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+                  : status === "error"
+                  ? "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 shadow-sm hover:shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                  : "bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/20"
+              )}
+              title={isResent ? "تمت إعادة إرسال هذه العملية سابقاً — اضغط لإعادة الإرسال مجدداً" : "إعادة إرسال هذه العملية الآن للرانر"}
+            >
+              <RotateCcw className={cn("w-3.5 h-3.5", isRetrying ? "animate-spin text-cyan-400" : isResent ? "text-cyan-400" : "text-gray-400")} />
+              <span>
+                {isRetrying
+                  ? "جاري..."
+                  : isResent
+                  ? "Resent 🔄"
+                  : "Resend"}
+              </span>
+            </button>
 
             {job.screenshotUrl ? (
               <button
@@ -686,34 +709,51 @@ function RunRow({
               {/* Execution Result Box & Actions */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs">
                 <div className="text-gray-400 flex flex-col gap-1 max-w-xl">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-gray-300">نتيجة التنفيذ:</span>
                     <span className={cn(
                       "font-mono font-medium",
                       status === "error" ? "text-red-400" : status === "success" ? "text-emerald-400" : "text-gray-200"
                     )}>
-                      {job.result || (status === "success" ? "تم الإرسال بنجاح عبر الرانر المحلي" : "قيد المعالجة")}
+                      {job.result ? job.result.replace(/\[RESENT\]\s*/g, '') : (status === "success" ? "تم الإرسال بنجاح عبر الرانر المحلي" : "قيد المعالجة")}
                     </span>
+                    {isResent && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        تمت إعادة الإرسال (Resent 🔄)
+                      </span>
+                    )}
                   </div>
                   {status === "error" && (
                     <p className="text-[11px] text-amber-400/90 leading-relaxed font-sans">
-                      💡 ملاحظة: إذا كان الخطأ متعلقاً بعدم وجود المتصفح (Browser executable not found)، تأكد من تثبيت متصفح Google Chrome على جهاز الرانر المحلي (Runner) ثم اضغط على زر إعادة المحاولة.
+                      💡 ملاحظة: إذا كان الخطأ متعلقاً بعدم وجود المتصفح أو انقطاع الهاتف، اضغط على زر إعادة الإرسال (Resend) بعد فتح الهاتف وتوصيله بالإنترنت.
                     </p>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  {status === "error" && (
-                    <button
-                      type="button"
-                      onClick={(e) => onRetry(job.id, e)}
-                      disabled={isRetrying}
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold transition-all shadow-md hover:shadow-[0_0_15px_rgba(245,158,11,0.3)] cursor-pointer disabled:opacity-50"
-                    >
-                      <RotateCcw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
-                      <span>{isRetrying ? "جاري الإرسال للرانر..." : "إعادة إرسال الفاتورة الآن (Retry)"}</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => onRetry(job.id, e)}
+                    disabled={isRetrying || status === "running"}
+                    className={cn(
+                      "inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-bold transition-all shadow-md cursor-pointer disabled:opacity-50",
+                      isResent
+                        ? "bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                        : status === "error"
+                        ? "bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 hover:shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                        : "bg-white/10 hover:bg-white/15 border border-white/20 text-gray-200 hover:text-white"
+                    )}
+                  >
+                    <RotateCcw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
+                    <span>
+                      {isRetrying
+                        ? "جاري الإرسال للرانر..."
+                        : isResent
+                        ? "إعادة الإرسال مرة أخرى (Resend 🔄)"
+                        : "إعادة إرسال العملية (Resend)"}
+                    </span>
+                  </button>
 
                   {job.screenshotUrl && (
                     <button

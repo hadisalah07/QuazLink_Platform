@@ -195,17 +195,18 @@ router.post('/:id/retry', async (req, res) => {
       return res.status(404).json({ error: 'Job not found' });
     }
 
-    // Allow retry for failed, error, or stale dispatched jobs
-    if (!['failed', 'error', 'posted_unconfirmed', 'dispatched'].includes(job.status)) {
-      return res.status(400).json({ error: `Cannot retry job in status '${job.status}'. Only failed jobs can be retried.` });
+    // Allow resend/retry for all job statuses (completed, failed, posted_unconfirmed, etc.)
+    // Only prevent retrying if a job is actively running at this exact second
+    if (job.status === 'running' || job.status === 'active') {
+      return res.status(400).json({ error: 'Job is currently in progress. Please wait for it to finish.' });
     }
 
-    // Reset job state
+    // Reset job state and tag with [RESENT]
     const updatedJob = await prisma.job.update({
       where: { id: job.id },
       data: {
         status: 'pending',
-        result: null,
+        result: '[RESENT] Re-dispatched for execution',
         screenshotUrl: null,
         startedAt: null,
         completedAt: null,
