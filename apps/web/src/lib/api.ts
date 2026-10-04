@@ -163,8 +163,8 @@ export async function createPost(input: {
   return jsonOrThrow(res);
 }
 
-export async function getJobs(): Promise<Job[]> {
-  const res = await apiFetch(`/api/jobs`, { cache: "no-store" });
+export async function getJobs(limit: number = 200): Promise<Job[]> {
+  const res = await apiFetch(`/api/jobs?limit=${limit}`, { cache: "no-store" });
   return jsonOrThrow(res);
 }
 

@@ -54,7 +54,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const userId = req.userId!;
-    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 500);
     const jobs = await prisma.job.findMany({
       where: { post: { campaign: { userId } } },
       include: { socialAccount: true, post: true },
