@@ -5,6 +5,7 @@ import os from 'os';
 import http from 'http';
 import https from 'https';
 import { MacroCache } from './macro-cache';
+import { WhatsapplessStore, extractPhoneNumber } from './whatsappless-store';
 import { PlatformNodeRegistry } from './nodes/node-registry';
 import {
   launchPersistentBrowserContext,
@@ -22,6 +23,7 @@ export class PlaywrightRunner {
   private storageDir: string;
   private logFile: string;
   private macroCache: MacroCache;
+  private whatsapplessStore: WhatsapplessStore;
   private registry: PlatformNodeRegistry;
   private showBrowser: boolean = false;
 
@@ -48,7 +50,8 @@ export class PlaywrightRunner {
       }
     }
     this.macroCache = new MacroCache();
-    this.registry = new PlatformNodeRegistry(this.macroCache);
+    this.whatsapplessStore = new WhatsapplessStore();
+    this.registry = new PlatformNodeRegistry(this.macroCache, this.whatsapplessStore);
 
     try {
       const cfgPath = path.join(baseDir, 'config.json');
@@ -88,6 +91,24 @@ export class PlaywrightRunner {
 
     const normPlatform = (platform || 'facebook').toLowerCase().trim();
     this.debugLog(`\n======================================================\n🚀 NEW JOB #${jobId} FOR ${normPlatform.toUpperCase()}\n======================================================`);
+
+    // 0. WHATSAPPLESS FAST-SKIP: If target phone has no WhatsApp, skip instantly without launching browser!
+    if (normPlatform === 'whatsapp') {
+      const targetPhone = extractPhoneNumber(targetUrl || '') || extractPhoneNumber(content || '');
+      if (targetPhone && this.whatsapplessStore.isWhatsappless(targetPhone)) {
+        const entry = this.whatsapplessStore.get(targetPhone);
+        const expiryDate = entry ? new Date(entry.expiresAt).toLocaleDateString() : '30 days';
+        const skipMsg = `[WHATSAPPLESS] Skipped: Phone number +${targetPhone} is in the whatsappless list (no WhatsApp account). Saved time by avoiding browser launch. Expiry date: ${expiryDate}.`;
+        this.debugLog(`⚡ ${skipMsg}`);
+        onProgress(skipMsg);
+        return {
+          success: false,
+          error: skipMsg,
+          resultMessage: skipMsg,
+        };
+      }
+    }
+
     onProgress(`Initializing isolated node runner for ${normPlatform.toUpperCase()}...`);
 
     const sessionFile = path.join(this.storageDir, `${socialAccountId}_${normPlatform}_session.json`);

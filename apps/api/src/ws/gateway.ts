@@ -4,6 +4,7 @@ import { verify } from 'jsonwebtoken';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import crypto from 'crypto';
 import prisma from '../prisma';
+import { addWhatsappless, extractPhone } from '../services/whatsappless';
 
 interface AuthenticatedSocket extends WebSocket {
   deviceId?: string;
@@ -210,6 +211,14 @@ export function setupWebSocketGateway(server: HttpServer) {
                   result: finalResult,
                 },
               });
+
+              if (finalResult.includes('[WHATSAPPLESS]')) {
+                const phone = extractPhone(finalResult);
+                if (phone) {
+                  addWhatsappless(phone, finalResult);
+                }
+              }
+
               if (scoped.count === 0) {
                 console.warn(`⚠️ Device ${ws.deviceId} reported failure for job ${msg.jobId} it does not own — ignored.`);
               }

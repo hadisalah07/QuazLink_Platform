@@ -1,13 +1,16 @@
 import { Page, Locator } from 'playwright';
 import { IPlatformNode, NodeExecutionParams, NodeExecutionResult } from './base-node';
 import { MacroCache, MacroAction } from '../macro-cache';
+import { WhatsapplessStore, extractPhoneNumber, normalizePhoneNumber } from '../whatsappless-store';
 
 export class WhatsAppNode implements IPlatformNode {
   readonly platform = 'whatsapp';
   private macroCache: MacroCache;
+  private whatsapplessStore: WhatsapplessStore;
 
-  constructor(macroCache: MacroCache) {
+  constructor(macroCache: MacroCache, whatsapplessStore?: WhatsapplessStore) {
     this.macroCache = macroCache;
+    this.whatsapplessStore = whatsapplessStore || new WhatsapplessStore();
   }
 
   async execute(params: NodeExecutionParams): Promise<NodeExecutionResult> {
@@ -153,27 +156,7 @@ export class WhatsAppNode implements IPlatformNode {
    * Detects if the target destination specifies a direct phone number
    */
   private detectDirectPhoneTarget(dest: string): string | null {
-    if (!dest) return null;
-    const lower = dest.toLowerCase();
-
-    // Check for query param ?phone= or /send?phone= or wa.me/
-    if (lower.includes('phone=')) {
-      const match = dest.match(/phone=([0-9+]+)/);
-      if (match && match[1]) return match[1].replace(/[^0-9]/g, '');
-    }
-
-    if (lower.includes('wa.me/')) {
-      const match = dest.match(/wa\.me\/([0-9+]+)/);
-      if (match && match[1]) return match[1].replace(/[^0-9]/g, '');
-    }
-
-    // Check if dest is purely a phone number (e.g. "201012345678" or "+201012345678")
-    const cleanDigits = dest.replace(/[^0-9]/g, '');
-    if (cleanDigits.length >= 8 && cleanDigits.length <= 16 && !lower.includes('status')) {
-      return cleanDigits;
-    }
-
-    return null;
+    return extractPhoneNumber(dest);
   }
 
   /**
@@ -181,19 +164,29 @@ export class WhatsAppNode implements IPlatformNode {
    */
   private async sendDirectMessage(
     page: Page,
-    phoneNumber: string,
+    rawPhoneNumber: string,
     content: string,
     images: string[],
     onProgress: (msg: string) => void
   ): Promise<NodeExecutionResult> {
+    const phoneNumber = normalizePhoneNumber(rawPhoneNumber);
+
+    // 0. Fast-path check: Is this number cached in whatsappless list?
+    if (this.whatsapplessStore.isWhatsappless(phoneNumber)) {
+      const entry = this.whatsapplessStore.get(phoneNumber);
+      const expiryDate = entry ? new Date(entry.expiresAt).toLocaleDateString() : '30 days';
+      const skipMsg = `[WHATSAPPLESS] Skipped: Phone number +${phoneNumber} is cached in whatsappless list (no WhatsApp account). Saved time by avoiding navigation. Expiry date: ${expiryDate}.`;
+      onProgress(`⚡ ${skipMsg}`);
+      throw new Error(skipMsg);
+    }
+
     const targetUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}`;
     onProgress(`[WhatsAppNode:Direct] Navigating to ${targetUrl}...`);
 
     await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
     onProgress('[WhatsAppNode:Direct] Waiting for WhatsApp Web chat interface to load...');
 
-    // Wait for chat to open or invalid phone alert
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(3000);
 
     // Check if session is logged in (not on QR screen)
     const isReady = await this.waitForWhatsAppReady(page, onProgress);
@@ -201,17 +194,69 @@ export class WhatsAppNode implements IPlatformNode {
       throw new Error('WhatsApp Web session is not authenticated. Please scan QR code in Accounts settings.');
     }
 
-    // Check for invalid phone number dialog
-    const isInvalidNumber = await page.evaluate(() => {
-      const modal = document.querySelector('div[data-animate-modal-popup="true"]');
-      if (modal && modal.textContent && (modal.textContent.includes('Phone number shared via url is invalid') || modal.textContent.includes('غير صحيح') || modal.textContent.includes('invalid'))) {
-        return true;
-      }
-      return false;
-    });
+    // Helper to check for WhatsApp's "Number isn't on WhatsApp" modal popup
+    const checkNotOnWhatsAppDialog = async (): Promise<{ detected: boolean; message: string }> => {
+      const modalInfo = await page.evaluate(() => {
+        const dialogs = Array.from(
+          document.querySelectorAll('div[role="dialog"], div[data-animate-modal-popup="true"], div[data-testid*="popup"], div[data-testid="confirm-popup"]')
+        );
+        const elementsToCheck = dialogs.length > 0 ? dialogs : [document.body];
 
-    if (isInvalidNumber) {
-      throw new Error(`Phone number ${phoneNumber} is not registered on WhatsApp or is invalid.`);
+        for (const el of elementsToCheck) {
+          const text = (el.textContent || '').trim();
+          const lower = text.toLowerCase();
+          if (
+            lower.includes("isn't on whatsapp") ||
+            lower.includes("not on whatsapp") ||
+            lower.includes("is not on whatsapp") ||
+            lower.includes("phone number shared via url is invalid") ||
+            lower.includes("invalid phone number") ||
+            text.includes("غير مسجل في واتساب") ||
+            text.includes("ليس لديه حساب على واتساب") ||
+            text.includes("ليس مسجلاً في واتساب") ||
+            text.includes("رقم الهاتف الذي تمت مشاركته عبر") ||
+            text.includes("غير صحيح")
+          ) {
+            return { detected: true, message: text };
+          }
+        }
+        return { detected: false, message: '' };
+      }).catch(() => ({ detected: false, message: '' }));
+
+      if (modalInfo.detected) {
+        // Dismiss the modal by clicking OK / موافق so WhatsApp Web stays clean
+        const okSelectors = [
+          'div[role="dialog"] button',
+          'div[data-animate-modal-popup="true"] button',
+          'button:has-text("OK")',
+          'div[role="button"]:has-text("OK")',
+          'button:has-text("موافق")',
+          'div[role="button"]:has-text("موافق")',
+        ];
+
+        for (const sel of okSelectors) {
+          const btn = page.locator(sel).first();
+          if (await btn.isVisible({ timeout: 1500 }).catch(() => false)) {
+            await this.humanMoveAndClick(page, btn);
+            await page.waitForTimeout(800);
+            break;
+          }
+        }
+
+        return { detected: true, message: modalInfo.message };
+      }
+
+      return { detected: false, message: '' };
+    };
+
+    // Check 1: Right after navigation & ready
+    let notOnWa = await checkNotOnWhatsAppDialog();
+    if (notOnWa.detected) {
+      const entry = this.whatsapplessStore.addWhatsappless(phoneNumber, notOnWa.message);
+      const expiryDate = new Date(entry.expiresAt).toLocaleDateString();
+      const err = `[WHATSAPPLESS] Phone number +${phoneNumber} is not on WhatsApp. Added to whatsappless list (Valid for 1 month until ${expiryDate}).`;
+      onProgress(`🚫 ${err}`);
+      throw new Error(err);
     }
 
     // Wait for the message input box to become ready
@@ -234,10 +279,33 @@ export class WhatsAppNode implements IPlatformNode {
     }
 
     if (!chatInput) {
+      // Check again for "Number isn't on WhatsApp" modal in case it appeared with delay
+      notOnWa = await checkNotOnWhatsAppDialog();
+      if (notOnWa.detected) {
+        const entry = this.whatsapplessStore.addWhatsappless(phoneNumber, notOnWa.message);
+        const expiryDate = new Date(entry.expiresAt).toLocaleDateString();
+        const err = `[WHATSAPPLESS] Phone number +${phoneNumber} is not on WhatsApp. Added to whatsappless list (Valid for 1 month until ${expiryDate}).`;
+        onProgress(`🚫 ${err}`);
+        throw new Error(err);
+      }
+
       // Sometimes WhatsApp takes a few seconds to finish decrypting history
-      await page.waitForTimeout(5000);
+      await page.waitForTimeout(4000);
       chatInput = page.locator('footer div[contenteditable="true"]').first();
-      await chatInput.waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+      await chatInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+    }
+
+    if (!chatInput || !(await chatInput.isVisible().catch(() => false))) {
+      // Final modal check before throwing generic timeout
+      notOnWa = await checkNotOnWhatsAppDialog();
+      if (notOnWa.detected) {
+        const entry = this.whatsapplessStore.addWhatsappless(phoneNumber, notOnWa.message);
+        const expiryDate = new Date(entry.expiresAt).toLocaleDateString();
+        const err = `[WHATSAPPLESS] Phone number +${phoneNumber} is not on WhatsApp. Added to whatsappless list (Valid for 1 month until ${expiryDate}).`;
+        onProgress(`🚫 ${err}`);
+        throw new Error(err);
+      }
+      throw new Error(`Failed to locate WhatsApp chat input for +${phoneNumber}.`);
     }
 
     // If images are provided: Attach media file

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../prisma';
 import { signApiKey } from '../lib/auth';
 import { dispatchJobToLocalRunner } from '../ws/gateway';
+import { isWhatsappless } from '../services/whatsappless';
 
 const router = Router();
 
@@ -156,6 +157,38 @@ router.post('/whatsapp/send', async (req, res) => {
       },
     });
 
+    // Check if recipient has no WhatsApp account (cached in whatsappless list for 30 days)
+    if (isWhatsappless(cleanPhone)) {
+      const targetChatUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}`;
+      const skippedJob = await prisma.job.create({
+        data: {
+          postId: post.id,
+          socialAccountId: account.id,
+          targetUrl: targetChatUrl,
+          status: 'failed',
+          completedAt: new Date(),
+          result: `[WHATSAPPLESS] Skipped: Phone number +${cleanPhone} is in whatsappless list (no WhatsApp account). Saved execution time.`,
+        },
+      });
+
+      return res.status(200).json({
+        success: false,
+        skipped: true,
+        whatsappless: true,
+        jobId: skippedJob.id,
+        recipient: {
+          rawPhone: phone,
+          cleanPhone,
+          customerName,
+          invoiceNumber,
+          amount,
+          currency,
+        },
+        status: 'failed',
+        message: `Phone number +${cleanPhone} has no WhatsApp account (cached in whatsappless list). Discarded to save execution time.`,
+      });
+    }
+
     // Create Job record targeted directly to recipient's phone chat URL
     const targetChatUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}`;
     const job = await prisma.job.create({
@@ -262,6 +295,33 @@ router.post('/whatsapp/send-batch', async (req, res) => {
       });
 
       const targetChatUrl = `https://web.whatsapp.com/send?phone=${cleanPhone}`;
+
+      // Check if recipient has no WhatsApp account
+      if (isWhatsappless(cleanPhone)) {
+        const skippedJob = await prisma.job.create({
+          data: {
+            postId: post.id,
+            socialAccountId: account.id,
+            targetUrl: targetChatUrl,
+            status: 'failed',
+            completedAt: new Date(),
+            result: `[WHATSAPPLESS] Skipped: Phone number +${cleanPhone} is in whatsappless list (no WhatsApp account). Saved execution time.`,
+          },
+        });
+
+        results.push({
+          phone: item.phone,
+          cleanPhone,
+          customerName: item.customerName,
+          jobId: skippedJob.id,
+          success: false,
+          skipped: true,
+          whatsappless: true,
+          dispatched: false,
+        });
+        continue;
+      }
+
       const job = await prisma.job.create({
         data: {
           postId: post.id,

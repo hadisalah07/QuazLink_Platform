@@ -22,7 +22,8 @@ import {
   Layers,
   ArrowUpRight,
   Hash,
-  RotateCcw
+  RotateCcw,
+  PhoneOff
 } from "lucide-react";
 import { getJobs, screenshotUrl, retryJob, retryAllFailedJobs, type Job } from "@/lib/api";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
@@ -481,6 +482,7 @@ function RunRow({
 
   const phone = extractPhone(job.targetUrl, fullContent);
   const isWhatsApp = job.socialAccount?.platform === "whatsapp" || !!phone || job.targetUrl?.includes("whatsapp");
+  const isWhatsappless = !!job.result?.includes("[WHATSAPPLESS]");
 
   return (
     <>
@@ -567,6 +569,15 @@ function RunRow({
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-[0_0_8px_rgba(6,182,212,0.25)]">
                   <RotateCcw className="w-2.5 h-2.5 text-cyan-400" />
                   Resent
+                </span>
+              )}
+              {isWhatsappless && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.25)]"
+                  title="هذا الرقم ليس لديه واتساب ومحفوظ في قائمة whatsappless لمدة شهر لتوفير الوقت"
+                >
+                  <PhoneOff className="w-2.5 h-2.5 text-rose-400" />
+                  Whatsappless 🚫
                 </span>
               )}
             </div>
@@ -832,11 +843,21 @@ function RunRow({
                       </span>
                     )}
                   </div>
-                  {status === "error" && (
+                  {isWhatsappless ? (
+                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2.5 text-xs text-rose-300 mt-2">
+                      <PhoneOff className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold text-rose-200">🚫 رقم غير مسجل في واتساب (Whatsappless):</span>
+                        <p className="text-rose-300/80 mt-1 leading-relaxed font-sans">
+                          تم اكتشاف أن هذا الرقم ليس لديه حساب على واتساب، وحُفظ تلقائياً في قائمة (whatsappless) لتخطي محاولات الإرسال المستقبلية وتوفير وقت الخادم والرانر. تظل هذه القائمة فعالة لمدة شهر كامل (30 يوم) وسيتم السماح بمحاولته مجدداً بعدها تلقائياً في حال قام العميل بالانضمام للواتساب.
+                        </p>
+                      </div>
+                    </div>
+                  ) : status === "error" ? (
                     <p className="text-[11px] text-amber-400/90 leading-relaxed font-sans">
                       💡 ملاحظة: إذا كان الخطأ متعلقاً بعدم وجود المتصفح أو انقطاع الهاتف، اضغط على زر إعادة الإرسال (Resend) بعد فتح الهاتف وتوصيله بالإنترنت.
                     </p>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">

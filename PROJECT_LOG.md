@@ -647,6 +647,35 @@
   - إضافة حالة فراغ واضحة باللغة العربية (`لا توجد عمليات مسجلة في التاريخ المحدد`) مع زر لإعادة الضبط فوراً.
   - حساب التواريخ بناءً على التوقيت المحلي لمتصفح المستخدم (`formatJobDate`) لضمان مطابقة التاريخ الفعلي بدقة دون تداخل مع توقيت UTC.
 
+---
+
+## 📅 [4 أكتوبر 2026] - ميزة المحرك الذكي للأرقام غير المسجلة في واتساب (Whatsappless Smart Cache & Auto-Skip Engine)
+
+### 1. المتطلبات:
+- عند إرسال رسالة لرقم غير مسجل في واتساب وظهور نافذة "The number isn't on WhatsApp"، يتم التقاط هذه الحالة فوراً وإغلاق النافذة بنقر "OK" حتى لا تعطل المهام التالية.
+- حفظ الرقم تلقائياً في قائمة مخصصة باسم `whatsappless` على جهاز الرانر وفي السيرفر.
+- عند ورود أي طلب أو مهمة مستقبلية لنفس الرقم، يتم تخطي فتح المتصفح واستهلاك الموارد نهائياً فوراً وبشكل فائق السرعة (0.001 ثانية) لتوفير الوقت.
+- تحديد تاريخ انتهاء صلاحية (Expiry Date) تلقائي لكل رقم يدخل القائمة مدته **شهر كامل (30 يوم)**، وبعد انقضاء الشهر ينسى النظام الرقم ويسمح بمحاولته مجدداً تحسباً لقيام العميل بالتسجيل في واتساب لاحقاً.
+
+### 2. التعديلات الهندسية المنفذة:
+- **في الرانر المحلي ([apps/desktop-agent/src/executor/whatsappless-store.ts](file:///d:/WB_API_GT/apps/desktop-agent/src/executor/whatsappless-store.ts)):**
+  - إنشاء مخزن محلي مستمر `WhatsapplessStore` يحفظ الأرقام في `~/.quazlink/whatsappless.json`.
+  - التحقق التلقائي من انتهاء صلاحية الشهر (`Date.now() > entry.expiresAt`) وحذف السجلات منتهية الصلاحية تلقائياً.
+  - إمكانية الإضافة والاستعلام والتنظيف الفوري بدون أي تأثير على الأداء.
+- **في محرك المتصفح ([apps/desktop-agent/src/executor/nodes/whatsapp-node.ts](file:///d:/WB_API_GT/apps/desktop-agent/src/executor/nodes/whatsapp-node.ts)):**
+  - التقاط كافة تنويعات الرسالة المنبثقة من واتساب باللغتين العربية والإنجليزية (`isn't on WhatsApp`, `Phone number shared via url is invalid`, `غير مسجل في واتساب`, `ليس لديه حساب على واتساب`).
+  - الضغط الفوري على زر `OK / موافق` لإغلاق النافذة وتفريغ المتصفح للمهام التالية.
+  - تسجيل الرقم تلقائياً في `whatsapplessStore` لمدة 30 يوماً.
+- **في مراقب المهام السريع ([apps/desktop-agent/src/executor/playwright-runner.ts](file:///d:/WB_API_GT/apps/desktop-agent/src/executor/playwright-runner.ts)):**
+  - فحص أولي فوري قبل تنزيل الوسائط وقبل تشغيل المتصفح (`whatsapplessStore.isWhatsappless`).
+  - في حال كان الرقم مسجلاً، يتم إلغاء المهمة وتخطيها فوراً في جزء من الألف من الثانية (`0.001s`) مع وسم `[WHATSAPPLESS]` وتوضيح تاريخ انتهاء الصلاحية.
+- **في خادم الـ API ([apps/api/src/services/whatsappless.ts](file:///d:/WB_API_GT/apps/api/src/services/whatsappless.ts) & [gateway.ts](file:///d:/WB_API_GT/apps/api/src/ws/gateway.ts) & [integrations.ts](file:///d:/WB_API_GT/apps/api/src/routes/integrations.ts)):**
+  - حفظ السجلات في طبقة السيرفر وتخطي الإرسال من البداية عند استلام فواتير من الـ Webhook لأرقام ليس لديها واتساب.
+- **في واجهة المستخدم ([apps/web/src/app/(dashboard)/runs/page.tsx](file:///d:/WB_API_GT/apps/web/src/app/(dashboard)/runs/page.tsx)):**
+  - إضافة شارة تحذيرية مميزة `[Whatsappless 🚫]` بجانب حالة العملية في الجدول.
+  - إضافة بطاقة توضيحية داخل درج التفاصيل تشرح أن الرقم غير مسجل ومحفوظ لمدة شهر لتوفير الوقت.
+
+
 
 
 

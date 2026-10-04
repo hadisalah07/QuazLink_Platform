@@ -3,14 +3,15 @@ import { FacebookNode } from './facebook-node';
 import { InstagramNode } from './instagram-node';
 import { WhatsAppNode } from './whatsapp-node';
 import { MacroCache } from '../macro-cache';
+import { WhatsapplessStore } from '../whatsappless-store';
 
 export class PlatformNodeRegistry {
   private nodes: Map<string, IPlatformNode> = new Map();
 
-  constructor(macroCache: MacroCache) {
+  constructor(macroCache: MacroCache, whatsapplessStore?: WhatsapplessStore) {
     this.registerNode(new FacebookNode(macroCache));
     this.registerNode(new InstagramNode(macroCache));
-    this.registerNode(new WhatsAppNode(macroCache));
+    this.registerNode(new WhatsAppNode(macroCache, whatsapplessStore));
   }
 
   public registerNode(node: IPlatformNode): void {
