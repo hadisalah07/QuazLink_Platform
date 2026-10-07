@@ -7,8 +7,14 @@ import { GlassCard } from "@/components/effects/GlassCard";
 import { Bot, Network, Zap, Store, ArrowRight, Download } from "lucide-react";
 import Link from "next/link";
 import { APP_VERSION } from "@/lib/version";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/lib/translations";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 export default function LandingPage() {
+  const { lang, isAr } = useLanguage();
+  const t = translations[lang];
+
   const [videoEnded, setVideoEnded] = React.useState(false);
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
 
@@ -59,6 +65,9 @@ export default function LandingPage() {
   return (
     <div className="relative w-full max-w-full flex flex-col items-center overflow-x-hidden">
       <Aurora />
+
+      {/* Floating Language Switcher Button (Top Corner) */}
+      <LanguageSwitcher variant="floating" />
 
       {/* Hero Section */}
       <section 
@@ -111,8 +120,8 @@ export default function LandingPage() {
               transition={{ delay: 1.5, duration: 0.4 }}
               className="mt-6 pointer-events-auto px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs text-gray-300 hover:text-white transition-all flex items-center gap-2 shadow-lg"
             >
-              <span>تخطي العرض • Skip Intro</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>{t.skipIntro}</span>
+              <ArrowRight className={`w-3.5 h-3.5 ${isAr ? "rotate-180" : ""}`} />
             </motion.button>
           </motion.div>
         )}
@@ -129,7 +138,7 @@ export default function LandingPage() {
             <motion.div 
               className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center cursor-pointer group"
               onClick={handleReplay}
-              title="انقر لإعادة تشغيل العرض السينمائي • Click to replay intro"
+              title={t.replayTooltip}
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
@@ -143,7 +152,7 @@ export default function LandingPage() {
 
             <div className="inline-flex items-center space-x-2 bg-[#0B101D] border border-white/10 px-4 py-1.5 rounded-full shadow-sm">
               <span className="w-2 h-2 rounded-full bg-[var(--color-quaz-cyan)] animate-pulse" />
-              <span className="text-sm font-medium text-gray-300">Next-Gen Workflow & Retail Automation</span>
+              <span className="text-sm font-medium text-gray-300">{t.heroBadge}</span>
               <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                 v{APP_VERSION}
               </span>
@@ -154,20 +163,20 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg md:text-xl text-gray-400 max-w-2xl">
-              Orchestrate complex tasks across apps with intelligent agents & manage your physical retail business with high-speed offline POS.
+              {t.heroSubtitle}
             </p>
             
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
               <Link href="/accounts" className="px-8 py-4 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg">
-                Get Started
+                {t.getStarted}
               </Link>
               <Link href="/pos" className="px-7 py-4 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold rounded-full border border-emerald-500/40 hover:border-emerald-500/80 transition-colors shadow-lg flex items-center gap-2">
                 <Store className="w-4 h-4 text-emerald-400" />
-                <span>QuazLink POS Portal</span>
+                <span>{t.posPortal}</span>
               </Link>
               <Link href="/download" className="px-8 py-4 bg-[#0B101D] text-white font-semibold rounded-full border border-white/10 hover:border-white/30 hover:bg-[#121929] transition-colors shadow-lg flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                <span>Downloads</span>
+                <span>{t.downloads}</span>
               </Link>
             </div>
           </div>
@@ -182,24 +191,24 @@ export default function LandingPage() {
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
                 <Store className="w-8 h-8 text-emerald-400" />
               </div>
-              <div className="text-right">
+              <div className={isAr ? "text-right" : "text-left"}>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
-                    جديد • NEW
+                    {t.posCardTag}
                   </span>
                   <h3 className="text-xl sm:text-2xl font-bold text-white">
-                    نظام الكاشير وإدارة المتاجر والمخازن — QuazLink POS & ERP
+                    {t.posCardTitle}
                   </h3>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-3xl">
-                  يعمل 100% بدون إنترنت، طباعة فورية 1.8ms للطابعات الحرارية بدون تقطيع عربي، تتبع سيريالات وضمان الأجهزة، وجاهز لمنظومة الإيصال الإلكتروني المصري.
+                  {t.posCardDesc}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm shrink-0 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 group-hover:bg-emerald-500/20 transition-colors duration-200">
-              <span>فتح بوابة الكاشير والتحميل</span>
-              <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200" />
+              <span>{t.posCardCta}</span>
+              <ArrowRight className={`w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200 ${isAr ? "rotate-180 group-hover:-translate-x-1" : ""}`} />
             </div>
           </div>
         </Link>
@@ -207,33 +216,33 @@ export default function LandingPage() {
 
       {/* Features Section */}
       <section className="relative z-10 w-full max-w-7xl px-6 pb-32 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <GlassCard interactive={true} className="flex flex-col items-start text-left group">
+        <GlassCard interactive={true} className={`flex flex-col items-start group ${isAr ? "text-right" : "text-left"}`}>
           <div className="w-12 h-12 rounded-xl bg-[var(--color-quaz-cyan)]/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-200">
             <Bot className="w-6 h-6 text-[var(--color-quaz-cyan)]" />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-3">Intelligent Agents</h3>
+          <h3 className="text-xl font-semibold text-white mb-3">{t.feat1Title}</h3>
           <p className="text-gray-400 leading-relaxed">
-            AI-powered workers that understand your workflows and execute tasks with human-like precision.
+            {t.feat1Desc}
           </p>
         </GlassCard>
 
-        <GlassCard interactive={true} className="flex flex-col items-start text-left group">
+        <GlassCard interactive={true} className={`flex flex-col items-start group ${isAr ? "text-right" : "text-left"}`}>
           <div className="w-12 h-12 rounded-xl bg-[var(--color-quaz-purple)]/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-200">
             <Network className="w-6 h-6 text-[var(--color-quaz-purple)]" />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-3">Visual Builder</h3>
+          <h3 className="text-xl font-semibold text-white mb-3">{t.feat2Title}</h3>
           <p className="text-gray-400 leading-relaxed">
-            Connect nodes seamlessly. Drag and drop your automation logic onto the canvas.
+            {t.feat2Desc}
           </p>
         </GlassCard>
 
-        <GlassCard interactive={true} className="flex flex-col items-start text-left group">
+        <GlassCard interactive={true} className={`flex flex-col items-start group ${isAr ? "text-right" : "text-left"}`}>
           <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-200">
             <Zap className="w-6 h-6 text-blue-400" />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-3">Lightning Fast</h3>
+          <h3 className="text-xl font-semibold text-white mb-3">{t.feat3Title}</h3>
           <p className="text-gray-400 leading-relaxed">
-            Built on top of a highly optimized queue system ensuring zero downtime.
+            {t.feat3Desc}
           </p>
         </GlassCard>
       </section>
@@ -246,19 +255,19 @@ export default function LandingPage() {
             <span>•</span>
             <span className="flex items-center gap-1.5 font-mono text-emerald-400">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              v{APP_VERSION} (Production Live)
+              v{APP_VERSION} ({t.productionLive})
             </span>
           </div>
           <div className="flex items-center gap-6">
-            <Link href="/pos" className="hover:text-emerald-400 transition-colors">POS & ERP Portal</Link>
-            <Link href="/download" className="hover:text-cyan-400 transition-colors">Downloads</Link>
-            <Link href="/accounts" className="hover:text-white transition-colors">Console</Link>
+            <Link href="/pos" className="hover:text-emerald-400 transition-colors">{t.posPortal}</Link>
+            <Link href="/download" className="hover:text-cyan-400 transition-colors">{t.downloads}</Link>
+            <Link href="/accounts" className="hover:text-white transition-colors">{t.console}</Link>
             <a href="/api/version" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors font-mono">
               /api/version
             </a>
           </div>
-          <div className="text-gray-500 text-center sm:text-right">
-            © {new Date().getFullYear()} QuazLink. All systems operational.
+          <div className={`text-gray-500 ${isAr ? "text-center sm:text-left" : "text-center sm:text-right"}`}>
+            © {new Date().getFullYear()} QuazLink. {t.allSystemsOperational}
           </div>
         </div>
       </footer>

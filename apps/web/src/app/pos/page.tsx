@@ -43,8 +43,13 @@ import {
   generatePosLicense,
   type DownloadsInfoResponse
 } from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/lib/translations";
 
 export default function PosPortalPage() {
+  const { lang, isAr } = useLanguage();
+  const t = translations[lang];
+
   // Download metadata
   const [downloadsInfo, setDownloadsInfo] = React.useState<DownloadsInfoResponse | null>(null);
   const [loadingInfo, setLoadingInfo] = React.useState(true);
@@ -85,7 +90,7 @@ export default function PosPortalPage() {
   const handleGenerateLicense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!posHwId.trim()) {
-      setLicenseError("يرجى إدخال بصمة الجهاز (Hardware ID) التي تظهر لك في شاشة تفعيل البرنامج.");
+      setLicenseError(isAr ? "يرجى إدخال بصمة الجهاز (Hardware ID) التي تظهر لك في شاشة تفعيل البرنامج." : "Please enter the Hardware ID shown on the app activation screen.");
       return;
     }
     setLicenseError(null);
@@ -100,7 +105,7 @@ export default function PosPortalPage() {
       setPosLicenseKey(res.licenseKey);
       setPosExpiresAt(res.expiresAt);
     } catch (e: any) {
-      setLicenseError(e.message || "حدث خطأ أثناء إصدار كود التفعيل.");
+      setLicenseError(e.message || (isAr ? "حدث خطأ أثناء إصدار كود التفعيل." : "Failed to generate license key."));
     } finally {
       setLoadingLicense(false);
     }
@@ -120,7 +125,7 @@ export default function PosPortalPage() {
           className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-medium mb-8 shadow-sm"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>الإصدار الرسمي المستقل v1.0.0 — جاهز للتحميل والتشغيل فوراً</span>
+          <span>{t.posHeroReleaseTag}</span>
         </motion.div>
 
         {/* Main Headline */}
@@ -130,9 +135,9 @@ export default function PosPortalPage() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight max-w-5xl text-balance leading-[1.15]"
         >
-          نظام الكاشير وإدارة المتاجر المتكامل{" "}
+          {t.posHeroTitle1}{" "}
           <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-            QuazLink POS & ERP
+            {t.posHeroTitle2}
           </span>
         </motion.h1>
 
@@ -143,8 +148,7 @@ export default function PosPortalPage() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mt-6 text-base sm:text-xl text-gray-300 max-w-3xl leading-relaxed text-balance"
         >
-          أسرع نظام نقاط بيع ومخازن وفواتير محلي مصمم لتجارة التجزئة، محلات الكمبيوتر والإلكترونيات، والمتاجر العامة. 
-          يعمل بنسبة <strong className="text-white">100% بدون إنترنت</strong>، يدعم جميع الطابعات الحرارية بدون تقطيع في اللغة العربية، ومستوفٍ لمنظومة الإيصال الإلكتروني المصري.
+          {t.posHeroSubtitle}
         </motion.p>
 
         {/* Quick CTA Buttons */}
@@ -159,7 +163,7 @@ export default function PosPortalPage() {
             className="flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-bold text-base hover:from-emerald-400 hover:to-cyan-400 shadow-xl shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5"
           >
             <Download className="w-5 h-5" />
-            <span>تحميل البرنامج الآن (Windows)</span>
+            <span>{t.posHeroDownloadBtn}</span>
           </a>
 
           <a
@@ -167,14 +171,14 @@ export default function PosPortalPage() {
             className="flex items-center gap-2 px-7 py-4 rounded-2xl bg-[#0B101D] hover:bg-[#121929] text-white font-semibold text-base border border-white/15 transition-all hover:border-emerald-500/40"
           >
             <Key className="w-5 h-5 text-emerald-400" />
-            <span>تفعيل ترخيص جهازك (Hardware ID)</span>
+            <span>{t.posHeroActivateBtn}</span>
           </a>
 
           <a
             href="#features"
             className="flex items-center gap-2 px-6 py-4 rounded-2xl text-gray-400 hover:text-white text-sm font-medium transition-colors"
           >
-            <span>استكشاف المميزات</span>
+            <span>{t.posHeroExploreBtn}</span>
             <ChevronDown className="w-4 h-4" />
           </a>
         </motion.div>
@@ -184,51 +188,51 @@ export default function PosPortalPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-16 w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 text-right"
+          className={`mt-16 w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 ${isAr ? "text-right" : "text-left"}`}
         >
           <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-emerald-400">1.8ms</span>
+              <span className="text-xl font-bold text-emerald-400">{t.pillar1Val}</span>
               <Printer className="w-5 h-5 text-emerald-400/70" />
             </div>
-            <span className="text-xs font-semibold text-white">طباعة حرارية فورية</span>
-            <span className="text-[11px] text-gray-400">محرك Canvas-to-Raster عربي</span>
+            <span className="text-xs font-semibold text-white">{t.pillar1Title}</span>
+            <span className="text-[11px] text-gray-400">{t.pillar1Desc}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-cyan-400">100%</span>
+              <span className="text-xl font-bold text-cyan-400">{t.pillar2Val}</span>
               <HardDrive className="w-5 h-5 text-cyan-400/70" />
             </div>
-            <span className="text-xs font-semibold text-white">يعمل بدون إنترنت</span>
-            <span className="text-[11px] text-gray-400">قاعدة بيانات محلية SQLite فائقـة</span>
+            <span className="text-xs font-semibold text-white">{t.pillar2Title}</span>
+            <span className="text-[11px] text-gray-400">{t.pillar2Desc}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-amber-400">ETA Ready</span>
+              <span className="text-xl font-bold text-amber-400">{t.pillar3Val}</span>
               <QrCode className="w-5 h-5 text-amber-400/70" />
             </div>
-            <span className="text-xs font-semibold text-white">الضرائب المصرية</span>
-            <span className="text-[11px] text-gray-400">ترميز TLV Base64 و QR Code</span>
+            <span className="text-xs font-semibold text-white">{t.pillar3Title}</span>
+            <span className="text-[11px] text-gray-400">{t.pillar3Desc}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-emerald-400">IMEI & S/N</span>
+              <span className="text-xl font-bold text-emerald-400">{t.pillar4Val}</span>
               <Tag className="w-5 h-5 text-emerald-400/70" />
             </div>
-            <span className="text-xs font-semibold text-white">تتبع السيريالات والضمان</span>
-            <span className="text-[11px] text-gray-400">لحفظ حقوق الصيانة والإلكترونيات</span>
+            <span className="text-xs font-semibold text-white">{t.pillar4Title}</span>
+            <span className="text-[11px] text-gray-400">{t.pillar4Desc}</span>
           </div>
 
           <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5 col-span-2 sm:col-span-1">
             <div className="flex items-center justify-between">
-              <span className="text-xl font-bold text-green-400">WhatsApp</span>
+              <span className="text-xl font-bold text-green-400">{t.pillar5Val}</span>
               <Smartphone className="w-5 h-5 text-green-400/70" />
             </div>
-            <span className="text-xs font-semibold text-white">إرسال الفواتير فوراً</span>
-            <span className="text-[11px] text-gray-400">ربط مباشر برقم هاتف العميل</span>
+            <span className="text-xs font-semibold text-white">{t.pillar5Title}</span>
+            <span className="text-[11px] text-gray-400">{t.pillar5Desc}</span>
           </div>
         </motion.div>
 
@@ -415,13 +419,13 @@ export default function PosPortalPage() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-4">
             <Download className="w-3.5 h-3.5" />
-            <span>مركز التوزيع والتحميل المباشر</span>
+            <span>{t.posDownloadTag}</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            حمّل نظام الكاشير وابدأ العمل في دقائق
+            {t.posDownloadTitle}
           </h2>
           <p className="mt-4 text-sm sm:text-base text-gray-400 leading-relaxed">
-            اختر النسخة المناسبة لجهازك: النسخة الحديثة لأجهزة ويندوز 10 و 11، أو النسخة الخفيفة المخصصة لأجهزة وشاشات الكاشير القديمة (Windows 7 / 8 / POSReady 7).
+            {t.posDownloadSubtitle}
           </p>
         </div>
 
@@ -437,8 +441,8 @@ export default function PosPortalPage() {
               }`}
             >
               <Laptop className="w-4 h-4" />
-              <span>Windows 10 & 11 (الافتراضي الحديث)</span>
-              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/20 text-black font-extrabold">موصى به</span>
+              <span>{t.posTabModern}</span>
+              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/20 text-black font-extrabold">{t.posTabModernRecommended}</span>
             </button>
 
             <button
@@ -450,8 +454,8 @@ export default function PosPortalPage() {
               }`}
             >
               <Monitor className="w-4 h-4" />
-              <span>Windows 7 / 8 / POSReady (الأجهزة القديمة)</span>
-              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30">Legacy Win7</span>
+              <span>{t.posTabLegacy}</span>
+              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/20 text-black font-extrabold">{t.posTabLegacyOptional}</span>
             </button>
           </div>
         </div>
@@ -726,76 +730,81 @@ export default function PosPortalPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start relative z-10">
             
-            {/* Left 6 cols: Description & Instructions */}
-            <div className="lg:col-span-5 text-right">
+            {/* Left 5 cols: Description & Instructions */}
+            <div className={`lg:col-span-5 ${isAr ? "text-right" : "text-left"}`}>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold mb-4 border border-emerald-500/30">
                 <Key className="w-3.5 h-3.5" />
-                <span>بوابة التفعيل وترخيص الأجهزة</span>
+                <span>{t.posActTag}</span>
               </div>
 
               <h2 className="text-3xl font-extrabold text-white mb-4">
-                تفعيل ترخيص برنامج الكاشير لجهازك
+                {t.posActTitle}
               </h2>
 
               <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                كل جهاز كمبيوتر أو كاشير يمتلك بصمة عتاد فريدة (<code className="text-emerald-400 font-mono font-bold">Hardware ID</code>). 
-                أدخل بصمة جهازك هنا لإصدار كود تفعيل فوري مشفر وموقع رقمياً يعمل بدون إنترنت مدى الحياة.
+                {t.posActSubtitle}
               </p>
 
               {/* Free Trial Banner */}
               <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mb-6 flex items-start gap-3">
                 <Sparkles className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                 <div className="text-xs text-emerald-200">
-                  <strong className="block font-bold text-white mb-0.5">فترة تجريبية مجانية 60 يوماً مدمجة:</strong>
-                  كل نسخة تقوم بتحميلها تأتي مفعلة تلقائياً بكامل الميزات وبدون أي قيود لمدة شهرين لتجربة البرنامج في متجرك.
+                  <strong className="block font-bold text-white mb-0.5">
+                    {isAr ? "فترة تجريبية مجانية 60 يوماً مدمجة:" : "Built-in 60-Day Full Trial:"}
+                  </strong>
+                  {isAr 
+                    ? "كل نسخة تقوم بتحميلها تأتي مفعلة تلقائياً بكامل الميزات وبدون أي قيود لمدة شهرين لتجربة البرنامج في متجرك."
+                    : "Every downloaded copy is automatically pre-activated with full features and zero limitations for two months."}
                 </div>
               </div>
 
               <div className="space-y-3 text-xs text-gray-400">
-                <span className="font-semibold text-white block">كيف تحصل على بصمة جهازك (Hardware ID)؟</span>
+                <span className="font-semibold text-white block">
+                  {isAr ? "كيف تحصل على بصمة جهازك (Hardware ID)؟" : "How to obtain your Hardware ID?"}
+                </span>
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center font-bold text-white text-[10px]">1</span>
-                  <span>افتح برنامج الكاشير على جهازك واضغط على أيقونة <strong>الإعدادات</strong>.</span>
+                  <span>{t.posActStep1Desc}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center font-bold text-white text-[10px]">2</span>
-                  <span>انتقل لتبويب <strong>الترخيص والعتاد</strong>.</span>
+                  <span>{t.posActStep2Desc}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center font-bold text-white text-[10px]">3</span>
-                  <span>انسخ كود البصمة المكتوب بصيغة <code className="text-emerald-400 font-mono">QL-HW-XXXX-...</code> وضعه في النموذج المقابل.</span>
+                  <span>{t.posActStep3Desc}</span>
                 </div>
               </div>
             </div>
 
             {/* Right 7 cols: Interactive Form */}
             <div className="lg:col-span-7 bg-[#090D18] p-6 sm:p-8 rounded-2xl border border-white/10">
-              <form onSubmit={handleGenerateLicense} className="space-y-5 text-right">
+              <form onSubmit={handleGenerateLicense} className={`space-y-5 ${isAr ? "text-right" : "text-left"}`}>
                 
                 <div>
                   <label className="block text-xs font-semibold text-gray-300 mb-2">
-                    بصمة الجهاز (Hardware ID) <span className="text-emerald-400">*</span>
+                    {t.posActFormHwidLabel} <span className="text-emerald-400">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="مثال: QL-HW-A4B1-99CE-F082-11AA"
+                    placeholder={t.posActFormHwidPlaceholder}
                     value={posHwId}
                     onChange={(e) => setPosHwId(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/15 text-white font-mono text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500 transition-colors uppercase"
                   />
                   <span className="text-[11px] text-gray-500 mt-1 block">
-                    يتم استخراجه من شاشة إعدادات الترخيص داخل برنامج الكاشير.
+                    {isAr ? "يتم استخراجه من شاشة إعدادات الترخيص داخل برنامج الكاشير." : "Retrieved from the License & Activation settings inside QuazLink POS."}
                   </span>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-300 mb-2">
-                    اسم المتجر أو النشاط التجاري (اختياري)
+                    {t.posActFormBizLabel}
                   </label>
                   <input
                     type="text"
-                    placeholder="مثال: الهدى للإلكترونيات ومستلزمات الكمبيوتر"
+                    placeholder={t.posActFormBizPlaceholder}
                     value={posBusinessName}
                     onChange={(e) => setPosBusinessName(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/15 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500 transition-colors"
@@ -804,33 +813,41 @@ export default function PosPortalPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-300 mb-2">
-                    نوع الترخيص المطلوب
+                    {isAr ? "نوع الترخيص المطلوب" : "License Plan Tier"}
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setPosTier("lifetime")}
-                      className={`p-3.5 rounded-xl border text-right transition-all ${
+                      className={`p-3.5 rounded-xl border ${isAr ? "text-right" : "text-left"} transition-all ${
                         posTier === "lifetime"
                           ? "bg-emerald-500/20 border-emerald-500 text-white shadow-md shadow-emerald-500/10"
                           : "bg-black/30 border-white/10 text-gray-400 hover:text-white"
                       }`}
                     >
-                      <span className="font-bold text-xs block mb-0.5">ترخيص دائم للأجهزة</span>
-                      <span className="text-[11px] text-gray-400">مدى الحياة بدون إنترنت (Lifetime)</span>
+                      <span className="font-bold text-xs block mb-0.5">
+                        {isAr ? "ترخيص دائم للأجهزة" : "Lifetime Standalone"}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        {isAr ? "مدى الحياة بدون إنترنت (Lifetime)" : "Perpetual offline license"}
+                      </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setPosTier("saas_subscription")}
-                      className={`p-3.5 rounded-xl border text-right transition-all ${
+                      className={`p-3.5 rounded-xl border ${isAr ? "text-right" : "text-left"} transition-all ${
                         posTier === "saas_subscription"
                           ? "bg-cyan-500/20 border-cyan-500 text-white shadow-md shadow-cyan-500/10"
                           : "bg-black/30 border-white/10 text-gray-400 hover:text-white"
                       }`}
                     >
-                      <span className="font-bold text-xs block mb-0.5">اشتراك سنوي سحابي</span>
-                      <span className="text-[11px] text-gray-400">مزامنة سحابية مستمرة (12 شهر)</span>
+                      <span className="font-bold text-xs block mb-0.5">
+                        {isAr ? "اشتراك سنوي سحابي" : "Annual Cloud Sync"}
+                      </span>
+                      <span className="text-[11px] text-gray-400">
+                        {isAr ? "مزامنة سحابية مستمرة (12 شهر)" : "Cloud backup (12 Months)"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -850,12 +867,12 @@ export default function PosPortalPage() {
                   {loadingLicense ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>جاري تشفير وإصدار المفتاح الرقمي...</span>
+                      <span>{isAr ? "جاري تشفير وإصدار المفتاح الرقمي..." : "Signing cryptographic license key..."}</span>
                     </>
                   ) : (
                     <>
                       <Key className="w-4 h-4" />
-                      <span>إصدار كود التفعيل الفوري لجهازي</span>
+                      <span>{t.posActFormSubmitBtn}</span>
                     </>
                   )}
                 </button>
@@ -869,15 +886,15 @@ export default function PosPortalPage() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="mt-6 p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-right space-y-3"
+                    className={`mt-6 p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 ${isAr ? "text-right" : "text-left"} space-y-3`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
                         <CheckCircle className="w-4 h-4 text-emerald-400" />
-                        تم إصدار وتوقيع كود التفعيل بنجاح!
+                        {t.posActSuccessTitle}
                       </span>
                       <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                        HMAC-SHA256 Signed
+                        {t.posActSuccessSigned}
                       </span>
                     </div>
 
@@ -899,27 +916,27 @@ export default function PosPortalPage() {
                         {copiedKey ? (
                           <>
                             <Check className="w-3.5 h-3.5" />
-                            <span>تم النسخ بنجاح!</span>
+                            <span>{t.posActCopiedMsg}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5" />
-                            <span>نسخ كود التفعيل</span>
+                            <span>{t.posActCopyKeyBtn}</span>
                           </>
                         )}
                       </button>
 
                       <div className="text-[11px] text-gray-400">
                         {posExpiresAt ? (
-                          <span>صالح حتى: <strong className="text-white font-mono">{posExpiresAt}</strong></span>
+                          <span>{t.posActValidUntil} <strong className="text-white font-mono">{posExpiresAt}</strong></span>
                         ) : (
-                          <span className="text-emerald-400 font-bold">ترخيص دائم مدى الحياة (Lifetime)</span>
+                          <span className="text-emerald-400 font-bold">{t.posActLifetime}</span>
                         )}
                       </div>
                     </div>
 
                     <p className="text-[11px] text-gray-400 leading-normal pt-2 border-t border-white/10">
-                      👉 <strong>الخطوة الأخيرة:</strong> انسخ الكود أعلاه، وافتحه داخل برنامج الكاشير في <strong>الإعدادات ➔ الترخيص ➔ الصق الكود ➔ تفعيل</strong> وسيعمل البرنامج فوراً!
+                      {t.posActFinalStep}
                     </p>
                   </motion.div>
                 )}
@@ -939,17 +956,17 @@ export default function PosPortalPage() {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>مميزات نظام QuazLink المتقدمة</span>
+            <span>{t.posFeaturesHeaderTag}</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            مصمم خصيصاً لتحديات التجارة الحقيقية
+            {t.posFeaturesHeaderTitle}
           </h2>
           <p className="mt-4 text-sm sm:text-base text-gray-400 leading-relaxed">
-            تخلص من مشاكل برامج الكاشير التقليدية؛ حلول هندسية جذرية للطباعة، العتاد، والسرعة.
+            {t.posFeaturesHeaderSubtitle}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-right">
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${isAr ? "text-right" : "text-left"}`}>
           
           <SpotlightCard className="p-7 rounded-2xl bg-[#0B101D] border border-white/10 flex flex-col justify-between">
             <div>
@@ -957,14 +974,14 @@ export default function PosPortalPage() {
                 <Printer className="w-6 h-6 text-emerald-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2.5">
-                طباعة عربية نقية 100% (Canvas-to-Raster)
+                {t.posFeat1Title}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                لا مزيد من الحروف المتقطعة أو الرموز الغريبة في طابعات Xprinter و Rongta الصينية. يقوم النظام بتصيير الإيصال كصورة نقطية أحادية البت وطباعتها في أقل من 2 ميلي ثانية.
+                {t.posFeat1Desc}
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-white/5 text-[11px] text-emerald-400 font-medium">
-              يدعم مقاسات 80mm و 58mm
+              {t.posFeat1Badge}
             </div>
           </SpotlightCard>
 
@@ -974,14 +991,14 @@ export default function PosPortalPage() {
                 <Tag className="w-6 h-6 text-cyan-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2.5">
-                حوكمة السيريالات والضمان (Serial & IMEI)
+                {t.posFeat2Title}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                مخصص لمحلات الهواتف والكمبيوتر والأجهزة المنزلية. لا يُسمح بإتمام بيع أي صنف مُمكّن به السيريال إلا بعد مسحه وتخزينه في الفاتورة لحفظ حقوق الضمان والصيانة.
+                {t.posFeat2Desc}
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-white/5 text-[11px] text-cyan-400 font-medium">
-              طباعة السيريال وفترة الضمان على الفاتورة
+              {t.posFeat2Badge}
             </div>
           </SpotlightCard>
 
@@ -991,14 +1008,14 @@ export default function PosPortalPage() {
                 <QrCode className="w-6 h-6 text-amber-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2.5">
-                منظومة الفاتورة والإيصال الضريبي (ETA)
+                {t.posFeat3Title}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                توليد QR Code مشفر وفق معيار مصلحة الضرائب المصرية (Base64 TLV Format)، مع فصل ضريبة القيمة المضافة 14% ورقم التسجيل الضريبي 9 أرقام بدقة تامة.
+                {t.posFeat3Desc}
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-white/5 text-[11px] text-amber-400 font-medium">
-              مطابق لمتطلبات الفاتورة الإلكترونية B2C
+              {t.posFeat3Badge}
             </div>
           </SpotlightCard>
 
@@ -1008,14 +1025,14 @@ export default function PosPortalPage() {
                 <Clock className="w-6 h-6 text-purple-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2.5">
-                إدارة الورديات وتقفيل الخزينة (Z-Report)
+                {t.posFeat4Title}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                فتح وردية الكاشير برصيد افتتاحي، تسجيل حركات الصرف والإيداع، وطباعة تقرير التقفيل اليومي الشامل (Z-Report) مع حصر مبالغ الكاش والفيزا والعجز والزيادة.
+                {t.posFeat4Desc}
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-white/5 text-[11px] text-purple-400 font-medium">
-              أمان كامل للخزينة وتصفير يومي منظم
+              {t.posFeat4Badge}
             </div>
           </SpotlightCard>
 
@@ -1025,14 +1042,14 @@ export default function PosPortalPage() {
                 <Smartphone className="w-6 h-6 text-green-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2.5">
-                إرسال الفواتير عبر الواتساب بنقرة واحدة
+                {t.posFeat5Title}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                تكامل مباشر مع محرك أتمتة الواتساب في كويزلينك؛ أرسل إيصال الشراء وتفاصيل الضمان فورياً لرقم هاتف العميل بدون استهلاك ورق وبمظهر احترافي للغاية.
+                {t.posFeat5Desc}
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-white/5 text-[11px] text-green-400 font-medium">
-              وفر تكاليف الورق الحراري وأبهر عملائك
+              {t.posFeat5Badge}
             </div>
           </SpotlightCard>
 
@@ -1042,14 +1059,14 @@ export default function PosPortalPage() {
                 <ShieldCheck className="w-6 h-6 text-blue-400" />
               </div>
               <h3 className="text-lg font-bold text-white mb-2.5">
-                النسخ الاحتياطي الذري (.qzbk) والمزامنة
+                {t.posFeat6Title}
               </h3>
               <p className="text-xs text-gray-400 leading-relaxed">
-                حماية مطلقة لبياناتك ضد فقدان الهارد ديسك أو تلف الويندوز. تصدير نسخ احتياطية ذرية مشفرة (.qzbk)، واستعادة كاملة في أقل من ثانية بدون أي تعارض.
+                {t.posFeat6Desc}
               </p>
             </div>
             <div className="mt-5 pt-3 border-t border-white/5 text-[11px] text-blue-400 font-medium">
-              أمان تشفيري بـ SHA-256 Checksum
+              {t.posFeat6Badge}
             </div>
           </SpotlightCard>
 
@@ -1060,20 +1077,20 @@ export default function PosPortalPage() {
       {/* 6. HARDWARE & PERIPHERALS COMPATIBILITY */}
       <section id="hardware" className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-20 scroll-mt-24">
         
-        <div className="p-8 sm:p-12 rounded-3xl bg-[#090D18] border border-white/10 text-right">
+        <div className={`p-8 sm:p-12 rounded-3xl bg-[#090D18] border border-white/10 ${isAr ? "text-right" : "text-left"}`}>
           
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10 pb-8 border-b border-white/10">
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-                توافق شامل مع جميع أجهزة الكاشير والعتاد التجاري
+                {t.posHwTitle}
               </h2>
               <p className="text-sm text-gray-400">
-                لا داعي لشراء أجهزة خاصة أو باهظة الثمن؛ يعمل النظام مع أي عتاد تملكه حالياً.
+                {t.posHwSubtitle}
               </p>
             </div>
 
             <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold">
-              Plug & Play عبر منافذ USB / Network
+              {t.posHwBadge}
             </div>
           </div>
 
@@ -1081,33 +1098,33 @@ export default function PosPortalPage() {
             
             <div className="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-3">
               <Printer className="w-6 h-6 text-emerald-400" />
-              <h4 className="text-sm font-bold text-white">طابعات الفواتير الحرارية</h4>
+              <h4 className="text-sm font-bold text-white">{t.posHwPrintersTitle}</h4>
               <p className="text-xs text-gray-400 leading-relaxed">
-                Xprinter, Rongta, Epson, Sunmi, Bixolon, Sewoo (عرض 80mm و 58mm عبر USB أو إيثرنت أو بلوتوث).
+                {t.posHwPrintersDesc}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-3">
               <QrCode className="w-6 h-6 text-cyan-400" />
-              <h4 className="text-sm font-bold text-white">قارئات الباركود (Barcode Guns)</h4>
+              <h4 className="text-sm font-bold text-white">{t.posHwBarcodesTitle}</h4>
               <p className="text-xs text-gray-400 leading-relaxed">
-                يدعم كافة قارئات الـ 1D Laser والـ 2D QR Code السلكية واللاسلكية كمدخل لوحة مفاتيح فوري (HID Keyboard).
+                {t.posHwBarcodesDesc}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-3">
               <ShoppingBag className="w-6 h-6 text-amber-400" />
-              <h4 className="text-sm font-bold text-white">أدراج النقدية (Cash Drawers)</h4>
+              <h4 className="text-sm font-bold text-white">{t.posHwDrawersTitle}</h4>
               <p className="text-xs text-gray-400 leading-relaxed">
-                فتح درج النقدية التلقائي عبر منفذ RJ11 الموصول بالطابعة فور طباعة الفاتورة أو تقفيل الوردية.
+                {t.posHwDrawersDesc}
               </p>
             </div>
 
             <div className="p-5 rounded-2xl bg-black/40 border border-white/5 space-y-3">
               <Laptop className="w-6 h-6 text-purple-400" />
-              <h4 className="text-sm font-bold text-white">أجهزة الكمبيوتر والشاشات اللمسية</h4>
+              <h4 className="text-sm font-bold text-white">{t.posHwTerminalsTitle}</h4>
               <p className="text-xs text-gray-400 leading-relaxed">
-                أي كمبيوتر أو لابتوب أو شاشة All-in-One Touchscreen تعمل بنظام Windows 10 أو Windows 11.
+                {t.posHwTerminalsDesc}
               </p>
             </div>
 
@@ -1122,22 +1139,22 @@ export default function PosPortalPage() {
         
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            دليل البدء السريع في 4 خطوات بسيطة
+            {t.posGuideTitle}
           </h2>
           <p className="mt-3 text-sm text-gray-400">
-            من التحميل إلى طباعة أول فاتورة في أقل من 5 دقائق.
+            {t.posGuideSubtitle}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-right">
+        <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 ${isAr ? "text-right" : "text-left"}`}>
           
           <div className="p-6 rounded-2xl bg-[#0B101D] border border-white/10 relative">
             <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm mb-4">
               1
             </span>
-            <h4 className="text-base font-bold text-white mb-2">حمّل وثبّت البرنامج</h4>
+            <h4 className="text-base font-bold text-white mb-2">{t.posGuideStep1Title}</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              اختر مثبت الويندوز <strong className="text-white">Setup.exe</strong> أو النسخة المحمولة <strong className="text-white">Portable.zip</strong> وشغّل البرنامج.
+              {t.posGuideStep1Desc}
             </p>
           </div>
 
@@ -1145,9 +1162,9 @@ export default function PosPortalPage() {
             <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm mb-4">
               2
             </span>
-            <h4 className="text-base font-bold text-white mb-2">انسخ بصمة جهازك</h4>
+            <h4 className="text-base font-bold text-white mb-2">{t.posGuideStep2Title}</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              افتح الإعدادات داخل البرنامج وانسخ كود بصمة الجهاز (<code className="text-emerald-400">Hardware ID</code>).
+              {t.posGuideStep2Desc}
             </p>
           </div>
 
@@ -1155,9 +1172,9 @@ export default function PosPortalPage() {
             <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm mb-4">
               3
             </span>
-            <h4 className="text-base font-bold text-white mb-2">ولّد كود التفعيل</h4>
+            <h4 className="text-base font-bold text-white mb-2">{t.posGuideStep3Title}</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              ضع الكود في <a href="#activation" className="text-emerald-400 underline">بوابة التفعيل أعلاه</a> واضغط على زر "إصدار كود التفعيل" لنسخه بنقرة واحدة.
+              {t.posGuideStep3Desc}
             </p>
           </div>
 
@@ -1165,9 +1182,9 @@ export default function PosPortalPage() {
             <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold text-sm mb-4">
               4
             </span>
-            <h4 className="text-base font-bold text-white mb-2">ابدأ البيع فوراً!</h4>
+            <h4 className="text-base font-bold text-white mb-2">{t.posGuideStep4Title}</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              الصق المفتاح في البرنامج، أضف أول أصنافك، واطبع فواتير البيع واستمتع بأعلى سرعة واستقرار.
+              {t.posGuideStep4Desc}
             </p>
           </div>
 
@@ -1180,48 +1197,48 @@ export default function PosPortalPage() {
         
         <div className="text-center mb-12">
           <h2 className="text-3xl font-extrabold text-white tracking-tight">
-            الأسئلة الشائعة
+            {t.posFaqTitle}
           </h2>
           <p className="mt-3 text-sm text-gray-400">
-            إجابات واضحة عن كل ما يخص برنامج الكاشير والتراخيص.
+            {t.posFaqSubtitle}
           </p>
         </div>
 
-        <div className="space-y-4 text-right">
+        <div className={`space-y-4 ${isAr ? "text-right" : "text-left"}`}>
           
           <div className="p-5 rounded-2xl bg-[#0B101D] border border-white/10">
             <h4 className="text-sm font-bold text-white mb-2">
-              هل يحتاج البرنامج إلى اتصال دائم بالإنترنت؟
+              {t.posFaq1Q}
             </h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              إطلاقاً! البرنامج يعمل بنسبة 100% بدون أي اتصال بالإنترنت (Local-First). جميع عمليات البيع والطباعة وإدارة المخازن تتم على جهازك محلياً عبر قاعدة بيانات SQLite سريعة. الإنترنت مطلوب فقط في حال أردت تفعيل المزامنة السحابية أو إرسال فواتير الواتساب.
+              {t.posFaq1A}
             </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-[#0B101D] border border-white/10">
             <h4 className="text-sm font-bold text-white mb-2">
-              هل أستطيع تشغيل البرنامج على أكثر من جهاز في نفس المحل؟
+              {t.posFaq2Q}
             </h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              نعم، يمكنك تشغيل نسخة رئيسية (Master POS) وربط أجهزة كاشير فرعية أخرى على نفس الشبكة المحلية (Local LAN)، أو تشغيل كل جهاز بنسخته المستقلة مع تفعيل مفتاح ترخيص خاص بكل جهاز.
+              {t.posFaq2A}
             </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-[#0B101D] border border-white/10">
             <h4 className="text-sm font-bold text-white mb-2">
-              ماذا يحدث إذا قمت بعمل فورمات لجهاز الكمبيوتر؟
+              {t.posFaq3Q}
             </h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              طالما لم تقم بتغيير معالج الجهاز (CPU) أو المازربورد، فإن بصمة الجهاز (Hardware ID) ستظل متطابقة. يمكنك إعادة إدخال نفس كود التفعيل وسيعمل البرنامج مجدداً. كما يمكنك استعادة بياناتك فوراً من ملف النسخة الاحتياطية (.qzbk).
+              {t.posFaq3A}
             </p>
           </div>
 
           <div className="p-5 rounded-2xl bg-[#0B101D] border border-white/10">
             <h4 className="text-sm font-bold text-white mb-2">
-              هل يدعم النظام ضريبة القيمة المضافة 14% ومنظومة الضرائب المصرية؟
+              {t.posFaq4Q}
             </h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              نعم، النظام مستوفٍ بالكامل لمتطلبات مصلحة الضرائب المصرية (ETA)، حيث يدعم حقول الضرائب، رقم التسجيل الضريبي 9 أرقام، ويولد الـ QR Code القياسي المشفر (Base64 TLV) على كل فاتورة تلقائياً.
+              {t.posFaq4A}
             </p>
           </div>
 
@@ -1234,10 +1251,10 @@ export default function PosPortalPage() {
         <div className="p-10 rounded-3xl bg-gradient-to-r from-emerald-900/60 via-[#0B101D] to-cyan-900/60 border border-emerald-500/40 text-center flex flex-col items-center">
           <Store className="w-12 h-12 text-emerald-400 mb-4" />
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-3">
-            ابدأ بتطوير متجرك ونظام كاشيرك اليوم
+            {t.posBottomCtaTitle}
           </h2>
           <p className="text-sm text-gray-300 max-w-2xl mb-8 leading-relaxed">
-            حمّل النسخة الرسمية المجانية وجرّب أعلى سرعة وأفضل استقرار لنقاط البيع وإدارة المخازن.
+            {t.posBottomCtaSubtitle}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
@@ -1245,13 +1262,13 @@ export default function PosPortalPage() {
               className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-bold text-sm flex items-center gap-2 hover:from-emerald-400 hover:to-cyan-400 transition-all shadow-lg shadow-emerald-500/25"
             >
               <Download className="w-4 h-4" />
-              <span>تحميل البرنامج الآن</span>
+              <span>{t.posBottomCtaDownloadBtn}</span>
             </a>
             <a
               href="#activation"
               className="px-7 py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/10 transition-colors"
             >
-              <span>بوابة تفعيل الأجهزة</span>
+              <span>{t.posBottomCtaActivateBtn}</span>
             </a>
           </div>
         </div>
@@ -1260,3 +1277,4 @@ export default function PosPortalPage() {
     </div>
   );
 }
+
