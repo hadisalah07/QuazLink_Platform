@@ -117,7 +117,7 @@ export default function PosPortalPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-medium mb-8 backdrop-blur-md shadow-sm"
+          className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-medium mb-8 shadow-sm"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>الإصدار الرسمي المستقل v1.0.0 — جاهز للتحميل والتشغيل فوراً</span>
@@ -164,7 +164,7 @@ export default function PosPortalPage() {
 
           <a
             href="#activation"
-            className="flex items-center gap-2 px-7 py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-semibold text-base border border-white/15 backdrop-blur-md transition-all hover:border-emerald-500/40"
+            className="flex items-center gap-2 px-7 py-4 rounded-2xl bg-[#0B101D] hover:bg-[#121929] text-white font-semibold text-base border border-white/15 transition-all hover:border-emerald-500/40"
           >
             <Key className="w-5 h-5 text-emerald-400" />
             <span>تفعيل ترخيص جهازك (Hardware ID)</span>
@@ -186,7 +186,7 @@ export default function PosPortalPage() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mt-16 w-full grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 text-right"
         >
-          <div className="p-4 rounded-2xl bg-[#0F1424]/80 border border-emerald-500/20 backdrop-blur-sm flex flex-col gap-1.5">
+          <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-emerald-400">1.8ms</span>
               <Printer className="w-5 h-5 text-emerald-400/70" />
@@ -195,7 +195,7 @@ export default function PosPortalPage() {
             <span className="text-[11px] text-gray-400">محرك Canvas-to-Raster عربي</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#0F1424]/80 border border-emerald-500/20 backdrop-blur-sm flex flex-col gap-1.5">
+          <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-cyan-400">100%</span>
               <HardDrive className="w-5 h-5 text-cyan-400/70" />
@@ -204,7 +204,7 @@ export default function PosPortalPage() {
             <span className="text-[11px] text-gray-400">قاعدة بيانات محلية SQLite فائقـة</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#0F1424]/80 border border-emerald-500/20 backdrop-blur-sm flex flex-col gap-1.5">
+          <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-amber-400">ETA Ready</span>
               <QrCode className="w-5 h-5 text-amber-400/70" />
@@ -213,7 +213,7 @@ export default function PosPortalPage() {
             <span className="text-[11px] text-gray-400">ترميز TLV Base64 و QR Code</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#0F1424]/80 border border-emerald-500/20 backdrop-blur-sm flex flex-col gap-1.5">
+          <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-emerald-400">IMEI & S/N</span>
               <Tag className="w-5 h-5 text-emerald-400/70" />
@@ -222,7 +222,7 @@ export default function PosPortalPage() {
             <span className="text-[11px] text-gray-400">لحفظ حقوق الصيانة والإلكترونيات</span>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#0F1424]/80 border border-emerald-500/20 backdrop-blur-sm flex flex-col gap-1.5 col-span-2 sm:col-span-1">
+          <div className="p-4 rounded-2xl bg-[#0F1424] border border-emerald-500/20 flex flex-col gap-1.5 col-span-2 sm:col-span-1">
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-green-400">WhatsApp</span>
               <Smartphone className="w-5 h-5 text-green-400/70" />
@@ -427,7 +427,7 @@ export default function PosPortalPage() {
 
         {/* OS Edition Switcher Tabs */}
         <div className="flex items-center justify-center mb-10">
-          <div className="inline-flex p-1.5 rounded-2xl bg-[#090D18] border border-white/10 backdrop-blur-md gap-1">
+          <div className="inline-flex p-1.5 rounded-2xl bg-[#090D18] border border-white/10 gap-1">
             <button
               onClick={() => setDownloadOsTab("modern")}
               className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
@@ -769,7 +769,7 @@ export default function PosPortalPage() {
             </div>
 
             {/* Right 7 cols: Interactive Form */}
-            <div className="lg:col-span-7 bg-[#090D18]/90 p-6 sm:p-8 rounded-2xl border border-white/10 backdrop-blur-md">
+            <div className="lg:col-span-7 bg-[#090D18] p-6 sm:p-8 rounded-2xl border border-white/10">
               <form onSubmit={handleGenerateLicense} className="space-y-5 text-right">
                 
                 <div>

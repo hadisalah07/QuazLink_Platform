@@ -38,7 +38,7 @@ export default function PosPortalLayout({
       />
 
       {/* Standalone POS Header */}
-      <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-[#070A12]/80 border-b border-emerald-500/15">
+      <header className="sticky top-0 z-50 w-full bg-[#070A12] border-b border-emerald-500/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           
           {/* Brand Logo & Tag */}
@@ -101,7 +101,7 @@ export default function PosPortalLayout({
       </main>
 
       {/* Standalone POS Footer */}
-      <footer className="relative z-10 border-t border-white/10 bg-[#05080E]/90 backdrop-blur-md pt-12 pb-8 mt-24">
+      <footer className="relative z-10 border-t border-white/10 bg-[#05080E] pt-12 pb-8 mt-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             
