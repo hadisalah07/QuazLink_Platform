@@ -59,10 +59,10 @@ export default function DashboardOverview() {
           <Link href="/download">
             <Button
               variant="ghost"
-              className="relative overflow-hidden rounded-full bg-white/5 border border-white/10 text-gray-300 hover:text-white font-semibold px-4 shadow-sm hover:bg-white/10 transition-all duration-300 group cursor-pointer text-xs"
+              className="relative overflow-hidden rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:text-white font-semibold px-4 shadow-sm hover:bg-emerald-500/20 transition-all duration-300 group cursor-pointer text-xs"
             >
-              <Download className="w-3.5 h-3.5 text-cyan-400 inline-block mr-1.5 group-hover:-translate-y-0.5 transition-transform" />
-              Download Runner
+              <Download className="w-3.5 h-3.5 text-emerald-400 inline-block mr-1.5 group-hover:-translate-y-0.5 transition-transform" />
+              Download POS &amp; Apps
             </Button>
           </Link>
           <Link href="/compose">
@@ -92,6 +92,12 @@ export default function DashboardOverview() {
         <SpotlightCard className="p-6 shadow-xl">
           <h2 className="font-semibold text-xl mb-4 text-white">Quick Actions</h2>
           <AnimatedList className="space-y-3" delay={0.2}>
+             <Link href="/download" className="block">
+               <Button className="w-full justify-start text-sm text-emerald-300 font-semibold hover:text-white hover:bg-emerald-500/10 transition-colors border border-emerald-500/20" variant="ghost">
+                 <Download className="w-4 h-4 mr-2 text-emerald-400" />
+                 Download POS &amp; ERP Client
+               </Button>
+             </Link>
              <Link href="/accounts" className="block">
                <Button className="w-full justify-start text-sm text-gray-300 font-medium hover:text-white hover:bg-white/10 transition-colors" variant="ghost">
                  <ExternalLink className="w-4 h-4 mr-2 text-cyan-400" />

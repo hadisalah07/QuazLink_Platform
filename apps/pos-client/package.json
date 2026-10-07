@@ -1,0 +1,56 @@
+{
+  "name": "@quazlink/pos-client",
+  "version": "1.0.0",
+  "description": "QuazLink Enterprise POS & Retail Engine (Offline-First)",
+  "private": true,
+  "main": "dist/electron/main.js",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "dev": "tsx src/main.ts",
+    "dev:electron": "tsc && electron dist/electron/main.js",
+    "start:electron": "electron dist/electron/main.js",
+    "test:db": "tsx src/tests/test-core-db.ts",
+    "test:printer": "tsx src/tests/test-printer-raster.ts",
+    "test:inventory": "tsx src/tests/test-phase3-inventory.ts",
+    "test:synergy": "tsx src/tests/test-phase4-synergy.ts",
+    "test:phase5": "tsx src/tests/test-phase5-licensing-sync.ts",
+    "test:all": "tsx src/tests/test-core-db.ts && tsx src/tests/test-printer-raster.ts && tsx src/tests/test-phase3-inventory.ts && tsx src/tests/test-phase4-synergy.ts && tsx src/tests/test-phase5-licensing-sync.ts",
+    "build": "tsc && node -e \"const fs = require('fs'); fs.mkdirSync('dist/database', {recursive:true}); fs.copyFileSync('src/database/schema.sql', 'dist/database/schema.sql'); fs.cpSync('src/ui', 'dist/ui', {recursive:true}); if(fs.existsSync('src/assets')) fs.cpSync('src/assets', 'dist/assets', {recursive:true});\"",
+    "dist:dir": "npm run build && electron-builder --win --dir",
+    "dist:exe": "npm run build && electron-builder --win"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "electron": "31.7.7",
+    "electron-builder": "^26.15.3",
+    "tsx": "^4.7.0",
+    "typescript": "^5.0.0"
+  },
+  "build": {
+    "appId": "com.quazlink.pos",
+    "productName": "QuazLink POS & ERP",
+    "directories": {
+      "output": "dist/release"
+    },
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "icon": "src/assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "QuazLink POS & ERP"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": false
+  }
+}

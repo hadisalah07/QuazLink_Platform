@@ -8,12 +8,16 @@ import catalogsRouter from './catalogs';
 import aiRouter from './ai';
 import devicesRouter from './devices';
 import integrationsRouter from './integrations';
+import downloadsRouter from './downloads';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
 // Public auth endpoints (signup/login/logout). /me self-guards internally.
 router.use('/auth', authRouter);
+
+// Public / self-guarded download endpoints
+router.use('/downloads', downloadsRouter);
 
 // Everything below requires a valid session or API Key (X-API-Key)
 router.use('/jobs', requireAuth, jobsRouter);

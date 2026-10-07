@@ -358,3 +358,81 @@ export async function deleteDevice(id: string): Promise<void> {
     throw new Error(body.error || `Failed to remove device (${res.status})`);
   }
 }
+
+// --- Downloads & Desktop POS Client ---
+
+export interface DownloadsInfoResponse {
+  posClient: {
+    name: string;
+    version: string;
+    description: string;
+    recommended: boolean;
+    installer: {
+      filename: string;
+      downloadUrl: string;
+      apiDownloadUrl: string;
+      exists: boolean;
+      sizeBytes: number;
+      sizeMB: number;
+      modifiedAt: string | null;
+    };
+    portable: {
+      filename: string;
+      downloadUrl: string;
+      apiDownloadUrl: string;
+      exists: boolean;
+      sizeBytes: number;
+      sizeMB: number;
+      modifiedAt: string | null;
+    };
+    requirements: {
+      os: string;
+      ram: string;
+      disk: string;
+      peripherals: string;
+    };
+  };
+  runner: {
+    name: string;
+    version: string;
+    description: string;
+    recommended: boolean;
+    installer: {
+      filename: string;
+      downloadUrl: string;
+      apiDownloadUrl: string;
+      exists: boolean;
+      sizeBytes: number;
+      sizeMB: number;
+      modifiedAt: string | null;
+    };
+  };
+}
+
+export async function getDownloadsInfo(): Promise<DownloadsInfoResponse> {
+  const res = await apiFetch(`/api/downloads/info`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function generatePosLicense(input: {
+  hardwareId: string;
+  businessName?: string;
+  tier?: "lifetime" | "saas_subscription";
+  expDays?: number;
+}): Promise<{
+  success: boolean;
+  hardwareId: string;
+  licenseKey: string;
+  tier: string;
+  expiresAt: string | null;
+  businessName: string;
+  instructions: string;
+}> {
+  const res = await apiFetch(`/api/downloads/pos/license`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+

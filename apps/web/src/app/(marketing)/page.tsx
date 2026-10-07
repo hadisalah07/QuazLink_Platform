@@ -4,7 +4,7 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { Aurora } from "@/components/effects/Aurora";
 import { GlassCard } from "@/components/effects/GlassCard";
-import { Bot, Network, Zap } from "lucide-react";
+import { Bot, Network, Zap, Store, ArrowRight, Download } from "lucide-react";
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -65,9 +65,6 @@ export default function LandingPage() {
               const video = e.currentTarget;
               video.defaultPlaybackRate = 3.5;
               video.playbackRate = 3.5;
-              video.play().catch(() => {
-                handleFinish();
-              });
             }}
             className="w-full max-w-5xl object-contain opacity-90"
             style={{ 
@@ -87,7 +84,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center space-y-8 pointer-events-auto">
             <div className="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-[var(--color-quaz-cyan)] animate-pulse" />
-              <span className="text-sm font-medium text-gray-300">Next-Gen Workflow Automation</span>
+              <span className="text-sm font-medium text-gray-300">Next-Gen Workflow & Retail Automation</span>
             </div>
             
             <h1 className="text-6xl md:text-8xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500">
@@ -95,20 +92,55 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg md:text-xl text-gray-400 max-w-2xl">
-              Orchestrate complex tasks across apps with intelligent agents. 
-              Connect the nodes, automate the future.
+              Orchestrate complex tasks across apps with intelligent agents & manage your physical retail business with high-speed offline POS.
             </p>
             
             <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
               <Link href="/accounts" className="px-8 py-4 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors">
                 Get Started
               </Link>
-              <button className="px-8 py-4 bg-white/5 text-white font-semibold rounded-full border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-md">
-                View Documentation
-              </button>
+              <Link href="/pos" className="px-7 py-4 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold rounded-full border border-emerald-500/40 hover:border-emerald-500/60 transition-all backdrop-blur-md flex items-center gap-2">
+                <Store className="w-4 h-4 text-emerald-400" />
+                <span>QuazLink POS Portal</span>
+              </Link>
+              <Link href="/download" className="px-8 py-4 bg-white/5 text-white font-semibold rounded-full border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-md flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                <span>Downloads</span>
+              </Link>
             </div>
           </div>
         </motion.div>
+      </section>
+
+      {/* POS Spotlight Announcement Card */}
+      <section className="relative z-10 w-full max-w-7xl px-6 mb-12">
+        <Link href="/pos">
+          <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-950/60 via-[#0C1222] to-cyan-950/60 border border-emerald-500/30 hover:border-emerald-500/60 transition-all shadow-xl group cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Store className="w-8 h-8 text-emerald-400" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
+                    جديد • NEW
+                  </span>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white">
+                    نظام الكاشير وإدارة المتاجر والمخازن — QuazLink POS & ERP
+                  </h3>
+                </div>
+                <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-3xl">
+                  يعمل 100% بدون إنترنت، طباعة فورية 1.8ms للطابعات الحرارية بدون تقطيع عربي، تتبع سيريالات وضمان الأجهزة، وجاهز لمنظومة الإيصال الإلكتروني المصري.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm shrink-0 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 group-hover:bg-emerald-500/20 transition-colors">
+              <span>فتح بوابة الكاشير والتحميل</span>
+              <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+            </div>
+          </div>
+        </Link>
       </section>
 
       {/* Features Section */}

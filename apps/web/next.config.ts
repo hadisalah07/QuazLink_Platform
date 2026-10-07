@@ -10,6 +10,16 @@ const nextConfig: NextConfig = {
         destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.9.5/QuazLink-Runner-Setup.exe",
         permanent: false,
       },
+      {
+        source: "/downloads/QuazLink-POS-Setup.exe",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Setup.exe",
+        permanent: false,
+      },
+      {
+        source: "/downloads/QuazLink-POS-Portable.zip",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Portable.zip",
+        permanent: false,
+      },
     ];
   },
 };

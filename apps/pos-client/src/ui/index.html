@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuazLink POS & ERP — نظام إدارة التجارة والكاشير</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Floating Update Notification Banner -->
+  <div id="updateAlertBanner" style="display: none; background: linear-gradient(90deg, #065f46, #047857); color: #fff; padding: 10px 20px; border-bottom: 2px solid #34d399; font-size: 0.85rem; font-weight: 600; justify-content: space-between; align-items: center; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 1.25rem;">🚀</span>
+      <span><b>يتوفر تحديث جديد لبرنامج الكاشير (<span id="bannerLatestVer">v1.0.1</span>)!</b> تم إطلاق ميزات وتحسينات أداء مهمة.</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" class="btn-sm btn-emerald" onclick="switchView('settingsView'); switchSettingsSubtab('updates');" style="font-weight: 700; padding: 6px 14px; background: #10b981; color: #000; border: none; border-radius: 6px; cursor: pointer;">⚡ مراجعة وتثبيت التحديث</button>
+      <button type="button" class="btn-sm btn-secondary" onclick="dismissUpdateBanner()" style="padding: 6px 12px; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; cursor: pointer;">✕ إغلاق</button>
+    </div>
+  </div>
+
+  <!-- Header Bar -->
+  <header class="pos-header">
+    <div class="header-left">
+      <div class="brand">
+        <span class="brand-logo">⚡</span>
+        <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
+      </div>
+      <!-- View Switcher Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-view="posView" onclick="switchView('posView')">🛒 الكاشير (POS)</button>
+        <button class="nav-tab" data-view="salesInvoicesView" onclick="switchView('salesInvoicesView')">🧾 فواتير البيع</button>
+        <button class="nav-tab" data-view="purchasesView" onclick="switchView('purchasesView')">🚚 فواتير الشراء</button>
+        <button class="nav-tab" data-view="inventoryView" onclick="switchView('inventoryView')">📦 المخزن والمنتجات</button>
+        <button class="nav-tab" data-view="crmView" onclick="switchView('crmView')">👥 العملاء والموردين والآجل</button>
+        <button class="nav-tab" data-view="lowStockView" onclick="switchView('lowStockView')">⚠️ النواقص (<span id="lowStockCountBadge">0</span>)</button>
+        <button class="nav-tab" data-view="settingsView" onclick="switchView('settingsView')">⚙️ الإعدادات والترخيص <span id="navUpdateBadge" style="display: none; background: #10b981; color: #000; font-size: 0.68rem; font-weight: 800; padding: 2px 6px; border-radius: 8px; margin-right: 4px;">تحديث 🚀</span></button>
+      </nav>
+
+    </div>
+
+    <div class="header-right">
+      <div id="shiftHeaderPill" style="display: none; align-items: center; gap: 6px;">
+        <span id="shiftStatusBadge" class="badge-terminal" style="cursor: pointer; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7; display: flex; align-items: center; gap: 5px;" onclick="openShiftControlModal()">
+          <span id="shiftStatusIndicator" style="width:7px; height:7px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+          <span id="shiftStatusText">وردية #1</span>
+        </span>
+      </div>
+      <span class="badge-terminal">الفرع: B01</span>
+      <div class="time-clock" id="liveClock">00:00:00</div>
+    </div>
+  </header>
+
+  <!-- VIEW 1: POS Cashier Workspace -->
+  <main class="pos-workspace app-view active" id="posView">
+    <section class="cart-section">
+      <!-- Master POS Command & Scanner Center -->
+      <div class="pos-control-center">
+        <div class="pos-action-ribbon" id="posShortcutsBar">
+          <div class="shortcuts-group">
+            <button type="button" class="shortcut-pill" onclick="focusSearch()"><kbd>F1</kbd> <span>بحث / باركود</span></button>
+            <button type="button" class="shortcut-pill" onclick="togglePriceType()"><kbd>F2</kbd> <span id="priceTypeBadge">سعر قطاعي</span></button>
+            <button type="button" class="shortcut-pill" onclick="openCustomerModal()"><kbd>F3</kbd> <span id="customerNameBadge">عميل نقدي</span></button>
+            <button type="button" class="shortcut-pill" id="posShiftShortcutBtn" style="display:none;" onclick="openShiftControlModal()"><kbd>F8</kbd> <span>الخزينة والوردية</span></button>
+            <button type="button" class="shortcut-pill" onclick="openDiscountModal()"><kbd>F9</kbd> <span>خصم فوري</span></button>
+            <button type="button" class="shortcut-pill primary" onclick="handleCheckout(true)"><kbd>F12</kbd> <span>دفع وطباعة حرارية</span></button>
+          </div>
+
+          <div class="scanner-status">
+            <span class="pulse-indicator"></span> <span>مسدس الباركود جاهز</span>
+          </div>
+        </div>
+
+        <div class="scanner-bar">
+          <div class="input-wrapper">
+            <span class="scanner-icon">📟</span>
+            <input type="text" id="barcodeInput" placeholder="امسح الباركود بمسدس الليزر أو اكتب اسم الصنف / الكود ثم اضغط Enter..." autocomplete="off">
+            <button type="button" class="btn-clear" onclick="clearSearch()" title="مسح النص">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="pos-table" id="cartTable">
+          <thead>
+            <tr>
+              <th width="5%">#</th>
+              <th width="35%">الصنف / المنتج</th>
+              <th width="20%">السيريال / IMEI</th>
+              <th width="12%">الكمية</th>
+              <th width="13%">السعر</th>
+              <th width="15%">الإجمالي</th>
+              <th width="5%"></th>
+            </tr>
+          </thead>
+          <tbody id="cartTableBody">
+            <tr id="emptyCartRow">
+              <td colspan="7" class="empty-state">
+                <div class="empty-box">
+                  <span class="empty-icon">🛒</span>
+                  <h3>السلة فارغة حالياً</h3>
+                  <p>ابدأ بمسح باركود المنتج بمسدس الباركود أو اضغط <b>F1</b> للبحث بالاسم والكود</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="quick-products-bar">
+        <span class="quick-title">⚡ أصناف سريعة:</span>
+        <div class="quick-chips" id="quickChipsContainer"></div>
+      </div>
+    </section>
+
+    <aside class="checkout-aside">
+      <div class="summary-card">
+        <h2 class="summary-title">ملخص الحساب</h2>
+
+        <div class="summary-row">
+          <span>المجموع الفرعي:</span>
+          <span class="val" id="subtotalVal">0.00 EGP</span>
+        </div>
+
+        <div class="summary-row discount">
+          <span>الخصم:</span>
+          <span class="val" id="discountVal">0.00 EGP</span>
+        </div>
+
+        <div class="summary-row vat">
+          <label class="checkbox-label">
+            <input type="checkbox" id="vat14Checkbox" onchange="recalculateTotals()">
+            <span>ضريبة القيمة المضافة (14%)</span>
+          </label>
+          <span class="val" id="vat14Val">0.00 EGP</span>
+        </div>
+
+        <div class="total-banner">
+          <div class="total-label">الصافي المستحق</div>
+          <div class="total-amount" id="finalAmountVal">0.00 <span class="currency">EGP</span></div>
+        </div>
+
+        <div class="payment-tabs">
+          <button type="button" class="pay-tab active" data-method="cash" onclick="setPaymentMethod('cash')">💵 كاش (نقدي)</button>
+          <button type="button" class="pay-tab" data-method="visa" onclick="setPaymentMethod('visa')">💳 فيزا / شبكة</button>
+          <button type="button" class="pay-tab" data-method="credit" onclick="setPaymentMethod('credit')">⏳ آجل (مديونية)</button>
+        </div>
+
+        <div class="tender-section">
+          <div class="input-group">
+            <label>المبلغ المدفوع:</label>
+            <input type="number" id="paidAmountInput" placeholder="0.00" oninput="recalculateTotals()">
+          </div>
+
+          <div class="quick-cash-row">
+            <button type="button" onclick="addCash(50)">+50</button>
+            <button type="button" onclick="addCash(100)">+100</button>
+            <button type="button" onclick="addCash(200)">+200</button>
+            <button type="button" onclick="addCash(500)">+500</button>
+            <button type="button" onclick="setExactCash()" class="btn-exact">المبلغ بالضبط</button>
+          </div>
+
+          <div class="change-banner" id="changeBanner">
+            <span class="change-label" id="changeLabel">الباقي للزبون:</span>
+            <span class="change-val" id="changeVal">0.00 EGP</span>
+          </div>
+        </div>
+
+        <div class="actions-stack">
+          <button type="button" class="btn-checkout primary" onclick="handleCheckout(true)">
+            <span class="btn-icon">🖨️</span>
+            <span>دفع وطباعة حرارية (F12)</span>
+          </button>
+          <div class="sub-actions">
+            <button type="button" class="btn-sub" onclick="handleCheckout(false)">دفع بدون طباعة</button>
+            <button type="button" class="btn-sub warning" onclick="clearCart()">إلغاء السلة (ESC)</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- VIEW: Sales Invoices Hub -->
+  <section class="mgmt-view app-view" id="salesInvoicesView">
+    <div class="mgmt-header">
+      <div class="mgmt-title-group">
+        <h2>🧾 سجل فواتير البيع والمبيعات</h2>
+        <p class="mgmt-desc">متابعة جميع فواتير المبيعات الصادرة، المرتجعات، المتحصلات النقدية، وحسابات الآجل</p>
+      </div>
+      <div class="mgmt-actions">
+        <button class="btn-sub" onclick="loadSalesInvoices()">🔄 تحديث</button>
+        <button class="btn-primary" onclick="switchView('posView')">+ بيع جديد (الكاشير)</button>
+      </div>
+    </div>
+
+    <!-- Sales KPI Cards -->
+    <div class="sales-kpi-bar">
+      <div class="kpi-mini-card" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; white-space: nowrap;">إجمالي المبيعات</span>
+          <span id="salesKpiTotalAmount" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.05rem; color: var(--accent-emerald); white-space: nowrap;">0.00 EGP</span>
+        </div>
+        <span style="font-size: 1.4rem;">💰</span>
+      </div>
+      <div class="kpi-mini-card" style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 8px; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; white-space: nowrap;">عدد الفواتير</span>
+          <span id="salesKpiCount" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.05rem; color: var(--accent-cyan); white-space: nowrap;">0</span>
+        </div>
+        <span style="font-size: 1.4rem;">🧾</span>
+      </div>
+      <div class="kpi-mini-card" style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; white-space: nowrap;">المدفوع نقداً</span>
+          <span id="salesKpiPaid" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.05rem; color: #a5b4fc; white-space: nowrap;">0.00 EGP</span>
+        </div>
+        <span style="font-size: 1.4rem;">💵</span>
+      </div>
+      <div class="kpi-mini-card" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 7px 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block; white-space: nowrap;">المتبقي الآجل (ديون)</span>
+          <span id="salesKpiRemaining" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.05rem; color: var(--accent-amber); white-space: nowrap;">0.00 EGP</span>
+        </div>
+        <span style="font-size: 1.4rem;">⏳</span>
+      </div>
+    </div>
+
+    <!-- Filters & Search Bar -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; flex-wrap: wrap;">
+      <div class="view-subtabs">
+        <button class="subtab active" id="btnSalesFilterAll" onclick="setSalesInvoiceFilter('all')">الكل</button>
+        <button class="subtab" id="btnSalesFilterSale" onclick="setSalesInvoiceFilter('sale')">مبيعات</button>
+        <button class="subtab" id="btnSalesFilterCredit" onclick="setSalesInvoiceFilter('credit')">آجل (باقي مبالغ)</button>
+        <button class="subtab" id="btnSalesFilterReturn" onclick="setSalesInvoiceFilter('sale_return')">مرتجعات</button>
+      </div>
+      <div style="display: flex; gap: 8px; flex: 1; max-width: 420px;">
+        <input type="text" id="salesSearchInput" class="mgmt-search-input" placeholder="🔍 بحث برقم الفاتورة أو اسم العميل أو الهاتف..." oninput="filterSalesInvoicesTable()" style="flex:1;">
+      </div>
+    </div>
+
+    <div class="mgmt-table-card">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>النوع</th>
+            <th>العميل</th>
+            <th>التاريخ والوقت</th>
+            <th>عدد الأصناف</th>
+            <th>الإجمالي</th>
+            <th>الخصم</th>
+            <th>الصافي النهائي</th>
+            <th>المدفوع</th>
+            <th>المتبقي</th>
+            <th>طريقة الدفع</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="salesInvoicesTableBody">
+          <!-- Populated via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VIEW 2: Inventory & Products Hub -->
+  <section class="mgmt-view app-view" id="inventoryView">
+
+    <div class="mgmt-header">
+      <div class="mgmt-title-group">
+        <h2>📦 إدارة المخزن والأصناف</h2>
+        <p class="mgmt-desc">إضافة وتعديل المنتجات، متابعة الأرصدة، وإدخال سيريالات الأجهزة</p>
+      </div>
+      <div class="mgmt-actions">
+        <input type="text" id="invSearchInput" class="mgmt-search-input" placeholder="🔍 بحث في المخزن..." oninput="filterInventoryTable()">
+        <button class="btn-primary" onclick="openNewProductModal()">+ صنف جديد</button>
+      </div>
+    </div>
+
+    <div class="mgmt-table-card">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>الباركود / SKU</th>
+            <th>اسم المنتج</th>
+            <th>سعر الشراء</th>
+            <th>قطاعي</th>
+            <th>جملة</th>
+            <th>رصيد المخزن</th>
+            <th>حد النقص</th>
+            <th>نوع الصنف</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="inventoryTableBody">
+          <!-- Populated via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VIEW 3: Purchases & Suppliers Hub -->
+  <section class="mgmt-view app-view" id="purchasesView">
+    <div class="mgmt-header">
+      <div class="mgmt-title-group">
+        <h2>🚚 فواتير الشراء وتوريد البضاعة</h2>
+        <p class="mgmt-desc">تسجيل بضائع الموردين الواردة وزيادة المخزن وحسابات الآجل</p>
+      </div>
+      <div class="mgmt-actions">
+        <button class="btn-primary" onclick="openNewPurchaseModal()">+ فاتورة شراء جديدة</button>
+      </div>
+    </div>
+
+    <div class="mgmt-table-card">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>رقم الفاتورة</th>
+            <th>المورد</th>
+            <th>تاريخ الفاتورة</th>
+            <th>الإجمالي</th>
+            <th>المدفوع</th>
+            <th>المتبقي (دين للمورد)</th>
+            <th>طريقة الدفع</th>
+          </tr>
+        </thead>
+        <tbody id="purchasesTableBody">
+          <!-- Populated via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VIEW 4: CRM, Customers, Suppliers & Ledgers -->
+  <section class="mgmt-view app-view" id="crmView">
+    <div class="mgmt-header">
+      <div class="mgmt-title-group">
+        <h2>👥 الحسابات والآجل (العملاء والموردين)</h2>
+        <p class="mgmt-desc">كشوف الحسابات التفصيلية وسندات القبض والصرف لتسوية الديون</p>
+      </div>
+      <div class="mgmt-actions">
+        <div class="view-subtabs">
+          <button class="subtab active" id="btnCustomersTab" onclick="switchCrmTab('customer')">العملاء</button>
+          <button class="subtab" id="btnSuppliersTab" onclick="switchCrmTab('supplier')">الموردين</button>
+        </div>
+        <button class="btn-primary" onclick="openAddContactModal()">+ إضافة جهة اتصال</button>
+      </div>
+    </div>
+
+    <div class="mgmt-table-card">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>الاسم</th>
+            <th>رقم الهاتف</th>
+            <th>الرقم الضريبي</th>
+            <th>العنوان</th>
+            <th>الرصيد الحالي</th>
+            <th>الحالة</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="crmTableBody">
+          <!-- Populated via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VIEW 5: Low Stock Alerts -->
+  <section class="mgmt-view app-view" id="lowStockView">
+    <div class="mgmt-header">
+      <div class="mgmt-title-group">
+        <h2>⚠️ تقرير النواقص وحد الطلب</h2>
+        <p class="mgmt-desc">الأصناف التي وصلت لحد التنبيه وتحتاج لطلب توريد عاجل</p>
+      </div>
+      <div class="mgmt-actions">
+        <button class="btn-primary" onclick="openNewPurchaseModal()">طلب توريد سريع</button>
+      </div>
+    </div>
+
+    <div class="mgmt-table-card">
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>الباركود</th>
+            <th>اسم الصنف</th>
+            <th>الرصيد المتبقي</th>
+            <th>حد النقص الأدنى</th>
+            <th>سعر الشراء الحالي</th>
+            <th>سعر البيع</th>
+            <th>إجراء</th>
+          </tr>
+        </thead>
+        <tbody id="lowStockTableBody">
+          <!-- Populated via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- VIEW 6: Settings, Licensing & Modular Platform Engine -->
+  <section class="mgmt-view app-view" id="settingsView">
+    <div class="mgmt-header">
+      <div class="mgmt-title-group">
+        <h2>⚙️ إعدادات النظام، التراخيص والموديولات</h2>
+        <p class="mgmt-desc">تخصيص خصائص البرنامج، تفعيل وإلغاء ميزات الكاشير، وبصمة الجهاز لمنصة QuazLink</p>
+      </div>
+      <div class="mgmt-actions">
+        <div class="view-subtabs">
+          <button type="button" class="subtab active" id="btnSubtabLicense" onclick="switchSettingsSubtab('license')">🔐 الترخيص والعتاد</button>
+          <button type="button" class="subtab" id="btnSubtabCredits" onclick="switchSettingsSubtab('credits')">💳 محفظة الكريديت</button>
+          <button type="button" class="subtab" id="btnSubtabSync" onclick="switchSettingsSubtab('sync')">☁️ المزامنة السحابية</button>
+          <button type="button" class="subtab" id="btnSubtabBackups" onclick="switchSettingsSubtab('backups')">💾 النسخ الاحتياطية</button>
+          <button type="button" class="subtab" id="btnSubtabStore" onclick="switchSettingsSubtab('store')">🏪 بيانات المحل والضرائب ETA</button>
+          <button type="button" class="subtab" id="btnSubtabModules" onclick="switchSettingsSubtab('modules')">🧩 الموديولات والميزات</button>
+          <button type="button" class="subtab" id="btnSubtabShifts" onclick="switchSettingsSubtab('shifts')">⏱️ إدارة الورديات والخزينة</button>
+          <button type="button" class="subtab" id="btnSubtabUpdates" onclick="switchSettingsSubtab('updates')">🔄 التحديثات (Updates) <span id="subtabUpdateDot" style="display: none; width: 7px; height: 7px; background: #34d399; border-radius: 50%; display: inline-block; margin-right: 3px;"></span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 1: License & Machine Lock -->
+    <div id="paneSettingsLicense" class="settings-pane" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+      <!-- Hardware ID Machine Lock Card -->
+      <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(15, 23, 42, 0.95)); border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 14px 18px; box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700;">بصمة هذا الجهاز المشفرة (Hardware ID Machine Lock):</span>
+          <button type="button" class="btn-sm btn-cyan" onclick="copyHardwareId()">📋 نسخ البصمة</button>
+        </div>
+        <div id="licenseHwDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; font-weight: 800; color: var(--accent-cyan); letter-spacing: 1px;">QL-HW-XXXX-XXXX-XXXX-XXXX</div>
+        <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 6px; margin-bottom: 0; line-height: 1.4;">
+          💡 <b>ربط منصة QuazLink السحابية:</b> انسخ بصمة هذا الجهاز وضعها في حسابك على منصة <b>QuazLink Portal</b> في قسم <b>ERP & POS Systems</b> لاختيار ميزات وباقة محلك وتوليد كود التفعيل المخصص لهذا الجهاز.
+        </p>
+      </div>
+
+      <!-- Current License Status Banner -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">حالة الترخيص:</span>
+          <span id="licStatusBadge" style="display: inline-block; font-size: 0.85rem; font-weight: 800; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 5px; padding: 2px 8px; margin-top: 3px;">✅ مفعل</span>
+        </div>
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">نوع الباقة (Tier):</span>
+          <span id="licTierName" style="font-weight: 700; color: #fff; font-size: 0.9rem; margin-top: 3px; display: block;">نسخة تجريبية كاملة (Enterprise Trial)</span>
+        </div>
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">تاريخ انتهاء الصلاحية:</span>
+          <span id="licExpiryDate" style="font-family: 'JetBrains Mono', monospace; color: var(--accent-amber); font-weight: 700; font-size: 0.88rem; margin-top: 3px; display: block;">-</span>
+        </div>
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">الأيام المتبقية:</span>
+          <span id="licDaysRemaining" style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 800; font-size: 1rem; margin-top: 3px; display: block;">-</span>
+        </div>
+      </div>
+
+      <!-- License Activation Form -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px 18px;">
+        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 8px;">تفعيل أو تجديد مفتاح الترخيص:</h4>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <input type="text" id="licenseKeyInput" placeholder="أدخل مفتاح الترخيص (مثال: QLPOS-LIFE-... أو QLPOS-TRIAL-...)" autocomplete="off"
+            style="flex: 1; min-width: 280px; background: #0f172a; border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 12px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; outline: none;">
+          <button type="button" class="btn-primary" onclick="submitActivateLicense()">تفعيل الترخيص ⚡</button>
+          <button type="button" class="btn-sub" onclick="generateDemoTrialLicense()">تجديد ترخيص تجريبي مفتوح 🔄</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 2: Credit Wallet & Cloud Vouchers -->
+    <div id="paneSettingsCredits" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px;">
+        <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
+          💳 <b>محفظة رصيد الكريديت للخدمات السحابية:</b> يتم خصم التوكنز ورسائل الواتساب تلقائياً عند استخدام خدمات الذكاء الاصطناعي والإيصالات الرقمية لحماية هوامش الربح. يمكنك شحن الرصيد بأكواد الكوبونات الرقمية المعتمدة.
+        </p>
+      </div>
+
+      <!-- Balances Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
+        <!-- AI Card -->
+        <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 10px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.4rem;">🤖</span>
+              <div>
+                <h4 style="color: #fff; font-size: 0.95rem; margin: 0;">رصيد الذكاء الاصطناعي السحابي</h4>
+                <span style="font-size: 0.72rem; color: #a5b4fc;">Cloud AI Marketing Tokens</span>
+              </div>
+            </div>
+            <span class="badge-terminal" style="border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;">مفعل</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin: 12px 0 6px 0;">
+            <span id="creditsAiTokens" style="font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 800; color: #818cf8;">100</span>
+            <span style="color: var(--text-muted); font-size: 0.85rem;">توكن متبقي</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-dim); border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 8px;">
+            <span>إجمالي المستهلك:</span>
+            <span id="creditsAiConsumed" style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 700;">0 توكن</span>
+          </div>
+        </div>
+
+        <!-- WhatsApp Card -->
+        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.4rem;">💬</span>
+              <div>
+                <h4 style="color: #fff; font-size: 0.95rem; margin: 0;">رصيد رسائل الواتساب المباشرة</h4>
+                <span style="font-size: 0.72rem; color: #6ee7b7;">WhatsApp Digital Invoices</span>
+              </div>
+            </div>
+            <span class="badge-terminal" style="border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;">مفعل</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 8px; margin: 12px 0 6px 0;">
+            <span id="creditsWaMessages" style="font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 800; color: #34d399;">250</span>
+            <span style="color: var(--text-muted); font-size: 0.85rem;">رسالة متبقية</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-dim); border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 8px;">
+            <span>إجمالي المستهلك:</span>
+            <span id="creditsWaConsumed" style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 700;">0 رسالة</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voucher Redemption Card -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 6px;">شحن الرصيد بكود كوبون رقمي (Cryptographic Voucher):</h4>
+        <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0; margin-bottom: 12px;">
+          اشترِ كود الشحن من منصة QuazLink أو موزع الخدمة وأدخله هنا لزيادة رصيد التوكنز أو الرسائل على الفور.
+        </p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <input type="text" id="voucherCodeInput" placeholder="أدخل كود الكوبون (مثال: QLV-AI-50-XXXX أو QLV-WA-100-XXXX)" autocomplete="off"
+            style="flex: 1; min-width: 280px; background: #0f172a; border: 1px solid var(--border-glass); border-radius: 7px; padding: 9px 12px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; outline: none;">
+          <button type="button" class="btn-primary" onclick="submitRedeemVoucher()">شحن الكوبون الآن ⚡</button>
+          <button type="button" class="btn-sub" onclick="generateDemoVoucher('ai')">+ كوبون ذكاء اصطناعي تجريبي</button>
+          <button type="button" class="btn-sub" onclick="generateDemoVoucher('wa')">+ كوبون واتساب تجريبي</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 3: Cloud Sync & Offline-First Connectivity -->
+    <div id="paneSettingsSync" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+      <!-- Sync Status Overview Banner -->
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">حالة الاتصال السحابي:</span>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+            <span id="syncCloudStatusBadge" style="display: inline-block; font-size: 0.85rem; font-weight: 800; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 5px; padding: 2px 8px;">🟢 جاهز للمزامنة</span>
+          </div>
+        </div>
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">المعاملات المعلقة (قيد الانتظار):</span>
+          <span id="syncPendingCountBadge" style="font-family: 'JetBrains Mono', monospace; color: var(--accent-amber); font-weight: 800; font-size: 1.1rem; margin-top: 2px; display: block;">0 فواتير</span>
+        </div>
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">آخر مزامنة ناجحة:</span>
+          <span id="syncLastTimeDisplay" style="font-size: 0.82rem; color: #fff; font-weight: 600; margin-top: 4px; display: block;">-</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 18px;" onclick="triggerManualSync()">🔄 مزامنة الآن (Sync)</button>
+          <button type="button" class="btn-sub" onclick="testCloudConnection()">🌐 فحص الاتصال</button>
+        </div>
+      </div>
+
+      <!-- Sync Settings Card -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 12px;">إعدادات خادم المزامنة التلقائية (Cloud API Sync):</h4>
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>عنوان خادم المنصة السحابية (API Endpoint):</label>
+            <input type="text" id="setting_cloud_api_endpoint" placeholder="https://api.quazlink.com/v1/pos">
+          </div>
+          <div class="input-group">
+            <label>المزامنة التلقائية الدورية (بالدقائق):</label>
+            <input type="number" id="setting_cloud_sync_interval_mins" min="1" max="180" placeholder="15">
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+          <label class="switch-toggle" style="display: flex; align-items: center; gap: 10px; width: auto;">
+            <input type="checkbox" id="setting_cloud_sync_enabled" checked>
+            <span class="switch-slider"></span>
+            <span style="margin-right: 50px; font-size: 0.82rem; color: #fff; font-weight: 600;">تفعيل المزامنة التلقائية في الخلفية</span>
+          </label>
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 20px;" onclick="saveSyncSettings()">💾 حفظ إعدادات السحابة</button>
+        </div>
+      </div>
+
+      <!-- Cloud Sync Audit Log Table -->
+      <div class="mgmt-table-card" style="max-height: 250px;">
+        <div style="padding: 8px 12px; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border-glass);">
+          سجل عمليات المزامنة السحابية الأخيرة (Sync Audit Trail):
+        </div>
+        <table class="pos-table">
+          <thead>
+            <tr>
+              <th>اتجاه المزامنة</th>
+              <th>الحالة</th>
+              <th>فواتير رُفعت</th>
+              <th>تحديثات سُحبت</th>
+              <th>المدة (ms)</th>
+              <th>التاريخ والوقت</th>
+              <th>التفاصيل</th>
+            </tr>
+          </thead>
+          <tbody id="syncLogTableBody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANE 4: Atomic Backups & Disaster Recovery -->
+    <div id="paneSettingsBackups" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+      <!-- Backup Actions Header -->
+      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h4 style="color: #fff; font-size: 0.95rem; margin: 0 0 4px 0;">نظام النسخ الاحتياطي الذري واستعادة الكوارث (.qzbk):</h4>
+          <span style="font-size: 0.74rem; color: var(--text-dim);">توليد ملفات تفريغ مشفرة ومحمية ببصمة SHA-256 لحماية المنتجات والفواتير والمخزن من التلف أو الضياع.</span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 16px;" onclick="createBackupSubmit('local')">💾 إنشاء نسخة احتياطية محلية</button>
+          <button type="button" class="btn-sub" style="border-color: var(--accent-cyan); color: var(--accent-cyan);" onclick="createBackupSubmit('cloud')">☁️ نسخة احتياطية سحابية</button>
+          <input type="file" id="backupRestoreFileInput" accept=".qzbk,.json" style="display:none;" onchange="handleRestoreFromFile(event)">
+          <button type="button" class="btn-sub" onclick="document.getElementById('backupRestoreFileInput').click()">📂 استيراد واستعادة من ملف</button>
+        </div>
+      </div>
+
+      <!-- Backups Table -->
+      <div class="mgmt-table-card" style="max-height: 380px;">
+        <div style="padding: 8px 12px; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center;">
+          <span>النسخ الاحتياطية المتوفرة على القرص:</span>
+          <button type="button" class="btn-sm btn-sub" onclick="loadBackupsList()">🔄 تحديث القائمة</button>
+        </div>
+        <table class="pos-table">
+          <thead>
+            <tr>
+              <th>معرف النسخة</th>
+              <th>النوع</th>
+              <th>الحجم</th>
+              <th>البصمة المشفرة SHA-256</th>
+              <th>التاريخ والوقت</th>
+              <th>ملاحظات</th>
+              <th>إجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="backupsTableBody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANE 5: Modular Feature Flags (Feature Store) -->
+    <div id="paneSettingsModules" class="settings-pane" style="display: none; flex-direction: column; gap: 10px; overflow-y: auto; padding: 4px;">
+      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; margin-bottom: 2px;">
+        <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
+          🧩 <b>تخصيص النظام حسب رغبة العميل:</b> يمكنك تفعيل أو تعطيل أي ميزة تناسب طبيعة المحل. الميزات المعطلة ستختفي تلقائياً من واجهة الكاشير لتبسيط الاستخدام.
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px;">
+        <!-- Feature 1: Shifts & Z-Report -->
+        <div class="module-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">⏱️</span>
+              <strong style="color: #fff; font-size: 0.9rem;">إدارة الورديات وتقفيل الخزينة (Z-Report)</strong>
+              <span class="badge-terminal" style="font-size: 0.65rem;">اختياري</span>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              إلزام الكاشير بفتح وردية وإدخال العهدة النقدية وحصر المصروفات وطباعة تقرير إغلاق الخزينة Z-Report.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_enable_shifts" onchange="onShiftToggleChanged()">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <!-- Feature 2: Serials & Warranty -->
+        <div class="module-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">🏷️</span>
+              <strong style="color: #fff; font-size: 0.9rem;">أرقام السيريال للأجهزة وتتبع الضمان</strong>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              تفعيل حقول السيريال (Serial / IMEI) لأجهزة الكمبيوتر واللابتوبات ومنع بيعها بدون تحديد السيريال.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_enable_serials">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <!-- Feature 3: AI Ad Generator -->
+        <div class="module-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">✨</span>
+              <strong style="color: #fff; font-size: 0.9rem;">توليد الإعلانات بالذكاء الاصطناعي</strong>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              توليد بوستات فيسبوك وبرودكاست واتساب تلقائياً للمنتجات من شاشة المخزن بنقرة واحدة.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_enable_ai_ad">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <!-- Feature 4: WhatsApp Receipts -->
+        <div class="module-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">💬</span>
+              <strong style="color: #fff; font-size: 0.9rem;">إرسال الإيصالات والفواتير عبر واتساب</strong>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              إرسال الفاتورة الحرارية بنص معتمد ورابط مباشر لرقم واتساب العميل فور إتمام العملية.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_enable_whatsapp">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <!-- Feature 5: Customer & Supplier Ledgers -->
+        <div class="module-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">👥</span>
+              <strong style="color: #fff; font-size: 0.9rem;">حسابات العملاء والموردين والآجل</strong>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              متابعة ديون العملاء ومستحقات الموردين وسندات القبض والصرف لتسوية الحسابات.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_enable_credit_ledgers">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 24px;" onclick="saveModuleSettings()">💾 حفظ إعدادات الموديولات</button>
+      </div>
+    </div>
+
+    <!-- PANE 3: Shift Management & Cash Drawer (Z-Report) -->
+    <div id="paneSettingsShifts" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+      <!-- Shift Status Card -->
+      <div id="shiftCurrentWidget" style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px 18px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.3rem;">⏱️</span>
+            <div>
+              <h3 id="shiftCurrentTitle" style="color: #fff; font-size: 1.05rem; margin: 0;">جاري تحميل حالة الوردية...</h3>
+              <span id="shiftCurrentSubtitle" style="font-size: 0.74rem; color: var(--text-dim);"></span>
+            </div>
+          </div>
+          <div id="shiftActionsBtnGroup" style="display: flex; gap: 8px;">
+            <!-- Populated via JS -->
+          </div>
+        </div>
+
+        <!-- Live Cash Drawer Matrix -->
+        <div id="shiftDrawerMatrix" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">العهدة الافتتاحية:</span>
+            <span id="sdOpeningCash" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff;">0.00 EGP</span>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">مبيعات الكاش:</span>
+            <span id="sdSalesCash" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-emerald);">+0.00 EGP</span>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">تحصيل ديون كاش:</span>
+            <span id="sdPaymentsIn" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #a5b4fc;">+0.00 EGP</span>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">مرتجعات نقدية:</span>
+            <span id="sdReturnsOut" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-red);">-0.00 EGP</span>
+          </div>
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">مصروفات نثرية:</span>
+            <span id="sdExpensesOut" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-amber);">-0.00 EGP</span>
+          </div>
+          <div style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(16,185,129,0.15)); border: 1px solid var(--accent-cyan); border-radius: 7px; padding: 8px 10px;">
+            <span style="font-size: 0.68rem; color: var(--accent-cyan); display: block; font-weight: 700;">الرصيد الدفتري المتوقع:</span>
+            <span id="sdExpectedDrawer" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.05rem; color: #fff;">0.00 EGP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shifts History Table -->
+      <div class="mgmt-table-card" style="max-height: 280px;">
+        <div style="padding: 8px 12px; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border-glass);">
+          سجل الورديات السابقة وتقارير Z-Report:
+        </div>
+        <table class="pos-table">
+          <thead>
+            <tr>
+              <th>رقم الوردية</th>
+              <th>الكاشير</th>
+              <th>وقت الفتح</th>
+              <th>وقت الإغلاق</th>
+              <th>العهدة الافتتاحية</th>
+              <th>مبيعات الكاش</th>
+              <th>المتوقع بالدرج</th>
+              <th>الفعلي المحسوب</th>
+              <th>الفارق (عجز / زيادة)</th>
+              <th>تقرير Z-Report</th>
+            </tr>
+          </thead>
+          <tbody id="shiftsHistoryTableBody">
+            <!-- Populated via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PANE 7: Store & ETA Tax Authority Profile -->
+    <div id="paneSettingsStore" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px;">
+          <div>
+            <h4 style="color: #fff; font-size: 0.95rem; margin: 0;">بيانات المنشأة والملف الضريبي المصري (ETA E-Receipt):</h4>
+            <span style="font-size: 0.74rem; color: var(--text-dim);">بيانات الترويسة ومصلحة الضرائب المصرية لتوليد الباركود الذكي TLV QR ومطابقة الإيصال الإلكتروني.</span>
+          </div>
+          <span class="badge-terminal" style="color: var(--accent-cyan); border-color: rgba(6,182,212,0.4);">منظومة الضرائب المصرية ETA</span>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>اسم المتجر / الشركة (يظهر في ترويسة الإيصال ورمز ETA):</label>
+            <input type="text" id="setting_store_name" placeholder="اسم المحل أو الشركة التجارية">
+          </div>
+          <div class="input-group">
+            <label>رقم التسجيل الضريبي لمصلحة الضرائب (9 أرقام):</label>
+            <input type="text" id="setting_tax_number" placeholder="مثال: 123456789 (9 أرقام ضريبية)">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>رقم هاتف المتجر / خدمة العملاء:</label>
+            <input type="text" id="setting_store_phone" placeholder="01xxxxxxxxx">
+          </div>
+          <div class="input-group">
+            <label>عنوان المتجر / الفرع:</label>
+            <input type="text" id="setting_store_address" placeholder="المدينة، الشارع، رقم العقار">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>كود الفرع الضريبي ETA:</label>
+            <input type="text" id="setting_tax_branch" placeholder="0" value="0">
+          </div>
+          <div class="input-group">
+            <label>العملة الرسمية للفواتير:</label>
+            <input type="text" id="setting_currency" placeholder="EGP" value="EGP">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>عرض ورق الطابعة الحرارية (Receipt Width):</label>
+            <select id="setting_printer_width">
+              <option value="80mm">طابعات عريضة 80mm (المعيار القياسي 576px)</option>
+              <option value="58mm">طابعات صغيرة 58mm (المعيار الصغير 384px)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label>ملاحظة تذييل الإيصال (Receipt Footer Note):</label>
+            <input type="text" id="setting_receipt_footer" placeholder="البضاعة المباعة ترد وتستبدل خلال 14 يوماً طبقا لحماية المستهلك">
+          </div>
+        </div>
+
+        <!-- ETA E-Receipt Toggle -->
+        <div class="module-card" style="margin-top: 10px; background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.3);">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">🏛️</span>
+              <strong style="color: #fff; font-size: 0.9rem;">تفعيل منظومة الإيصال الإلكتروني ورمز ETA TLV QR</strong>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              طباعة رمز الاستجابة السريع المعتمد المكون من 5 حقول مشفرة (اسم البائع، الرقم الضريبي، التوقيت، الإجمالي، وقيمة الضريبة) على الإيصالات الحرارية 80mm/58mm.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_enable_eta_receipts" checked>
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 24px;" onclick="saveStoreSettings()">💾 حفظ بيانات المحل والملف الضريبي</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PANE 8: Updates & Release Management -->
+    <div id="paneSettingsUpdates" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; overflow-y: auto; padding: 4px;">
+      
+      <!-- Version & Check Header Card -->
+      <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 18px 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.4rem;">🔄</span>
+              <h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 800;">تحديثات برنامج QuazLink POS & ERP</h3>
+              <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.4);">
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.0.0</span>
+              </span>
+            </div>
+            <p style="font-size: 0.76rem; color: var(--text-dim); margin: 6px 0 0 0; line-height: 1.4;">
+              تحقق من توفر ميزات جديدة وإصلاحات أمنية صادرة من فريق تطوير QuazLink، وقم بتثبيتها تلقائياً بنقرة واحدة دون فقدان أي بيانات أو فواتير.
+            </p>
+          </div>
+
+          <button type="button" id="btnManualCheckUpdate" class="btn-checkout primary" style="width: auto; padding: 10px 22px; font-weight: 800; font-size: 0.88rem;" onclick="manualCheckForUpdates()">
+            <span id="btnUpdateSpinner" style="display:none;">⏳ </span>
+            <span id="btnUpdateText">🔄 التحقق من وجود تحديثات (Check for Update)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Update Status Card / Alert -->
+      <div id="updateStatusCard" style="display: none; background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border-glass); border-radius: 12px; padding: 20px;">
+        <!-- Populated via JS -->
+      </div>
+
+      <!-- Live Download Progress Card -->
+      <div id="updateProgressCard" style="display: none; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.95)); border: 1px solid var(--accent-cyan); border-radius: 12px; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <strong style="color: #fff; font-size: 0.92rem;">جاري تنزيل التحديث في الخلفية... ⚡</strong>
+          <span id="updateProgressStats" style="font-family: 'JetBrains Mono'; color: var(--accent-cyan); font-weight: 700; font-size: 0.85rem;">0% (0 MB / 0 MB)</span>
+        </div>
+        <div style="background: rgba(0,0,0,0.5); border-radius: 8px; height: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+          <div id="updateProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); transition: width 0.3s ease;"></div>
+        </div>
+        <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 10px; margin-bottom: 0;">
+          💡 بمجرد اكتمال التنزيل، سيقوم البرنامج بفتح مثبت التحديث تلقائياً وتحديث الملفات بأمان تام.
+        </p>
+      </div>
+
+      <!-- Auto Update Settings Card -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong style="color: #fff; font-size: 0.9rem; display: block; margin-bottom: 2px;">فحص التحديثات التلقائي عند بدء التشغيل</strong>
+            <span style="font-size: 0.74rem; color: var(--text-dim);">إظهار شريط إشعار فوري عند توفر إصدار أحدث لضمان تشغيل المتجر بأعلى أداء وأمان.</span>
+          </div>
+          <span style="color: var(--accent-emerald); font-size: 0.82rem; font-weight: 700;">✅ مفعل تلقائياً</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- MODALS -->
+
+
+  <!-- 1. Serial Prompt Guard Modal -->
+  <div class="pos-modal-backdrop" id="serialModal">
+    <div class="pos-modal">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span class="badge-warning">إلزامي للأجهزة</span>
+          <h3 id="modalProductName">اسم الجهاز</h3>
+        </div>
+        <button class="modal-close" onclick="closeSerialModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">هذا الصنف محدد بـ (hasSerial=true). يجب مسح أو اختيار السيريال / IMEI الخاص بالجهاز لربطه بالفاتورة وتفعيل الضمان:</p>
+        <div class="serial-input-wrapper">
+          <label>امسح السيريال الآن:</label>
+          <input type="text" id="serialInputField" placeholder="امسح أو اكتب رقم السيريال ثم اضغط Enter..." autocomplete="off">
+        </div>
+        <div class="available-serials-box">
+          <label>أو اختر من السيريالات المتاحة في المخزن:</label>
+          <div class="serials-list" id="availableSerialsList"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeSerialModal()">إلغاء</button>
+        <button class="btn-checkout primary" onclick="confirmSerialSelection()">تأكيد وإضافة للسلة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. New Product Modal -->
+  <div class="pos-modal-backdrop" id="newProductModal">
+    <div class="pos-modal" style="width: 580px;">
+      <div class="modal-header">
+        <h3>+ إضافة منتج جديد للمخزن</h3>
+        <button class="modal-close" onclick="closeNewProductModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>اسم المنتج:*</label>
+            <input type="text" id="npName" placeholder="مثال: لابتوب Dell G15">
+          </div>
+          <div class="input-group">
+            <label>الباركود:*</label>
+            <input type="text" id="npBarcode" placeholder="الباركود الدولي أو اضغط توليد">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="input-group">
+            <label>سعر الشراء:*</label>
+            <input type="number" id="npBuyPrice" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>سعر القطاعي:*</label>
+            <input type="number" id="npSellRetail" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>سعر الجملة:</label>
+            <input type="number" id="npSellWholesale" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>الرصيد الأولي:</label>
+            <input type="number" id="npInitialStock" placeholder="0" value="0">
+          </div>
+          <div class="input-group">
+            <label>حد النقص (Alert):</label>
+            <input type="number" id="npMinAlert" placeholder="3" value="3">
+          </div>
+        </div>
+
+        <div class="input-group checkbox-row">
+          <label class="checkbox-label">
+            <input type="checkbox" id="npHasSerial" onchange="toggleSerialTextarea()">
+            <span><b>جهاز يحمل رقم تسلسلي (Serial / IMEI)</b> — يلزم إدخال سيريال عند البيع</span>
+          </label>
+        </div>
+
+        <div class="input-group" id="npSerialTextareaGroup" style="display: none;">
+          <label>السيريالات الأولية (سيريال في كل سطر):</label>
+          <textarea id="npSerialsText" rows="3" placeholder="SN1001&#10;SN1002&#10;SN1003"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeNewProductModal()">إلغاء</button>
+        <button class="btn-checkout primary" onclick="submitNewProduct()">حفظ المنتج</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Bulk Add Serials Modal -->
+  <div class="pos-modal-backdrop" id="bulkSerialModal">
+    <div class="pos-modal">
+      <div class="modal-header">
+        <h3>إضافة سيريالات للصنف</h3>
+        <button class="modal-close" onclick="closeBulkSerialModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 id="bulkSerialProductName" style="color:var(--accent-cyan)"></h4>
+        <div class="input-group">
+          <label>أدخل السيريالات الجديدة (سيريال في كل سطر أو امسحهم بالمسدس):</label>
+          <textarea id="bulkSerialsInput" rows="5" placeholder="SN001&#10;SN002"></textarea>
+        </div>
+        <div class="input-group">
+          <label>مدة الضمان (بالشهور):</label>
+          <input type="number" id="bulkWarrantyMonths" value="12">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeBulkSerialModal()">إلغاء</button>
+        <button class="btn-checkout primary" onclick="submitBulkSerials()">إضافة وتحديث المخزن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Product Movements Card Modal -->
+  <div class="pos-modal-backdrop" id="movementsModal">
+    <div class="pos-modal" style="width: 600px;">
+      <div class="modal-header">
+        <h3>كارت حركة الصنف</h3>
+        <button class="modal-close" onclick="closeMovementsModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 id="movementsProductName" style="color:var(--accent-emerald)"></h4>
+        <div class="table-container" style="max-height: 300px;">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>نوع الحركة</th>
+                <th>الكمية</th>
+                <th>الرصيد بعد</th>
+                <th>رقم الفاتورة المرجعية</th>
+              </tr>
+            </thead>
+            <tbody id="movementsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeMovementsModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. New Purchase Invoice Modal -->
+  <div class="pos-modal-backdrop" id="newPurchaseModal">
+    <div class="pos-modal" style="width: 640px;">
+      <div class="modal-header">
+        <h3>+ تسجيل فاتورة شراء وتوريد بضاعة</h3>
+        <button class="modal-close" onclick="closeNewPurchaseModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>المورد:*</label>
+            <select id="purSupplierSelect"></select>
+          </div>
+          <div class="input-group">
+            <label>اختر المنتج للتوريد:*</label>
+            <select id="purProductSelect" onchange="onPurchaseProductSelected()"></select>
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="input-group">
+            <label>الكمية:*</label>
+            <input type="number" id="purQty" value="1" min="1" oninput="calcPurchaseTotal()">
+          </div>
+          <div class="input-group">
+            <label>سعر شراء الوحدة:*</label>
+            <input type="number" id="purUnitPrice" placeholder="0.00" oninput="calcPurchaseTotal()">
+          </div>
+          <div class="input-group">
+            <label>إجمالي البند:</label>
+            <input type="text" id="purTotalItem" readonly value="0.00 EGP" style="color:var(--accent-emerald); font-weight:bold;">
+          </div>
+        </div>
+
+        <div class="input-group" id="purSerialsGroup" style="display: none;">
+          <label>السيريالات الواردة (عدد السيريالات يجب أن يطابق الكمية بالضبط):</label>
+          <textarea id="purSerialsText" rows="3" placeholder="سيريال في كل سطر..."></textarea>
+        </div>
+
+        <div class="form-grid-2" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-glass);">
+          <div class="input-group">
+            <label>المبلغ المدفوع للمورد (كاش):</label>
+            <input type="number" id="purPaidAmount" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>المتبقي (دين للمورد):</label>
+            <div id="purRemainingLabel" style="font-size: 1.2rem; font-weight: bold; color: var(--accent-amber); margin-top: 8px;">0.00 EGP</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeNewPurchaseModal()">إلغاء</button>
+        <button class="btn-checkout primary" onclick="submitPurchaseInvoice()">تسجيل وتوريد للمخزن</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Statement of Account Modal -->
+  <div class="pos-modal-backdrop" id="statementModal">
+    <div class="pos-modal" style="width: 720px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="stmtContactName">كشف حساب</h3>
+          <span class="text-dim" id="stmtContactPhone"></span>
+        </div>
+        <button class="modal-close" onclick="closeStatementModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="stmt-summary-banner">
+          <div>إجمالي المدين: <b id="stmtTotalDebit" style="color:var(--accent-cyan)">0</b></div>
+          <div>إجمالي الدائن: <b id="stmtTotalCredit" style="color:var(--accent-emerald)">0</b></div>
+          <div>الرصيد الحالي: <b id="stmtCurrentBalance" style="color:var(--accent-amber); font-size: 1.2rem;">0</b></div>
+        </div>
+
+        <div class="table-container" style="max-height: 320px;">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>البيان</th>
+                <th>المرجع</th>
+                <th>مدين (+)</th>
+                <th>دائن (-)</th>
+                <th>الرصيد التراكمي</th>
+              </tr>
+            </thead>
+            <tbody id="statementTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeStatementModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Payment Voucher Modal (سند قبض / صرف) -->
+  <div class="pos-modal-backdrop" id="paymentVoucherModal">
+    <div class="pos-modal">
+      <div class="modal-header">
+        <h3 id="pvTitle">تسجيل دفعة نقدية</h3>
+        <button class="modal-close" onclick="closePaymentModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <h4 id="pvContactName" style="color:var(--accent-cyan)"></h4>
+        <div class="input-group">
+          <label>المبلغ المدفوع:*</label>
+          <input type="number" id="pvAmount" placeholder="0.00">
+        </div>
+        <div class="input-group">
+          <label>طريقة الدفع:</label>
+          <select id="pvMethod">
+            <option value="cash">نقداً (كاش الخزينة)</option>
+            <option value="bank">تحويل بنكي</option>
+            <option value="vodafone_cash">محفظة إلكترونية</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>ملاحظات السند:</label>
+          <input type="text" id="pvNotes" placeholder="مثال: دفعة تحت الحساب">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closePaymentModal()">إلغاء</button>
+        <button class="btn-checkout primary" onclick="submitPaymentVoucher()">حفظ وترحيل للحساب</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Modal (F3 in POS) -->
+  <div class="pos-modal-backdrop" id="customerModal">
+    <div class="pos-modal">
+      <div class="modal-header">
+        <h3>تحديد العميل (F3)</h3>
+        <button class="modal-close" onclick="closeCustomerModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label>رقم هاتف العميل:</label>
+          <input type="text" id="customerPhoneInput" placeholder="01xxxxxxxxx" onkeyup="if(event.key==='Enter') searchCustomer()">
+        </div>
+        <div class="input-group">
+          <label>اسم العميل / الشركة:</label>
+          <input type="text" id="customerNameInput" placeholder="اسم العميل">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-sub" onclick="closeCustomerModal()">إلغاء</button>
+        <button class="btn-checkout primary" onclick="saveCustomer()">حفظ واختيار</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt Live Preview Modal -->
+  <div class="pos-modal-backdrop" id="receiptModal">
+    <div class="pos-modal receipt-modal-box">
+      <div class="modal-header">
+        <h3>✅ تمت العملية وطباعة الإيصال الحراري</h3>
+        <button class="modal-close" onclick="closeReceiptModal()">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="receipt-paper" id="receiptPaper"></div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="text" id="receiptPhoneInput" placeholder="رقم واتساب (01xxxxxxxxx)" style="background:#0f172a; border:1px solid #25D366; color:#fff; border-radius:6px; padding:6px 10px; font-size:0.8rem; width:160px; outline:none;">
+          <button class="btn-checkout" style="background:#25D366; color:#fff; padding:7px 14px; font-size:0.85rem;" id="btnSendWhatsapp" onclick="sendReceiptWhatsapp()">
+            <span>💬</span> واتساب
+          </button>
+        </div>
+        <button class="btn-checkout primary" onclick="closeReceiptModal()">تم (بدء فاتورة جديدة)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Contact Modal (CRM Hub) -->
+  <div class="pos-modal-backdrop" id="addContactModal">
+    <div class="pos-modal" style="width: 440px;">
+      <div class="modal-header">
+        <h3 id="addContactModalTitle" style="color:#fff; font-size:1.05rem;">إضافة جهة اتصال جديدة</h3>
+        <button type="button" class="modal-close" onclick="closeAddContactModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 10px;">
+        <div class="input-group">
+          <label>الاسم الكامل / الشركة:</label>
+          <input type="text" id="contactNameInput" placeholder="مثال: م. أحمد أو شركة الأمل" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label>رقم الهاتف:</label>
+          <input type="text" id="contactPhoneInput" placeholder="01xxxxxxxxx" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label>العنوان:</label>
+          <input type="text" id="contactAddressInput" placeholder="المدينة، المحافظة" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label>الرقم الضريبي (اختياري):</label>
+          <input type="text" id="contactTaxIdInput" placeholder="xxx-xxx-xxx" autocomplete="off">
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn-sub" onclick="closeAddContactModal()">إلغاء</button>
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 18px;" onclick="saveContactFromModal()">حفظ جهة الاتصال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. AI Social Ad Generator Modal -->
+  <div class="pos-modal-backdrop" id="aiAdModal">
+    <div class="pos-modal" style="width: 640px;">
+      <div class="modal-header">
+        <div>
+          <h3>✨ مولد الإعلانات بالذكاء الاصطناعي</h3>
+          <span class="text-dim" id="aiAdProductName">اسم المنتج</span>
+        </div>
+        <button class="modal-close" onclick="closeAiAdModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="view-subtabs" style="margin-bottom: 8px;">
+          <button class="subtab active" id="btnPresetFacebook" onclick="selectAdPreset('facebook_post')">📱 بوست فيسبوك</button>
+          <button class="subtab" id="btnPresetWhatsapp" onclick="selectAdPreset('whatsapp_broadcast')">💬 برودكاست واتساب</button>
+          <button class="subtab" id="btnPresetFlash" onclick="selectAdPreset('flash_sale')">🔥 عرض 48 ساعة</button>
+          <button class="subtab" id="btnPresetTech" onclick="selectAdPreset('tech_review')">💻 مواصفات تقنية</button>
+        </div>
+
+        <div class="input-group">
+          <label>ملاحظة تسويقية إضافية (اختياري):</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="aiCustomPrompt" placeholder="مثال: خصم 5% للدفع كاش، هدايا شنطة وماوس..." style="flex:1;">
+            <button class="btn-primary" onclick="generateAiAd(true)">توليد ✨</button>
+          </div>
+        </div>
+
+        <div class="input-group" style="position: relative;">
+          <label>نص الإعلان التسويقي:</label>
+          <textarea id="aiAdResultText" rows="10" placeholder="جاري التوليد بالذكاء الاصطناعي..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sub" onclick="copyAiAdText()" id="btnCopyAd">📋 نسخ النص</button>
+          <button class="btn-checkout" style="background:#25D366; color:#fff; padding:8px 14px; font-size:0.85rem;" onclick="shareAiAdWhatsapp()">💬 نشر واتساب</button>
+        </div>
+        <button class="btn-sub" onclick="closeAiAdModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Quick Discount Modal (F9) -->
+  <div class="pos-modal-backdrop" id="discountModal">
+    <div class="pos-modal" style="width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">🏷️</span>
+          <h3 style="margin: 0; font-size: 1.05rem; color: #fff;">تطبيق خصم فوري على الفاتورة</h3>
+        </div>
+        <button type="button" class="modal-close" onclick="closeDiscountModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px;">
+        <!-- Current cart subtotal banner -->
+        <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-muted); font-size: 0.82rem;">إجمالي الفاتورة الحالي:</span>
+          <span id="discountSubtotalPreview" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.1rem; color: #fff;">0.00 EGP</span>
+        </div>
+
+        <!-- Mode selector: EGP Amount vs Percentage % -->
+        <div class="view-subtabs" style="display: grid; grid-template-columns: 1fr 1fr; padding: 3px;">
+          <button type="button" class="subtab active" id="btnDiscountModeAmount" onclick="setDiscountMode('amount')">💵 خصم بمبلغ ثابت (EGP)</button>
+          <button type="button" class="subtab" id="btnDiscountModePercent" onclick="setDiscountMode('percent')">📊 خصم بالنسبة المئوية (%)</button>
+        </div>
+
+        <!-- Value input with unit prefix -->
+        <div class="input-group">
+          <label id="discountInputLabel" style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; display: block;">أدخل قيمة الخصم بالجنيه:</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="number" id="discountValueInput" placeholder="0.00" min="0" step="any" autocomplete="off"
+              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-amber); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-amber); outline: none; box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);"
+              oninput="previewDiscountCalculation()"
+              onkeydown="handleDiscountInputKeydown(event)">
+            <span id="discountUnitBadge" style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted); font-size: 0.88rem;">EGP</span>
+          </div>
+        </div>
+
+        <!-- Quick discount chips -->
+        <div>
+          <span style="font-size: 0.72rem; color: var(--text-dim); display: block; margin-bottom: 5px;">خيارات سريعة:</span>
+          <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+            <button type="button" class="btn-sm" onclick="setQuickDiscount(5, 'percent')">5%</button>
+            <button type="button" class="btn-sm" onclick="setQuickDiscount(10, 'percent')">10%</button>
+            <button type="button" class="btn-sm" onclick="setQuickDiscount(15, 'percent')">15%</button>
+            <button type="button" class="btn-sm" onclick="setQuickDiscount(20, 'percent')">20%</button>
+            <button type="button" class="btn-sm" onclick="setQuickDiscount(50, 'amount')">50ج</button>
+            <button type="button" class="btn-sm" onclick="setQuickDiscount(100, 'amount')">100ج</button>
+            <button type="button" class="btn-sm" style="color: var(--accent-red); border-color: rgba(239,68,68,0.3);" onclick="setQuickDiscount(0, 'amount')">إلغاء الخصم (0)</button>
+          </div>
+        </div>
+
+        <!-- Real-time calculation preview -->
+        <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(16, 185, 129, 0.1)); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 9px 12px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 3px;">
+            <span>قيمة الخصم المحسوبة:</span>
+            <span id="discountCalculatedVal" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-amber);">0.00 EGP</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.95rem; font-weight: 800; color: #fff;">
+            <span>الصافي بعد الخصم:</span>
+            <span id="discountNetPreviewVal" style="font-family: 'JetBrains Mono', monospace; color: var(--accent-emerald);">0.00 EGP</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn-sub" onclick="closeDiscountModal()">إلغاء (ESC)</button>
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 20px; font-size: 0.85rem;" onclick="applyDiscountConfirm()">
+          <span>تطبيق الخصم (Enter) ✓</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. Quantity Edit Modal -->
+  <div class="pos-modal-backdrop" id="quantityModal">
+    <div class="pos-modal" style="width: 380px;">
+      <div class="modal-header">
+        <h3 id="quantityModalTitle" style="color: #fff; font-size: 0.98rem;">تعديل كمية الصنف</h3>
+        <button type="button" class="modal-close" onclick="closeQuantityModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 10px;">
+        <p class="modal-desc" id="quantityModalDesc">حدد الكمية المطلوبة للصنف في السلة:</p>
+        <div class="input-group">
+          <input type="number" id="quantityModalInput" min="1" step="1" autocomplete="off"
+            style="width: 100%; background: #0f172a; border: 1px solid var(--accent-cyan); border-radius: 8px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: #fff; text-align: center; outline: none; box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);"
+            onkeydown="handleQuantityInputKeydown(event)">
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn-sub" onclick="closeQuantityModal()">إلغاء (ESC)</button>
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 18px; font-size: 0.85rem;" onclick="confirmQuantityModal()">حفظ الكمية (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. Sale Invoice Details Modal -->
+  <div class="pos-modal-backdrop" id="saleInvoiceDetailsModal">
+    <div class="pos-modal" style="width: 720px; max-width: 95vw;">
+      <div class="modal-header">
+        <div>
+          <h3 id="invModalTitle" style="color:#fff; font-size:1.1rem; margin-bottom:2px;">تفاصيل الفاتورة</h3>
+          <span class="text-dim" id="invModalSubtitle" style="font-size:0.78rem;"></span>
+        </div>
+        <button type="button" class="modal-close" onclick="closeSaleInvoiceDetails()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px;">
+        <!-- Header Info Card -->
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">العميل:</span>
+            <span id="invModalCustomer" style="font-weight:700; color:#fff; font-size:0.85rem;">عميل نقدي</span>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">الهاتف:</span>
+            <span id="invModalPhone" style="font-family:'JetBrains Mono',monospace; color:var(--accent-cyan); font-size:0.82rem;">-</span>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">طريقة الدفع:</span>
+            <span id="invModalMethod" style="color:var(--accent-emerald); font-weight:700; font-size:0.82rem;">نقداً</span>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">تاريخ الإصدار:</span>
+            <span id="invModalDate" style="color:var(--text-dim); font-size:0.78rem;">-</span>
+          </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-container" style="max-height: 220px; overflow-y: auto;">
+          <table class="pos-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th>الصنف</th>
+                <th>السعر</th>
+                <th>الكمية</th>
+                <th>الإجمالي</th>
+                <th>السيريال / IMEI</th>
+              </tr>
+            </thead>
+            <tbody id="invModalItemsBody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Financial Summary Banner -->
+        <div style="background: linear-gradient(135deg, rgba(6,182,212,0.08), rgba(16,185,129,0.08)); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">المجموع:</span>
+            <span id="invModalSubtotal" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#fff;">0.00 EGP</span>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">الخصم:</span>
+            <span id="invModalDiscount" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--accent-amber);">-0.00 EGP</span>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">الضريبة (14%):</span>
+            <span id="invModalVat" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-muted);">+0.00 EGP</span>
+          </div>
+          <div>
+            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">الصافي النهائي:</span>
+            <span id="invModalFinal" style="font-family:'JetBrains Mono',monospace; font-weight:800; color:var(--accent-emerald); font-size:1.05rem;">0.00 EGP</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 6px 14px; font-size: 0.82rem;" onclick="reprintCurrentModalInvoice()">
+            <span>🖨️</span> إعادة طباعة الإيصال
+          </button>
+          <button type="button" class="btn-checkout" style="background:#25D366; color:#fff; width: auto; padding: 6px 14px; font-size: 0.82rem;" onclick="whatsappCurrentModalInvoice()">
+            <span>💬</span> واتساب
+          </button>
+          <button type="button" class="btn-sub" style="border-color:var(--accent-amber); color:var(--accent-amber);" onclick="startReturnForCurrentModalInvoice()">
+            <span>↩️</span> عمل مرتجع
+          </button>
+        </div>
+        <button type="button" class="btn-sub" onclick="closeSaleInvoiceDetails()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Sales Return Modal -->
+  <div class="pos-modal-backdrop" id="salesReturnModal">
+    <div class="pos-modal" style="width: 600px; max-width: 95vw;">
+      <div class="modal-header">
+        <div>
+          <h3 style="color:#fff; font-size:1.05rem; margin-bottom:2px;">↩️ تسجيل مرتجع مبيعات</h3>
+          <span class="text-dim" id="returnModalSubtitle" style="font-size:0.78rem;"></span>
+        </div>
+        <button type="button" class="modal-close" onclick="closeSalesReturnModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 10px;">
+        <p style="font-size:0.8rem; color:var(--text-muted); margin:0;">حدد البنود والكميات المراد استرجاعها وإعادتها للمخزن:</p>
+        <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+          <table class="pos-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th style="width:36px; text-align:center;">إرجاع</th>
+                <th>الصنف</th>
+                <th>السعر</th>
+                <th>الكمية المتاحة</th>
+                <th>كمية الإرجاع</th>
+                <th>السيريال</th>
+              </tr>
+            </thead>
+            <tbody id="returnModalItemsBody">
+              <!-- Populated via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="input-group">
+          <label>ملاحظات المرتجع (سبب الإرجاع):</label>
+          <input type="text" id="returnNotesInput" placeholder="مثال: رغبة العميل في استبدال الصنف أو وجود عيب مصنعي">
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 8px; padding: 9px 12px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size:0.82rem; color:var(--text-muted);">إجمالي المبلغ المسترد للعميل:</span>
+          <span id="returnRefundTotalPreview" style="font-family:'JetBrains Mono',monospace; font-weight:800; font-size:1.1rem; color:var(--accent-amber);">0.00 EGP</span>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn-sub" onclick="closeSalesReturnModal()">إلغاء</button>
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 18px;" onclick="confirmSalesReturnSubmit()">تأكيد المرتجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. Open Shift Modal -->
+  <div class="pos-modal-backdrop" id="openShiftModal">
+    <div class="pos-modal" style="width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">⏱️</span>
+          <h3 style="margin: 0; font-size: 1.05rem; color: #fff;">فتح وردية كاشير جديدة</h3>
+        </div>
+        <button type="button" class="modal-close" onclick="closeOpenShiftModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px;">
+        <div class="input-group">
+          <label>اسم الكاشير المستلم:</label>
+          <input type="text" id="openShiftCashierInput" value="الكاشير الرئيسي" placeholder="اسم الكاشير">
+        </div>
+        <div class="input-group">
+          <label>العهدة النقدية الافتتاحية في الدرج (Opening Float):</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="number" id="openShiftFloatInput" placeholder="0.00" min="0" step="any" autocomplete="off"
+              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-emerald); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-emerald); outline: none;">
+            <span style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted);">EGP</span>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; display: block;">المبلغ النقدي (الفكة / الصرافة) المتواجد بالدرج قبل بدء البيع.</span>
+        </div>
+        <div class="input-group">
+          <label>ملاحظات إضافية (اختياري):</label>
+          <input type="text" id="openShiftNotesInput" placeholder="مثال: استلام الدرج الصباحي">
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn-sub" onclick="closeOpenShiftModal()">إلغاء</button>
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 20px;" onclick="confirmOpenShiftSubmit()">
+          <span>تأكيد وفتح الوردية ✓</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. Petty Expense Modal -->
+  <div class="pos-modal-backdrop" id="pettyExpenseModal">
+    <div class="pos-modal" style="width: 440px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">💸</span>
+          <h3 style="margin: 0; font-size: 1.05rem; color: #fff;">تسجيل مصروف نثري من الدرج</h3>
+        </div>
+        <button type="button" class="modal-close" onclick="closePettyExpenseModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px;">
+        <div class="input-group">
+          <label>مبلغ المصروف (EGP):*</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="number" id="pettyExpenseAmountInput" placeholder="0.00" min="0.5" step="any" autocomplete="off"
+              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-amber); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-amber); outline: none;">
+            <span style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted);">EGP</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>تصنيف المصروف:</label>
+          <select id="pettyExpenseCategorySelect">
+            <option value="بوفيه وضيافة">☕ بوفيه وضيافة (شاي، مياه، سكر)</option>
+            <option value="نظافة ومستلزمات">🧹 أدوات نظافة ومستلزمات</option>
+            <option value="مواصلات وشحن">🚗 مواصلات وشحن بضائع</option>
+            <option value="صيانة وإصلاحات">🔧 صيانة سريعة وأدوات</option>
+            <option value="إكراميات ونثريات">🤝 إكراميات ونثريات عمال</option>
+            <option value="مصاريف تشغيلية أخرى">📦 مصاريف تشغيلية أخرى</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>بيان وسبب الصرف بالتفصيل:*</label>
+          <input type="text" id="pettyExpenseReasonInput" placeholder="مثال: شراء شاي وسكر للفرع">
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn-sub" onclick="closePettyExpenseModal()">إلغاء</button>
+        <button type="button" class="btn-checkout" style="background: var(--accent-amber); color: #000; font-weight: 800; width: auto; padding: 7px 20px;" onclick="confirmPettyExpenseSubmit()">
+          <span>صرف وخصم من الدرج</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. Close Shift Modal (Z-Report Reconciliation) -->
+  <div class="pos-modal-backdrop" id="closeShiftModal">
+    <div class="pos-modal" style="width: 520px; max-width: 95vw;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">🔒</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; color: #fff;">تقفيل الوردية وإصدار تقرير Z-Report</h3>
+            <span id="closeShiftSubtitle" style="font-size: 0.74rem; color: var(--text-dim);">جرد الخزينة اليومي</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close" onclick="closeCloseShiftModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 12px;">
+        <!-- Expected Cash Banner -->
+        <div style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-glass); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-muted); font-size: 0.85rem;">الرصيد الدفتري المتوقع بالدرج:</span>
+          <span id="closeShiftExpectedVal" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.25rem; color: var(--accent-cyan);">0.00 EGP</span>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.82rem; font-weight: 700; color: #fff;">المبلغ النقدي الفعلي المحسوب في الدرج (Actual Cash):*</label>
+          <div style="position: relative; display: flex; align-items: center;">
+            <input type="number" id="closeShiftActualInput" placeholder="0.00" min="0" step="any" autocomplete="off"
+              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-emerald); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: #fff; outline: none;"
+              oninput="calcCloseShiftDifference()">
+            <span style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted);">EGP</span>
+          </div>
+        </div>
+
+        <!-- Difference Result Card -->
+        <div id="closeShiftDiffCard" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 0.82rem; color: var(--text-muted);">حالة الدرج (الفارق):</span>
+          <span id="closeShiftDiffVal" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1rem; color: var(--accent-emerald);">0.00 EGP (مطابق ✓)</span>
+        </div>
+
+        <div class="input-group">
+          <label>ملاحظات إغلاق الوردية (اختياري):</label>
+          <input type="text" id="closeShiftNotesInput" placeholder="مثال: تسليم الخزينة لمدير الفرع">
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn-sub" onclick="closeCloseShiftModal()">إلغاء</button>
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 24px;" onclick="confirmCloseShiftSubmit()">
+          <span>إغلاق الوردية وإصدار Z-Report 📊</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. Z-Report Thermal Preview Modal -->
+  <div class="pos-modal-backdrop" id="zReportModal">
+    <div class="pos-modal receipt-modal-box" style="width: 480px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.2rem;">📊</span>
+          <h3 style="margin: 0; font-size: 1.05rem; color: #fff;">تقرير إغلاق الوردية Z-Report المعتمد</h3>
+        </div>
+        <button type="button" class="modal-close" onclick="closeZReportModal()">✕</button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="receipt-paper" id="zReportPaper" style="max-height: 400px; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 18px;" onclick="printZReportThermal()">
+          <span>🖨️</span> طباعة حرارية
+        </button>
+        <button type="button" class="btn-sub" onclick="closeZReportModal()">تم (إغلاق)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications (Zero blocking browser alerts) -->
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

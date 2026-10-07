@@ -40,6 +40,9 @@ yarn-error.log*
 Thumbs.db
 apps/desktop-agent/release/
 apps/web/public/downloads/*.exe
+apps/web/public/downloads/*.zip
+apps/pos-client/.receipts/
+apps/pos-client/dist/
 scratch/
 apps/desktop-agent/*.png
 apps/desktop-agent/products.json
