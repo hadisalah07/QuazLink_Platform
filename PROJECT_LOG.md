@@ -955,3 +955,24 @@
    - **شارة تنبيه تفاعلية:** ظهور شارة خضراء نابضة `تحديث 🚀` في القائمة العلوية على تبويب الإعدادات.
    - **زر فحص التحديثات اليدوي (Check for Update):** متاح داخل شاشة الإعدادات وتبويب "التحديثات (Updates)" لفحص وتنزيل وتثبيت التحديث مع شريط تقدم مباشر.
 
+---
+
+## 📅 [7 أكتوبر 2026] - إطلاق إصدار Windows 7 Legacy Edition والنشر الحي الشامل على سيرفر الإنتاج
+
+1. **إصدار Windows 7 المخصص (Legacy Win7 Edition):**
+   - بناء وتوزيع رسمي معزول مخصص للأجهزة القديمة وشاشات اللمس ونقاط البيع التي تعمل بـ Windows 7 SP1 / 8 / 8.1 / POSReady 7.
+   - ضبط Electron 22.3.27 LTS (آخر إصدار يدعم Win7 دون مشاكل في نواة نظام التشغيل).
+   - توفير حزمتين: مثبت تنفيذي `QuazLink-POS-Legacy-Win7-Setup.exe` (66.1 MB) ونسخة محمولة `QuazLink-POS-Legacy-Win7-Portable.exe` (65.9 MB).
+   - رفع كافة الملفات إلى GitHub Releases CDN (`pos-v1.0.0`).
+
+2. **محرك SQLite العالمي المزدوج (Universal Dual-Engine):**
+   - دعم التبديل التلقائي بين `node:sqlite` (Node.js 22+) ومحرك الويب أسمبلي `sql.js` (WebAssembly SQLite) لضمان التشغيل 100% على Electron و Windows 7 بدون أي اعتماديات C++ مفقودة (`better-sqlite3`).
+
+3. **النشر الحي وتحديث السيرفر (Live Production Rebuild & Verification):**
+   - مزامنة مستودع الإنتاج على الخادم السحابي (`164.68.115.239`) في `/data/quazlink-repo`.
+   - إعادة بناء الحاويات سحابياً بـ Docker Compose Force-Recreate لحاويات `web` و `api`.
+   - التحقق بالمتصفح الحي من ظهور:
+     - زر **QuazLink POS Portal** وبطاقة الإعلان في الصفحة الرئيسية `https://app.quazlink.site/`.
+     - البوابة الرسمية المستقلة `https://app.quazlink.site/pos` مع محول النسخ (Windows 10/11 vs Windows 7 Legacy).
+     - عمل مسارات التحميل المباشرة بنجاح 100% من شبكة CDN.
+
