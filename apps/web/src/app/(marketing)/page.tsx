@@ -6,6 +6,7 @@ import { Aurora } from "@/components/effects/Aurora";
 import { GlassCard } from "@/components/effects/GlassCard";
 import { Bot, Network, Zap, Store, ArrowRight, Download } from "lucide-react";
 import Link from "next/link";
+import { APP_VERSION } from "@/lib/version";
 
 export default function LandingPage() {
   const [videoEnded, setVideoEnded] = React.useState(false);
@@ -85,6 +86,9 @@ export default function LandingPage() {
             <div className="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-1.5 rounded-full backdrop-blur-md">
               <span className="w-2 h-2 rounded-full bg-[var(--color-quaz-cyan)] animate-pulse" />
               <span className="text-sm font-medium text-gray-300">Next-Gen Workflow & Retail Automation</span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                v{APP_VERSION}
+              </span>
             </div>
             
             <h1 className="text-6xl md:text-8xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500">
@@ -175,6 +179,31 @@ export default function LandingPage() {
           </p>
         </GlassCard>
       </section>
+
+      {/* Footer Section with Live Production Indicator */}
+      <footer className="relative z-10 w-full border-t border-white/10 bg-black/40 backdrop-blur-md py-8 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-white">QuazLink Platform</span>
+            <span>•</span>
+            <span className="flex items-center gap-1.5 font-mono text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              v{APP_VERSION} (Production Live)
+            </span>
+          </div>
+          <div className="flex items-center gap-6">
+            <Link href="/pos" className="hover:text-emerald-400 transition-colors">POS & ERP Portal</Link>
+            <Link href="/download" className="hover:text-cyan-400 transition-colors">Downloads</Link>
+            <Link href="/accounts" className="hover:text-white transition-colors">Console</Link>
+            <a href="/api/version" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors font-mono">
+              /api/version
+            </a>
+          </div>
+          <div className="text-gray-500 text-center sm:text-right">
+            © {new Date().getFullYear()} QuazLink. All systems operational.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
