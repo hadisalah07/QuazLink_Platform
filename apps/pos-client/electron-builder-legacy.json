@@ -1,0 +1,31 @@
+{
+  "appId": "com.quazlink.pos.legacy",
+  "productName": "QuazLink POS & ERP (Legacy Win7)",
+  "electronVersion": "22.3.27",
+  "directories": {
+    "output": "dist/release-legacy"
+  },
+  "win": {
+    "target": [
+      "portable",
+      "nsis"
+    ],
+    "icon": "src/assets/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "shortcutName": "QuazLink POS Legacy (Win7)",
+    "artifactName": "QuazLink-POS-Legacy-Win7-Setup.${ext}"
+  },
+  "portable": {
+    "artifactName": "QuazLink-POS-Legacy-Win7-Portable.${ext}"
+  },
+  "files": [
+    "dist/**/*",
+    "!dist/release*/**",
+    "!dist/test*/**",
+    "package.json"
+  ],
+  "asar": true
+}

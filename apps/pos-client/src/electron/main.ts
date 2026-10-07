@@ -27,6 +27,7 @@ if (!gotSingleInstanceLock) {
   app.whenReady().then(async () => {
     try {
       // 2. Start Embedded POS Server (تشغيل السيرفر المحلي المدمج)
+      await PosDatabase.initializeEngine();
       const db = PosDatabase.getInstance();
       posServer = new PosServer({ port: 3030 });
       serverPort = await posServer.start();

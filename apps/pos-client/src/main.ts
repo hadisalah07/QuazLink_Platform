@@ -82,6 +82,7 @@ async function seedInitialDataIfNeeded(db: PosDatabase) {
 }
 
 async function startPosApplication() {
+  await PosDatabase.initializeEngine();
   const db = PosDatabase.getInstance();
   await seedInitialDataIfNeeded(db);
 

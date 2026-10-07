@@ -34,7 +34,8 @@ import {
   FileText,
   BadgePercent,
   Terminal,
-  ArrowRight
+  ArrowRight,
+  Monitor
 } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import {
@@ -61,6 +62,7 @@ export default function PosPortalPage() {
   // Interactive Mockup State
   const [mockupCartCount, setMockupCartCount] = React.useState(3);
   const [activeFaq, setActiveFaq] = React.useState<number | null>(null);
+  const [downloadOsTab, setDownloadOsTab] = React.useState<"modern" | "legacy">("modern");
 
   React.useEffect(() => {
     getDownloadsInfo()
@@ -419,135 +421,296 @@ export default function PosPortalPage() {
             حمّل نظام الكاشير وابدأ العمل في دقائق
           </h2>
           <p className="mt-4 text-sm sm:text-base text-gray-400 leading-relaxed">
-            جميع الحزم تم تجميعها بأحدث تقنيات الضغط العالي مع محرك Electron 31 الأصلي لنظام تشغيل Windows (64-bit).
+            اختر النسخة المناسبة لجهازك: النسخة الحديثة لأجهزة ويندوز 10 و 11، أو النسخة الخفيفة المخصصة لأجهزة وشاشات الكاشير القديمة (Windows 7 / 8 / POSReady 7).
           </p>
         </div>
 
-        {/* Download Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          
-          {/* Card 1: Official Windows Installer (.exe) */}
-          <SpotlightCard className="relative p-8 rounded-3xl bg-[#0B101D] border-2 border-emerald-500/40 flex flex-col justify-between group">
-            <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-emerald-500 text-black font-bold text-xs uppercase tracking-wide">
-              موصى به للمحلات
-            </div>
+        {/* OS Edition Switcher Tabs */}
+        <div className="flex items-center justify-center mb-10">
+          <div className="inline-flex p-1.5 rounded-2xl bg-[#090D18] border border-white/10 backdrop-blur-md gap-1">
+            <button
+              onClick={() => setDownloadOsTab("modern")}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                downloadOsTab === "modern"
+                  ? "bg-gradient-to-r from-emerald-500 to-cyan-500 text-black shadow-lg shadow-emerald-500/20"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Laptop className="w-4 h-4" />
+              <span>Windows 10 & 11 (الافتراضي الحديث)</span>
+              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/20 text-black font-extrabold">موصى به</span>
+            </button>
 
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                <Laptop className="w-7 h-7 text-emerald-400" />
-              </div>
-
-              <h3 className="text-2xl font-bold text-white mb-2">
-                برنامج التثبيت الرسمي لنظام ويندوز
-              </h3>
-              <p className="text-xs text-gray-400 font-mono mb-4">
-                QuazLink-POS-Setup.exe • الإصدار 1.0.0
-              </p>
-
-              <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                برنامج تثبيت قياسي كامل (NSIS Setup) يقوم بتهيئة بيئة التشغيل، إنشاء اختصارات سطح المكتب وقائمة ابدأ، وربط الطابعات وأجهزة الباركود تلقائياً.
-              </p>
-
-              <div className="space-y-2.5 mb-8 text-xs text-gray-300">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>تثبيت بنقرة واحدة مع أيقونة رسمية على الديسكتوب</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>سيرفر محلي وقاعدة بيانات SQLite مدمجة بالكامل</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>حجم الملف: <strong>153.6 ميجابايت</strong> (جاهز للتحميل)</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <a
-                href="/api/downloads/file/QuazLink-POS-Setup.exe"
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition-all transform hover:-translate-y-0.5"
-                download
-              >
-                <Download className="w-5 h-5" />
-                <span>تحميل برنامج التثبيت (Setup .exe)</span>
-              </a>
-              <span className="block text-center text-[11px] text-gray-500 mt-2">
-                رابط مباشر وسريع • يدعم استئناف التحميل
-              </span>
-            </div>
-          </SpotlightCard>
-
-          {/* Card 2: Portable Edition (.zip) */}
-          <SpotlightCard className="relative p-8 rounded-3xl bg-[#0B101D] border border-white/10 flex flex-col justify-between group hover:border-cyan-500/40 transition-colors">
-            <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold text-xs">
-              بدون تثبيت (Portable)
-            </div>
-
-            <div>
-              <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                <FolderArchive className="w-7 h-7 text-cyan-400" />
-              </div>
-
-              <h3 className="text-2xl font-bold text-white mb-2">
-                النسخة المحمولة بدون تثبيت
-              </h3>
-              <p className="text-xs text-gray-400 font-mono mb-4">
-                QuazLink-POS-Portable.zip • الإصدار 1.0.0
-              </p>
-
-              <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                نسخة مجهزة للتشغيل الفوري من فلاشة USB أو أي مجلد بدون صلاحيات مدير النظام (No Admin Rights). فك الضغط واضغط مرتين للبدء فوراً.
-              </p>
-
-              <div className="space-y-2.5 mb-8 text-xs text-gray-300">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>لا تتطلب أي خطوات تثبيت أو إعدادات مسبقة</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>مثالية لأجهزة الكاشير المقيدة أو العمل من فلاشة USB</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                  <span>حجم الملف: <strong>221.6 ميجابايت</strong> (مضغوط ZIP)</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <a
-                href="/api/downloads/file/QuazLink-POS-Portable.zip"
-                className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-cyan-500/50 transition-all"
-                download
-              >
-                <FolderArchive className="w-5 h-5 text-cyan-400" />
-                <span>تحميل النسخة المحمولة (Portable .zip)</span>
-              </a>
-              <span className="block text-center text-[11px] text-gray-500 mt-2">
-                تشغيل فوري • احتفظ ببياناتك على فلاشة
-              </span>
-            </div>
-          </SpotlightCard>
-
+            <button
+              onClick={() => setDownloadOsTab("legacy")}
+              className={`flex items-center gap-2.5 px-6 py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                downloadOsTab === "legacy"
+                  ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg shadow-amber-500/20"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Monitor className="w-4 h-4" />
+              <span>Windows 7 / 8 / POSReady (الأجهزة القديمة)</span>
+              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30">Legacy Win7</span>
+            </button>
+          </div>
         </div>
+
+        {/* Download Cards Grid */}
+        <AnimatePresence mode="wait">
+          {downloadOsTab === "modern" ? (
+            <motion.div
+              key="modern-cards"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12"
+            >
+              {/* Card 1: Official Windows Installer (.exe) */}
+              <SpotlightCard className="relative p-8 rounded-3xl bg-[#0B101D] border-2 border-emerald-500/40 flex flex-col justify-between group">
+                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-emerald-500 text-black font-bold text-xs uppercase tracking-wide">
+                  موصى به للمحلات
+                </div>
+
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                    <Laptop className="w-7 h-7 text-emerald-400" />
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    برنامج التثبيت الرسمي (Windows 10 / 11)
+                  </h3>
+                  <p className="text-xs text-gray-400 font-mono mb-4">
+                    QuazLink-POS-Setup.exe • الإصدار 1.0.0
+                  </p>
+
+                  <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                    برنامج تثبيت قياسي كامل (NSIS Setup) يقوم بتهيئة بيئة التشغيل، إنشاء اختصارات سطح المكتب وقائمة ابدأ، وربط الطابعات وأجهزة الباركود تلقائياً.
+                  </p>
+
+                  <div className="space-y-2.5 mb-8 text-xs text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>تثبيت بنقرة واحدة مع أيقونة رسمية على الديسكتوب</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>محرك Chromium 126 مع قاعدة بيانات محلية SQLite فائقة السرعة</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>حجم الملف: <strong>204.3 ميجابايت</strong> (جاهز للتحميل)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <a
+                    href="/api/downloads/file/QuazLink-POS-Setup.exe"
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition-all transform hover:-translate-y-0.5"
+                    download
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>تحميل برنامج التثبيت (Setup .exe)</span>
+                  </a>
+                  <span className="block text-center text-[11px] text-gray-500 mt-2">
+                    رابط مباشر وسريع • يدعم استئناف التحميل
+                  </span>
+                </div>
+              </SpotlightCard>
+
+              {/* Card 2: Portable Edition (.zip) */}
+              <SpotlightCard className="relative p-8 rounded-3xl bg-[#0B101D] border border-white/10 flex flex-col justify-between group hover:border-cyan-500/40 transition-colors">
+                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold text-xs">
+                  بدون تثبيت (Portable)
+                </div>
+
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                    <FolderArchive className="w-7 h-7 text-cyan-400" />
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    النسخة المحمولة بدون تثبيت
+                  </h3>
+                  <p className="text-xs text-gray-400 font-mono mb-4">
+                    QuazLink-POS-Portable.zip • الإصدار 1.0.0
+                  </p>
+
+                  <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                    نسخة مجهزة للتشغيل الفوري من فلاشة USB أو أي مجلد بدون صلاحيات مدير النظام (No Admin Rights). فك الضغط واضغط مرتين للبدء فوراً.
+                  </p>
+
+                  <div className="space-y-2.5 mb-8 text-xs text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>لا تتطلب أي خطوات تثبيت أو إعدادات مسبقة</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>مثالية لأجهزة الكاشير المقيدة أو العمل من فلاشة USB</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>حجم الملف: <strong>221.6 ميجابايت</strong> (مضغوط ZIP)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <a
+                    href="/api/downloads/file/QuazLink-POS-Portable.zip"
+                    className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-cyan-500/50 transition-all"
+                    download
+                  >
+                    <FolderArchive className="w-5 h-5 text-cyan-400" />
+                    <span>تحميل النسخة المحمولة (Portable .zip)</span>
+                  </a>
+                  <span className="block text-center text-[11px] text-gray-500 mt-2">
+                    تشغيل فوري • احتفظ ببياناتك على فلاشة
+                  </span>
+                </div>
+              </SpotlightCard>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="legacy-cards"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12"
+            >
+              {/* Legacy Card 1: Windows 7 Installer (.exe) */}
+              <SpotlightCard className="relative p-8 rounded-3xl bg-[#0E0F17] border-2 border-amber-500/40 flex flex-col justify-between group">
+                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wide">
+                  مخصص لأجهزة Win 7 & POSReady
+                </div>
+
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                    <Monitor className="w-7 h-7 text-amber-400" />
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    نسخة التثبيت للأجهزة القديمة (Win 7 Edition)
+                  </h3>
+                  <p className="text-xs text-amber-300 font-mono mb-4">
+                    QuazLink-POS-Legacy-Win7-Setup.exe • Electron 22 LTS
+                  </p>
+
+                  <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                    إصدار مخصص رسمياً لأجهزة نقاط البيع القديمة وشاشات اللمس (Elo, Posiflex, IBM) التي تعمل بنظام Windows 7 SP1 أو Windows 8 أو Windows POSReady 7 دون الحاجة لتحديث نظام التشغيل.
+                  </p>
+
+                  <div className="space-y-2.5 mb-8 text-xs text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>متوافق 100% مع Windows 7 SP1 (32 بت و 64 بت)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>استهلاك ذاكرة منخفض جداً (يناسب أجهزة 2GB RAM)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>حجم خفيف فائق السرعة: <strong>66.1 ميجابايت فقط</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <a
+                    href="/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup.exe"
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400 transition-all transform hover:-translate-y-0.5"
+                    download
+                  >
+                    <Download className="w-5 h-5" />
+                    <span>تحميل نسخة Windows 7 (Setup .exe)</span>
+                  </a>
+                  <span className="block text-center text-[11px] text-gray-500 mt-2">
+                    متوافق مع جميع شاشات اللمس وطابعات الفواتير القديمة
+                  </span>
+                </div>
+              </SpotlightCard>
+
+              {/* Legacy Card 2: Windows 7 Portable (.zip / .exe) */}
+              <SpotlightCard className="relative p-8 rounded-3xl bg-[#0E0F17] border border-amber-500/20 flex flex-col justify-between group hover:border-amber-500/40 transition-colors">
+                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-xs">
+                  بدون تثبيت (Win 7 Portable)
+                </div>
+
+                <div>
+                  <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
+                    <FolderArchive className="w-7 h-7 text-amber-400" />
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    النسخة المحمولة لويندوز 7
+                  </h3>
+                  <p className="text-xs text-amber-300 font-mono mb-4">
+                    QuazLink-POS-Legacy-Win7-Portable.zip • الإصدار 1.0.0
+                  </p>
+
+                  <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                    ملف تنفيذي فوري يعمل مباشرة على أي جهاز كاشير بنظام ويندوز 7 بدون أي خطوات تثبيت أو ملفات إضافية. فقط فك الضغط وابدأ البيع.
+                  </p>
+
+                  <div className="space-y-2.5 mb-8 text-xs text-gray-300">
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>تشغيل فوري بضغطة زر دون الحاجة لصلاحيات Administrator</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>محرك SQLite WebAssembly خفيف وثابت بالكامل</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>حجم الملف: <strong>65.9 ميجابايت فقط</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <a
+                    href="/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable.zip"
+                    className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-amber-500/50 transition-all"
+                    download
+                  >
+                    <FolderArchive className="w-5 h-5 text-amber-400" />
+                    <span>تحميل نسخة Win 7 المحمولة (Portable .zip)</span>
+                  </a>
+                  <span className="block text-center text-[11px] text-gray-500 mt-2">
+                    تشغيل مباشر من فلاشة USB أو سطح المكتب
+                  </span>
+                </div>
+              </SpotlightCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* System Requirements Bar */}
         <div className="p-6 rounded-2xl bg-[#090D18] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-gray-300">
           <div className="flex items-center gap-3">
-            <Cpu className="w-6 h-6 text-emerald-400 shrink-0" />
+            <Cpu className={`w-6 h-6 shrink-0 ${downloadOsTab === "modern" ? "text-emerald-400" : "text-amber-400"}`} />
             <div>
-              <span className="font-bold text-white block">متطلبات التشغيل والمواصفات:</span>
-              <span className="text-gray-400">ويندوز 10 أو 11 (64 بت) • رامات 4 جيجابايت فأكثر • مساحة تخزين 600 ميجابايت</span>
+              <span className="font-bold text-white block">
+                {downloadOsTab === "modern" ? "متطلبات النسخة الحديثة (Modern):" : "متطلبات نسخة الأجهزة القديمة (Legacy Win7):"}
+              </span>
+              <span className="text-gray-400">
+                {downloadOsTab === "modern"
+                  ? "ويندوز 10 أو 11 (64 بت) • رامات 4 جيجابايت فأكثر • مساحة تخزين 600 ميجابايت • محرك Chromium الحديث"
+                  : "ويندوز 7 SP1 أو ويندوز 8 أو POSReady 7 (32/64 بت) • رامات 2 جيجابايت فقط • مساحة تخزين 200 ميجابايت"}
+              </span>
             </div>
           </div>
 
           <div className="flex items-center gap-6 border-t md:border-t-0 md:border-r border-white/10 pt-4 md:pt-0 md:pr-6">
             <div>
-              <span className="font-bold text-white block">الأجهزة المدعومة:</span>
-              <span className="text-gray-400">طابعات فواتير حرارية (80mm/58mm)، قارئ باركود USB، أدراج النقدية.</span>
+              <span className="font-bold text-white block">الأجهزة والطرفيات المدعومة:</span>
+              <span className="text-gray-400">جميع طابعات الفواتير الحرارية (80mm/58mm)، قارئ الباركود USB/Serial، وأدراج النقدية.</span>
             </div>
           </div>
         </div>

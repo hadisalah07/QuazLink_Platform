@@ -34,15 +34,19 @@ function getFileInfo(filePath: string) {
 router.get('/info', (_req, res) => {
   const posInstallerPath = path.join(WEB_DOWNLOADS_DIR, 'QuazLink-POS-Setup.exe');
   const posPortablePath = path.join(WEB_DOWNLOADS_DIR, 'QuazLink-POS-Portable.zip');
+  const posLegacySetupPath = path.join(WEB_DOWNLOADS_DIR, 'QuazLink-POS-Legacy-Win7-Setup.exe');
+  const posLegacyPortablePath = path.join(WEB_DOWNLOADS_DIR, 'QuazLink-POS-Legacy-Win7-Portable.zip');
   const runnerPath = path.join(WEB_DOWNLOADS_DIR, 'QuazLink-Runner-Setup.exe');
 
   const posInstallerInfo = getFileInfo(posInstallerPath);
   const posPortableInfo = getFileInfo(posPortablePath);
+  const posLegacySetupInfo = getFileInfo(posLegacySetupPath);
+  const posLegacyPortableInfo = getFileInfo(posLegacyPortablePath);
   const runnerInfo = getFileInfo(runnerPath);
 
   res.json({
     posClient: {
-      name: 'QuazLink POS & Retail Engine',
+      name: 'QuazLink POS & Retail Engine (Modern Edition)',
       version: '1.0.0',
       description: 'نظام الكاشير ونقاط البيع وإدارة المخازن والفواتير (يعمل بدون إنترنت Offline-First)',
       recommended: true,
@@ -65,6 +69,31 @@ router.get('/info', (_req, res) => {
         peripherals: 'Thermal Receipt Printers (ESC/POS 80mm/58mm), USB Barcode Scanners, Cash Drawers',
       },
     },
+    posLegacyClient: {
+      name: 'QuazLink POS & Retail Engine (Legacy Win7 Edition)',
+      version: '1.0.0',
+      description: 'نسخة مخصصة لأجهزة الكاشير ونقاط البيع القديمة والشاشات اللمسية التي تعمل بأنظمة Windows 7 / POSReady 7',
+      recommended: false,
+      isLegacy: true,
+      installer: {
+        filename: 'QuazLink-POS-Legacy-Win7-Setup.exe',
+        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Setup.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup.exe',
+        ...posLegacySetupInfo,
+      },
+      portable: {
+        filename: 'QuazLink-POS-Legacy-Win7-Portable.zip',
+        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Portable.zip',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable.zip',
+        ...posLegacyPortableInfo,
+      },
+      requirements: {
+        os: 'Windows 7 SP1 / Windows 8 / 8.1 / POSReady 7 (32 & 64 bit)',
+        ram: '2 GB RAM minimum',
+        disk: '400 MB free space',
+        peripherals: 'All Thermal Receipt Printers (ESC/POS), Serial/USB Barcode Scanners, Cash Drawers',
+      },
+    },
     runner: {
       name: 'QuazLink Automation Runner',
       version: '26.9.5',
@@ -85,6 +114,9 @@ router.get('/file/:filename', (req, res) => {
   const allowedFiles = [
     'QuazLink-POS-Setup.exe',
     'QuazLink-POS-Portable.zip',
+    'QuazLink-POS-Legacy-Win7-Setup.exe',
+    'QuazLink-POS-Legacy-Win7-Portable.exe',
+    'QuazLink-POS-Legacy-Win7-Portable.zip',
     'QuazLink-Runner-Setup.exe',
   ];
 
@@ -98,6 +130,9 @@ router.get('/file/:filename', (req, res) => {
     const cdnMap: Record<string, string> = {
       'QuazLink-POS-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Setup.exe',
       'QuazLink-POS-Portable.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Portable.zip',
+      'QuazLink-POS-Legacy-Win7-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Legacy-Win7-Setup.exe',
+      'QuazLink-POS-Legacy-Win7-Portable.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Legacy-Win7-Portable.exe',
+      'QuazLink-POS-Legacy-Win7-Portable.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Legacy-Win7-Portable.zip',
       'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.9.5/QuazLink-Runner-Setup.exe',
     };
 

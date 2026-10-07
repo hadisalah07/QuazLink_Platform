@@ -17,10 +17,13 @@
     "test:all": "tsx src/tests/test-core-db.ts && tsx src/tests/test-printer-raster.ts && tsx src/tests/test-phase3-inventory.ts && tsx src/tests/test-phase4-synergy.ts && tsx src/tests/test-phase5-licensing-sync.ts",
     "build": "tsc && node -e \"const fs = require('fs'); fs.mkdirSync('dist/database', {recursive:true}); fs.copyFileSync('src/database/schema.sql', 'dist/database/schema.sql'); fs.cpSync('src/ui', 'dist/ui', {recursive:true}); if(fs.existsSync('src/assets')) fs.cpSync('src/assets', 'dist/assets', {recursive:true});\"",
     "dist:dir": "npm run build && electron-builder --win --dir",
-    "dist:exe": "npm run build && electron-builder --win"
+    "dist:exe": "npm run build && electron-builder --win",
+    "dist:legacy": "npm run build && electron-builder --win --config electron-builder-legacy.json"
   },
   "dependencies": {
-    "dotenv": "^16.3.1"
+    "@types/sql.js": "^1.4.11",
+    "dotenv": "^16.3.1",
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -49,6 +52,8 @@
     },
     "files": [
       "dist/**/*",
+      "!dist/release*/**",
+      "!dist/test*/**",
       "package.json"
     ],
     "asar": false

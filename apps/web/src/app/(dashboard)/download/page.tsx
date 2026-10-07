@@ -24,7 +24,8 @@ import {
   Clock,
   CheckCircle,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  Monitor
 } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import {
@@ -215,8 +216,8 @@ export default function DownloadPage() {
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                 <div className="text-right">
-                  <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Setup .exe)</div>
-                  <div className="text-[11px] text-emerald-100 font-mono font-normal">تثبيت بنقرة واحدة مع اختصار سطح المكتب (~153 MB)</div>
+                  <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Win 10/11 Setup)</div>
+                  <div className="text-[11px] text-emerald-100 font-mono font-normal">تثبيت بنقرة واحدة مع اختصار سطح المكتب (~204 MB)</div>
                 </div>
               </a>
 
@@ -227,10 +228,37 @@ export default function DownloadPage() {
               >
                 <FolderArchive className="w-5 h-5 text-emerald-400" />
                 <div className="text-right">
-                  <div>نسخة محمولة (Portable .zip)</div>
+                  <div>نسخة محمولة (Win 10/11 Portable)</div>
                   <div className="text-[11px] text-gray-400 font-mono font-normal">فك الضغط وتشغيل مباشر بدون تثبيت (~221 MB)</div>
                 </div>
               </a>
+            </div>
+
+            {/* Dedicated Windows 7 Legacy Options */}
+            <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3">
+              <div className="text-xs text-amber-300 flex items-center gap-2">
+                <Monitor className="w-4 h-4 text-amber-400" />
+                <span>لديك جهاز كاشير أو شاشة لمس بنظام Windows 7 / 8 / POSReady القديم؟</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <a
+                  href="/downloads/QuazLink-POS-Legacy-Win7-Setup.exe"
+                  download="QuazLink-POS-Legacy-Win7-Setup.exe"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-2 transition-all"
+                >
+                  <Download className="w-4 h-4 text-amber-400" />
+                  <span>تحميل نسخة Windows 7 (Setup .exe - 66 MB)</span>
+                </a>
+
+                <a
+                  href="/downloads/QuazLink-POS-Legacy-Win7-Portable.zip"
+                  download="QuazLink-POS-Legacy-Win7-Portable.zip"
+                  className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-semibold flex items-center gap-2 transition-all"
+                >
+                  <FolderArchive className="w-4 h-4 text-amber-400" />
+                  <span>نسخة Win 7 محمولة (Portable .zip - 66 MB)</span>
+                </a>
+              </div>
             </div>
 
             {/* Hardware & Spec Badges */}
