@@ -21,7 +21,7 @@ export function LiveReleaseBadge() {
       {/* Floating Pill */}
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#0A0F1D]/80 hover:bg-[#0A0F1D] border border-emerald-500/30 hover:border-emerald-500/60 shadow-[0_4px_20px_rgba(16,185,129,0.15)] backdrop-blur-xl transition-all duration-300 text-xs text-gray-200 group cursor-pointer"
+        className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#0A0F1D] hover:bg-[#11182A] border border-emerald-500/30 hover:border-emerald-500/60 shadow-[0_4px_20px_rgba(16,185,129,0.15)] transition-colors duration-200 text-xs text-gray-200 group cursor-pointer"
         title="انقر لعرض تفاصيل الإصدار وتحديث الصفحة"
       >
         <span className="relative flex h-2 w-2">
@@ -38,7 +38,7 @@ export function LiveReleaseBadge() {
 
       {/* Expanded Details Card */}
       {open && (
-        <div className="absolute bottom-11 left-0 w-80 p-4 rounded-2xl bg-[#090D1A]/95 border border-white/10 shadow-2xl backdrop-blur-2xl text-white text-xs animate-in fade-in slide-in-from-bottom-2 duration-200">
+        <div className="absolute bottom-11 left-0 w-80 p-4 rounded-2xl bg-[#090D1A] border border-white/10 shadow-2xl text-white text-xs animate-in fade-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />

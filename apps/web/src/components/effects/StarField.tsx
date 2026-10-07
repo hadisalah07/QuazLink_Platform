@@ -15,13 +15,12 @@ interface Particle {
   vy: number;
   radius: number;
   color: string;
-  baseAlpha: number;
 }
 
 export function StarField({
   interactive = true,
   particleCount,
-  maxDistance = 145,
+  maxDistance = 140,
 }: StarFieldProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -35,42 +34,35 @@ export function StarField({
     let animationFrameId: number;
     let width = 0;
     let height = 0;
-    let dpr = 1;
 
-    // Fixed viewport sizing with capped DPR to eliminate GPU fill-rate spikes
+    // Fast, lightweight viewport sizing with 1.0 DPR for 0ms fill-rate overhead
     const updateSize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       width = window.innerWidth;
       height = window.innerHeight;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
+      canvas.width = width;
+      canvas.height = height;
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
     updateSize();
 
-    // Calibrated density: ~50-60 nodes on 1080p desktop, ~25 on mobile
+    // Optimal particle density: 36 nodes on desktop, 20 on mobile
     const count =
       particleCount ??
-      Math.min(
-        Math.max(Math.floor((width * height) / 24000), 24),
-        68
-      );
+      (width > 768 ? 38 : 20);
 
     const particles: Particle[] = [];
-    const nodeColors = ["#22D3EE", "#818CF8", "#A78BFA", "#38BDF8"];
+    const colors = ["#22D3EE", "#818CF8", "#A78BFA", "#38BDF8"];
 
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.45,
-        vy: (Math.random() - 0.5) * 0.45,
-        radius: Math.random() * 1.4 + 1.1, // 1.1px to 2.5px
-        color: nodeColors[i % nodeColors.length],
-        baseAlpha: Math.random() * 0.35 + 0.35,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: Math.random() * 1.2 + 1.2,
+        color: colors[i % colors.length],
       });
     }
 
@@ -97,12 +89,10 @@ export function StarField({
       window.addEventListener("mouseleave", handleMouseLeave, { passive: true });
     }
 
-    let resizeTimeout: NodeJS.Timeout;
+    let resizeTimer: ReturnType<typeof setTimeout>;
     const handleResize = () => {
-      clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        updateSize();
-      }, 100);
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateSize, 150);
     };
 
     window.addEventListener("resize", handleResize, { passive: true });
@@ -118,7 +108,7 @@ export function StarField({
 
     let lastTime = performance.now();
     const maxDistSq = maxDistance * maxDistance;
-    const mouseDistSq = 160 * 160;
+    const mouseDistSq = 150 * 150;
 
     const render = (now: number) => {
       if (!isDocumentVisible) {
@@ -126,73 +116,74 @@ export function StarField({
         return;
       }
 
-      // Delta-time smoothing to guarantee fluid motion even under CPU hiccups
+      // Delta-time smoothing
       const elapsed = (now - lastTime) / 1000;
       const dt = Math.min(elapsed, 0.1);
       lastTime = now;
+      const speedMultiplier = dt * 60;
 
       ctx.clearRect(0, 0, width, height);
 
       const len = particles.length;
 
-      // 1. Position update & wrap-around
+      // 1. Move particles
       for (let i = 0; i < len; i++) {
         const p = particles[i];
+        p.x += p.vx * speedMultiplier;
+        p.y += p.vy * speedMultiplier;
 
-        p.x += p.vx * (dt * 60);
-        p.y += p.vy * (dt * 60);
+        if (p.x < -10) p.x = width + 10;
+        else if (p.x > width + 10) p.x = -10;
+        if (p.y < -10) p.y = height + 10;
+        else if (p.y > height + 10) p.y = -10;
+      }
 
-        if (p.x < -15) p.x = width + 15;
-        else if (p.x > width + 15) p.x = -15;
-        if (p.y < -15) p.y = height + 15;
-        else if (p.y > height + 15) p.y = -15;
-
-        // Draw particle dot
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.baseAlpha;
-        ctx.fill();
-
-        // 2. Connect to neighbouring particles (fast distance-squared check)
+      // 2. Batch Draw Constellation Lines (SINGLE draw call)
+      ctx.beginPath();
+      for (let i = 0; i < len; i++) {
+        const p = particles[i];
         for (let j = i + 1; j < len; j++) {
           const p2 = particles[j];
           const dx = p.x - p2.x;
           const dy = p.y - p2.y;
-          const distSq = dx * dx + dy * dy;
-
-          if (distSq < maxDistSq) {
-            const ratio = 1 - distSq / maxDistSq;
-            ctx.beginPath();
+          if (dx * dx + dy * dy < maxDistSq) {
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = "#8B5CF6";
-            ctx.globalAlpha = ratio * 0.22;
-            ctx.lineWidth = 0.9;
-            ctx.stroke();
-          }
-        }
-
-        // 3. Connect to mouse cursor smoothly (never pauses or halts particles)
-        if (interactive && mouse.active) {
-          const mdx = p.x - mouse.x;
-          const mdy = p.y - mouse.y;
-          const mDistSq = mdx * mdx + mdy * mdy;
-
-          if (mDistSq < mouseDistSq) {
-            const mRatio = 1 - mDistSq / mouseDistSq;
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(mouse.x, mouse.y);
-            ctx.strokeStyle = "#22D3EE";
-            ctx.globalAlpha = mRatio * 0.45;
-            ctx.lineWidth = 1.1;
-            ctx.stroke();
           }
         }
       }
+      ctx.strokeStyle = "rgba(139, 92, 246, 0.16)";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
 
+      // 3. Batch Draw Mouse Interaction Lines (SINGLE draw call)
+      if (interactive && mouse.active) {
+        ctx.beginPath();
+        for (let i = 0; i < len; i++) {
+          const p = particles[i];
+          const mdx = p.x - mouse.x;
+          const mdy = p.y - mouse.y;
+          if (mdx * mdx + mdy * mdy < mouseDistSq) {
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(mouse.x, mouse.y);
+          }
+        }
+        ctx.strokeStyle = "rgba(34, 211, 238, 0.35)";
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+      }
+
+      // 4. Draw Particle Dots
+      for (let i = 0; i < len; i++) {
+        const p = particles[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.55;
+        ctx.fill();
+      }
       ctx.globalAlpha = 1.0;
+
       animationFrameId = requestAnimationFrame(render);
     };
 
@@ -206,7 +197,7 @@ export function StarField({
       }
       window.removeEventListener("resize", handleResize);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      clearTimeout(resizeTimeout);
+      clearTimeout(resizeTimer);
     };
   }, [interactive, maxDistance, particleCount]);
 

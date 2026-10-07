@@ -1,21 +1,15 @@
 "use client";
-import { motion } from "framer-motion";
+
+import * as React from "react";
 
 export function Aurora() {
   return (
-    <div className="absolute top-0 inset-x-0 h-[40vh] pointer-events-none overflow-hidden z-0">
-      <motion.div
-        className="absolute inset-0 opacity-30"
-        style={{
-          background: "linear-gradient(180deg, var(--color-quaz-cyan) 0%, transparent 100%)",
-          filter: "blur(60px)",
-          transform: "translateY(-50%)"
-        }}
-        animate={{
-          opacity: [0.2, 0.4, 0.2]
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-    </div>
+    <div 
+      className="absolute top-0 inset-x-0 h-[40vh] pointer-events-none overflow-hidden z-0"
+      style={{
+        background: "linear-gradient(180deg, rgba(34, 211, 238, 0.12) 0%, rgba(34, 211, 238, 0.04) 45%, transparent 100%)",
+      }}
+      aria-hidden="true"
+    />
   );
 }
