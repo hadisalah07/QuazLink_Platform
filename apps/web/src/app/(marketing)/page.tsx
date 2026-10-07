@@ -19,14 +19,42 @@ export default function LandingPage() {
     }
   }, []);
 
+  const handleReplay = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVideoEnded(false);
+    if (videoRef.current) {
+      videoRef.current.currentTime = 0;
+      videoRef.current.play().catch(() => {});
+    }
+  }, []);
+
   React.useEffect(() => {
-    // Guaranteed safety fallback: Force transition after 2.4 seconds
+    // Skip intro on wheel scroll or escape key
+    const handleScroll = (e: WheelEvent) => {
+      if (e.deltaY > 20 && !videoEnded) {
+        handleFinish();
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.key === "Escape" || e.key === " " || e.key === "Enter") && !videoEnded) {
+        handleFinish();
+      }
+    };
+
+    window.addEventListener("wheel", handleScroll, { passive: true });
+    window.addEventListener("keydown", handleKey);
+
+    // Fallback: allow full 8.5s cinematic playthrough
     const safetyTimer = setTimeout(() => {
       handleFinish();
-    }, 2400);
+    }, 8500);
 
-    return () => clearTimeout(safetyTimer);
-  }, [handleFinish]);
+    return () => {
+      window.removeEventListener("wheel", handleScroll);
+      window.removeEventListener("keydown", handleKey);
+      clearTimeout(safetyTimer);
+    };
+  }, [handleFinish, videoEnded]);
 
   return (
     <div className="relative w-full max-w-full flex flex-col items-center overflow-x-hidden">
@@ -34,54 +62,85 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section 
-        className="relative w-full h-screen flex items-center justify-center z-0 overflow-hidden cursor-pointer"
+        className="relative w-full min-h-screen flex items-center justify-center z-0 overflow-hidden cursor-pointer"
         onClick={handleFinish}
       >
         
-        {/* Video Background - fully unmounted after finish for zero memory and GPU overhead */}
+        {/* Cinematic Video Intro - Seamless Vignette Mask (Zero Rectangular Edges) */}
         {!videoEnded && (
           <motion.div 
-            className="absolute inset-0 z-0 flex items-center justify-center mix-blend-screen pointer-events-none"
-            initial={{ opacity: 1, scale: 1 }}
-            animate={{ opacity: 1, scale: 1 }}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center mix-blend-screen pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.8 }}
           >
-            <video
-              ref={videoRef}
-              src="/videos/hero-animation.mp4"
-              autoPlay
-              muted
-              playsInline
-              preload="auto"
-              controlsList="nodownload"
-              onContextMenu={(e) => e.preventDefault()}
-              onEnded={handleFinish}
-              onError={handleFinish}
-              onTimeUpdate={(e) => {
-                const video = e.currentTarget;
-                if (video.duration && video.currentTime >= video.duration - 0.3) {
-                  handleFinish();
-                }
+            <div 
+              className="w-full max-w-5xl flex items-center justify-center overflow-hidden"
+              style={{
+                maskImage: "radial-gradient(ellipse 65% 60% at 50% 50%, black 30%, transparent 82%)",
+                WebkitMaskImage: "radial-gradient(ellipse 65% 60% at 50% 50%, black 30%, transparent 82%)",
               }}
-              onLoadedMetadata={(e) => {
-                const video = e.currentTarget;
-                video.defaultPlaybackRate = 3.5;
-                video.playbackRate = 3.5;
-              }}
-              className="w-full max-w-5xl object-contain opacity-90"
-            />
+            >
+              <video
+                ref={videoRef}
+                src="/videos/hero-animation.mp4"
+                autoPlay
+                muted
+                playsInline
+                preload="auto"
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
+                onEnded={handleFinish}
+                onError={handleFinish}
+                onLoadedMetadata={(e) => {
+                  const video = e.currentTarget;
+                  video.defaultPlaybackRate = 1.1;
+                  video.playbackRate = 1.1;
+                }}
+                className="w-full object-contain filter contrast-105 brightness-105"
+              />
+            </div>
+
+            {/* Subtle Skip Prompt */}
+            <motion.button
+              type="button"
+              onClick={handleFinish}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.5, duration: 0.4 }}
+              className="mt-6 pointer-events-auto px-4 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs text-gray-300 hover:text-white transition-all flex items-center gap-2 shadow-lg"
+            >
+              <span>تخطي العرض • Skip Intro</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </motion.button>
           </motion.div>
         )}
 
-        {/* Text Content - Fades in AFTER video fades out */}
+        {/* Text Content & Persistent Glowing Logo */}
         <motion.div
-          className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 z-10 pointer-events-none"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: videoEnded ? 1 : 0, y: videoEnded ? 0 : 24 }}
-          transition={{ duration: 0.6, delay: videoEnded ? 0.1 : 0, ease: "easeOut" }}
+          className="relative flex flex-col items-center justify-center text-center px-6 py-20 z-10 pointer-events-none"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: videoEnded ? 1 : 0, y: videoEnded ? 0 : 20 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <div className="flex flex-col items-center space-y-8 pointer-events-auto">
+          <div className="flex flex-col items-center space-y-6 pointer-events-auto">
+            {/* Persistent Glowing QuazLink Logo */}
+            <motion.div 
+              className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center cursor-pointer group"
+              onClick={handleReplay}
+              title="انقر لإعادة تشغيل العرض السينمائي • Click to replay intro"
+              whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-emerald-500/15 blur-2xl opacity-75 group-hover:opacity-100 transition-opacity" />
+              <img 
+                src="/logo.png" 
+                alt="QuazLink Logo" 
+                className="w-full h-full object-contain relative z-10 drop-shadow-[0_0_25px_rgba(34,211,238,0.45)]"
+              />
+            </motion.div>
+
             <div className="inline-flex items-center space-x-2 bg-[#0B101D] border border-white/10 px-4 py-1.5 rounded-full shadow-sm">
               <span className="w-2 h-2 rounded-full bg-[var(--color-quaz-cyan)] animate-pulse" />
               <span className="text-sm font-medium text-gray-300">Next-Gen Workflow & Retail Automation</span>
@@ -98,7 +157,7 @@ export default function LandingPage() {
               Orchestrate complex tasks across apps with intelligent agents & manage your physical retail business with high-speed offline POS.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
               <Link href="/accounts" className="px-8 py-4 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg">
                 Get Started
               </Link>
