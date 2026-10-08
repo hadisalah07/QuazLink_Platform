@@ -21,6 +21,7 @@ let lastCustomerPhone = '';
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
+  initZoomControls();
   initGlobalBarcodeListener();
   initKeyboardShortcuts();
   loadQuickProducts();
@@ -164,8 +165,59 @@ function initKeyboardShortcuts() {
       e.preventDefault();
       closeAllModals();
     }
+    // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd or Equal
+    else if (e.ctrlKey && (e.key === '=' || e.key === '+' || e.code === 'Equal' || e.code === 'NumpadAdd')) {
+      e.preventDefault();
+      adjustZoom(0.1);
+    }
+    // Zoom Out: Ctrl + - or Ctrl + _ or NumpadSubtract or Minus
+    else if (e.ctrlKey && (e.key === '-' || e.key === '_' || e.code === 'Minus' || e.code === 'NumpadSubtract')) {
+      e.preventDefault();
+      adjustZoom(-0.1);
+    }
+    // Zoom Reset: Ctrl + 0 or Numpad0 or Digit0
+    else if (e.ctrlKey && (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0')) {
+      e.preventDefault();
+      resetZoom();
+    }
   });
 }
+
+// -------------------------------------------------------------
+// Zoom Management Engine (Viewport & Scale Factor)
+// -------------------------------------------------------------
+let currentAppZoom = 1.0;
+
+function initZoomControls() {
+  const savedZoom = parseFloat(localStorage.getItem('quazlink_pos_zoom') || '1.0');
+  if (savedZoom && !isNaN(savedZoom) && savedZoom !== 1.0) {
+    applyZoom(savedZoom, false);
+  }
+}
+
+function adjustZoom(delta) {
+  currentAppZoom = Math.min(2.5, Math.max(0.5, Math.round((currentAppZoom + delta) * 10) / 10));
+  applyZoom(currentAppZoom, true);
+}
+
+function resetZoom() {
+  currentAppZoom = 1.0;
+  applyZoom(1.0, true);
+}
+
+function applyZoom(factor, notify = true) {
+  currentAppZoom = factor;
+  if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
+    window.electronAPI.setZoomFactor(factor);
+  }
+  document.body.style.zoom = factor;
+  localStorage.setItem('quazlink_pos_zoom', String(factor));
+  if (notify) {
+    const pct = Math.round(factor * 100);
+    showToast(`🔍 مستوى التكبير: ${pct}%${pct === 100 ? ' (الافتراضي)' : ''}`, pct === 100 ? 'info' : 'success');
+  }
+}
+
 
 // -------------------------------------------------------------
 // 3. Audio Scanner Feedback (Web Audio API)

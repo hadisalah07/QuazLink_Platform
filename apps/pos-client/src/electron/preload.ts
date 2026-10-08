@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
   toggleFullscreen: () => ipcRenderer.send('window-toggle-fullscreen'),
+  setZoomFactor: (factor: number) => ipcRenderer.send('window-set-zoom', factor),
+  getZoomFactor: () => ipcRenderer.invoke('window-get-zoom'),
 });

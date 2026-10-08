@@ -48,7 +48,13 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "QuazLink POS & ERP"
+      "shortcutName": "QuazLink POS & ERP",
+      "artifactName": "QuazLink-POS-Setup.${ext}",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "QuazLink-POS-Portable.${ext}"
     },
     "files": [
       "dist/**/*",

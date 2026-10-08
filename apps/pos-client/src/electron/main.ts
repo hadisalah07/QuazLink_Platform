@@ -294,13 +294,69 @@ function createMainWindow(): void {
     app.quit();
   });
 
-  // Register F11 for Fullscreen / Kiosk Toggle
+  // Register Global Keyboard Accelerators (F11 Fullscreen, Zoom In/Out/Reset)
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.key === 'F11' && input.type === 'keyDown') {
+    if (input.type !== 'keyDown') return;
+
+    if (input.key === 'F11') {
       if (mainWindow) {
         mainWindow.setFullScreen(!mainWindow.isFullScreen());
       }
       event.preventDefault();
+      return;
+    }
+
+    if (input.control) {
+      // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd or Equal
+      if (
+        input.key === '=' ||
+        input.key === '+' ||
+        input.code === 'Equal' ||
+        input.code === 'NumpadAdd'
+      ) {
+        if (mainWindow) {
+          const currentZoom = mainWindow.webContents.getZoomFactor();
+          const newZoom = Math.min(2.5, Math.round((currentZoom + 0.1) * 10) / 10);
+          mainWindow.webContents.setZoomFactor(newZoom);
+          logToFile(`🔍 [Zoom] Zoom In: factor=${newZoom}`);
+          mainWindow.webContents.send('zoom-changed', newZoom);
+        }
+        event.preventDefault();
+        return;
+      }
+
+      // Zoom Out: Ctrl + - or Ctrl + _ or NumpadSubtract or Minus
+      if (
+        input.key === '-' ||
+        input.key === '_' ||
+        input.code === 'Minus' ||
+        input.code === 'NumpadSubtract'
+      ) {
+        if (mainWindow) {
+          const currentZoom = mainWindow.webContents.getZoomFactor();
+          const newZoom = Math.max(0.5, Math.round((currentZoom - 0.1) * 10) / 10);
+          mainWindow.webContents.setZoomFactor(newZoom);
+          logToFile(`🔍 [Zoom] Zoom Out: factor=${newZoom}`);
+          mainWindow.webContents.send('zoom-changed', newZoom);
+        }
+        event.preventDefault();
+        return;
+      }
+
+      // Reset Zoom: Ctrl + 0 or Numpad0 or Digit0
+      if (
+        input.key === '0' ||
+        input.code === 'Digit0' ||
+        input.code === 'Numpad0'
+      ) {
+        if (mainWindow) {
+          mainWindow.webContents.setZoomFactor(1.0);
+          logToFile('🔍 [Zoom] Reset to 1.0 (100%)');
+          mainWindow.webContents.send('zoom-changed', 1.0);
+        }
+        event.preventDefault();
+        return;
+      }
     }
   });
 }
@@ -328,6 +384,18 @@ function setupIpcHandlers(): void {
     if (mainWindow) {
       mainWindow.setFullScreen(!mainWindow.isFullScreen());
     }
+  });
+
+  ipcMain.on('window-set-zoom', (_event, factor: number) => {
+    if (mainWindow && typeof factor === 'number') {
+      const clamped = Math.min(2.5, Math.max(0.5, factor));
+      mainWindow.webContents.setZoomFactor(clamped);
+      logToFile(`🔍 [Zoom] IPC setZoomFactor: ${clamped}`);
+    }
+  });
+
+  ipcMain.handle('window-get-zoom', () => {
+    return mainWindow ? mainWindow.webContents.getZoomFactor() : 1.0;
   });
 }
 
