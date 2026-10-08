@@ -238,16 +238,16 @@ export default function DownloadPage() {
             <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3">
               <div className="text-xs text-amber-300 flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-amber-400" />
-                <span>لديك جهاز كاشير أو شاشة لمس بنظام Windows 7 / 8 / POSReady القديم؟</span>
+                <span>لديك جهاز كاشير أو شاشة لمس بنظام Windows 7 / 8 / POSReady 7 القديم (32-bit &amp; 64-bit)؟</span>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <a
                   href="/downloads/QuazLink-POS-Legacy-Win7-Setup.exe"
                   download="QuazLink-POS-Legacy-Win7-Setup.exe"
-                  className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-2 transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-2 transition-all shadow-sm"
                 >
                   <Download className="w-4 h-4 text-amber-400" />
-                  <span>تحميل نسخة Windows 7 (Setup .exe - 66 MB)</span>
+                  <span>تحميل نسخة Windows 7 (32-bit Setup .exe ~73 MB)</span>
                 </a>
 
                 <a
@@ -256,7 +256,7 @@ export default function DownloadPage() {
                   className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-semibold flex items-center gap-2 transition-all"
                 >
                   <FolderArchive className="w-4 h-4 text-amber-400" />
-                  <span>نسخة Win 7 محمولة (Portable .zip - 66 MB)</span>
+                  <span>نسخة Win 7 محمولة (32-bit Portable .zip ~73 MB)</span>
                 </a>
               </div>
             </div>

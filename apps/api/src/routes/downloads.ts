@@ -71,7 +71,7 @@ router.get('/info', (_req, res) => {
     },
     posLegacyClient: {
       name: 'QuazLink POS & Retail Engine (Legacy Win7 Edition)',
-      version: '1.0.0',
+      version: '1.1.0',
       description: 'نسخة مخصصة لأجهزة الكاشير ونقاط البيع القديمة والشاشات اللمسية التي تعمل بأنظمة Windows 7 / POSReady 7',
       recommended: false,
       isLegacy: true,
