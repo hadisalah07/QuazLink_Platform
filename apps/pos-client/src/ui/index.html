@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QuazLink POS & ERP — نظام إدارة التجارة والكاشير</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap"></noscript>
   <script>
     // Universal API Bridge: ensures /api requests target embedded POS server
     (function() {
@@ -930,7 +932,7 @@
               <span style="font-size: 1.4rem;">🔄</span>
               <h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 800;">تحديثات برنامج QuazLink POS & ERP</h3>
               <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.4);">
-                الإصدار الحالي: v<span id="currentAppVerDisplay">1.0.0</span>
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.1.0</span>
               </span>
             </div>
             <p style="font-size: 0.76rem; color: var(--text-dim); margin: 6px 0 0 0; line-height: 1.4;">

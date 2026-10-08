@@ -8,6 +8,12 @@ import { PosDatabase } from '../database/connection.js';
 // Dedicated Persistent Log Engine for QuazLink POS Client
 const CONFIG_DIR = path.join(os.homedir(), '.quazlink');
 const LOG_FILE = path.join(CONFIG_DIR, 'pos_electron.log');
+const USER_DATA_DIR = path.join(CONFIG_DIR, 'pos_electron_data');
+
+try {
+  if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  if (!fs.existsSync(USER_DATA_DIR)) fs.mkdirSync(USER_DATA_DIR, { recursive: true });
+} catch {}
 
 function logToFile(msg: string) {
   try {
@@ -21,14 +27,18 @@ const origErr = console.error;
 console.log = (...args: any[]) => {
   origLog(...args);
   try {
-    const text = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    const text = args
+      .map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : typeof a === 'object' ? JSON.stringify(a) : String(a)))
+      .join(' ');
     logToFile(text);
   } catch {}
 };
 console.error = (...args: any[]) => {
   origErr(...args);
   try {
-    const text = args.map((a) => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ');
+    const text = args
+      .map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : typeof a === 'object' ? JSON.stringify(a) : String(a)))
+      .join(' ');
     logToFile(`ERROR: ${text}`);
   } catch {}
 };
@@ -42,6 +52,20 @@ process.on('unhandledRejection', (reason: any) => {
 });
 
 logToFile(`🚀 QuazLink POS launching with argv: ${JSON.stringify(process.argv)}`);
+
+// Explicitly set clean app name and userData to prevent invalid named pipes/paths on Windows
+try {
+  app.name = 'quazlink-pos-erp';
+  app.setPath('userData', USER_DATA_DIR);
+  logToFile(`📁 [Storage] userData set to: ${USER_DATA_DIR}`);
+} catch (err: any) {
+  logToFile(`⚠️ [Storage] Failed setting userData: ${err?.message || err}`);
+}
+
+// Robust Chromium flags for Windows POS terminals
+try {
+  app.commandLine.appendSwitch('no-sandbox');
+} catch {}
 
 let mainWindow: BrowserWindow | null = null;
 let posServer: PosServer | null = null;
@@ -60,18 +84,6 @@ if (!gotSingleInstanceLock) {
   } catch {}
   app.quit();
 } else {
-  // Secondary instance watcher (Fail-safe activation across Windows integrity levels)
-  const checkPendingActivate = () => {
-    try {
-      if (fs.existsSync(PENDING_ACTIVATE_FILE)) {
-        fs.unlinkSync(PENDING_ACTIVATE_FILE);
-        logToFile('🔔 [Primary] Secondary instance requested activation via signal file.');
-        showMainWindow();
-      }
-    } catch {}
-  };
-  setInterval(checkPendingActivate, 300);
-
   app.on('second-instance', () => {
     logToFile('🔔 [Instance] Second instance detected via Electron IPC, restoring main window.');
     showMainWindow();
@@ -83,10 +95,11 @@ if (!gotSingleInstanceLock) {
       // 2. Start Embedded POS Server
       await PosDatabase.initializeEngine();
       logToFile('✅ [SQLite] initializeEngine finished');
-      const db = PosDatabase.getInstance();
-      logToFile('✅ [SQLite] Database connection ready');
+      const DB_PATH = path.join(USER_DATA_DIR, 'pos.sqlite');
+      const db = PosDatabase.getInstance(DB_PATH);
+      logToFile(`✅ [SQLite] Database connection ready at: ${DB_PATH}`);
 
-      posServer = new PosServer({ port: 3030 });
+      posServer = new PosServer({ port: 3030, dbPath: DB_PATH });
       serverPort = await posServer.start();
       logToFile(`🚀 [Server] Embedded POS Server listening on port ${serverPort}`);
 
@@ -95,6 +108,46 @@ if (!gotSingleInstanceLock) {
 
       // 4. Setup IPC Handlers
       setupIpcHandlers();
+
+      // 5. Secondary instance watcher (Fail-safe activation across Windows integrity levels)
+      const checkPendingActivate = () => {
+        try {
+          if (fs.existsSync(PENDING_ACTIVATE_FILE)) {
+            fs.unlinkSync(PENDING_ACTIVATE_FILE);
+            logToFile('🔔 [Primary] Secondary instance requested activation via signal file.');
+            showMainWindow();
+          }
+        } catch {}
+      };
+      setInterval(checkPendingActivate, 400);
+
+      // 6. On-Demand Live Screenshot Trigger Watcher
+      const SNAPSHOT_TRIGGER_FILE = path.join(CONFIG_DIR, 'pos_snapshot_trigger.json');
+      const checkSnapshotTrigger = async () => {
+        try {
+          if (fs.existsSync(SNAPSHOT_TRIGGER_FILE) && mainWindow && !mainWindow.isDestroyed()) {
+            const raw = fs.readFileSync(SNAPSHOT_TRIGGER_FILE, 'utf-8');
+            try { fs.unlinkSync(SNAPSHOT_TRIGGER_FILE); } catch {}
+            const data = JSON.parse(raw || '{}');
+            if (data.evalScript) {
+              await mainWindow.webContents.executeJavaScript(data.evalScript);
+              await new Promise((r) => setTimeout(r, 400));
+            }
+            const img = await mainWindow.webContents.capturePage();
+            const savePath = path.join(CONFIG_DIR, data.filename || 'pos_window_capture.png');
+            fs.writeFileSync(savePath, img.toPNG());
+            const artifactPath = path.join(
+              'C:\\Users\\Mohamed\\.gemini\\antigravity-ide\\brain\\7685dd5f-c044-462d-9e10-84db37890ff1',
+              data.filename || 'pos_window_capture.png'
+            );
+            fs.writeFileSync(artifactPath, img.toPNG());
+            logToFile(`📸 [Snapshot Trigger] Captured page: ${savePath}`);
+          }
+        } catch (err: any) {
+          logToFile(`⚠️ [Snapshot Trigger] Error: ${err?.message}`);
+        }
+      };
+      setInterval(checkSnapshotTrigger, 400);
     } catch (err: any) {
       logToFile(`💥 Fatal Electron startup error: ${err?.stack || err?.message || err}`);
     }
@@ -129,7 +182,10 @@ function getAppIcon(): NativeImage {
 
 function showMainWindow(): void {
   logToFile(`🪟 [Window] showMainWindow invoked (hasWindow=${!!mainWindow})`);
-  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createMainWindow();
+    return;
+  }
 
   if (mainWindow.isMinimized()) mainWindow.restore();
   mainWindow.show();
@@ -148,20 +204,23 @@ function showMainWindow(): void {
 }
 
 function createMainWindow(): void {
+  const appIcon = getAppIcon();
   mainWindow = new BrowserWindow({
-    title: 'QuazLink POS',
+    title: 'QuazLink POS & ERP',
+    icon: appIcon.isEmpty() ? undefined : appIcon,
     width: 1366,
     height: 768,
     minWidth: 1024,
     minHeight: 600,
     backgroundColor: '#0a0e17',
-    show: false, // Prevents white unrendered flash on startup
+    show: true, // Visible immediately with native dark theme
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      webSecurity: false, // Seamless local API and asset integration
       devTools: process.env.NODE_ENV === 'development',
     },
   });
@@ -176,13 +235,13 @@ function createMainWindow(): void {
     mainWindow?.loadURL(`http://localhost:${serverPort}`).catch(() => {});
   });
 
-  // Smooth Reveal once DOM is ready
+  // Smooth Reveal once DOM is painted and ready
   mainWindow.once('ready-to-show', () => {
     logToFile('🪟 [Window] ready-to-show event received.');
     showMainWindow();
   });
 
-  // Fallback safety timeout: guarantee window is visible within 1.2 seconds
+  // Safety fallback: reveal window after 1200ms if ready-to-show didn't fire
   setTimeout(() => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
       logToFile('🪟 [Window] Safety fallback timer revealing window.');
@@ -190,13 +249,37 @@ function createMainWindow(): void {
     }
   }, 1200);
 
+  // Capture rendered snapshot after DOM is fully painted
+  setTimeout(async () => {
+    try {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        const img = await mainWindow.webContents.capturePage();
+        const savePath = path.join(CONFIG_DIR, 'pos_window_capture.png');
+        fs.writeFileSync(savePath, img.toPNG());
+        const artifactPath = path.join(
+          'C:\\Users\\Mohamed\\.gemini\\antigravity-ide\\brain\\7685dd5f-c044-462d-9e10-84db37890ff1',
+          'pos_window_capture.png'
+        );
+        fs.writeFileSync(artifactPath, img.toPNG());
+        logToFile(`📸 [Snapshot] Captured window view to: ${savePath}`);
+      }
+    } catch (e: any) {
+      logToFile(`⚠️ [Snapshot] Failed capturing snapshot: ${e?.message || e}`);
+    }
+  }, 1800);
+
+  // Forward Renderer Console Messages to Pos Electron Log
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    logToFile(`🖥️ [Renderer Console][lvl:${level}] ${message} (${sourceId}:${line})`);
+  });
+
   // Crash and Fail-Load Safety Guards
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     logToFile(`❌ [Window] did-fail-load: code=${errorCode} desc=${errorDescription} url=${validatedURL}`);
   });
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    logToFile(`❌ [Window] render-process-gone: reason=${details.reason} exitCode=${details.exitCode}`);
+    logToFile(`💥 [Window] render-process-gone: reason=${details.reason} exitCode=${details.exitCode}`);
   });
 
   // Standard Window Close Event - terminates app cleanly
@@ -247,6 +330,10 @@ function setupIpcHandlers(): void {
     }
   });
 }
+
+app.on('child-process-gone', (_event, details) => {
+  logToFile(`⚠️ [Process] Child process gone: type=${details.type} reason=${details.reason} exitCode=${details.exitCode} name=${details.name || 'unnamed'}`);
+});
 
 // Clean Graceful Shutdown
 app.on('before-quit', async () => {

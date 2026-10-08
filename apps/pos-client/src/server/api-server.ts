@@ -55,7 +55,8 @@ export class PosServer {
     this.shiftService = new ShiftService(this.db);
     this.syncService = new SyncService(this.db, this.settingsService, this.licensingService);
     this.etaService = new EtaService(this.db);
-    this.updaterService = new PosUpdaterService('1.0.0');
+    const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'http://localhost:3000';
+    this.updaterService = new PosUpdaterService('1.1.0', platformUrl);
 
     this.uiDir = options.uiDir || path.join(__dirname, '..', 'ui');
     if (!fs.existsSync(this.uiDir)) {
@@ -118,9 +119,9 @@ export class PosServer {
       // Static UI Files
       this.serveStatic(pathname, res);
     } catch (err: any) {
-      console.error('API Error:', err);
+      console.error('API Error:', err?.stack || err?.message || err);
       res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ success: false, error: err.message || 'Internal Server Error' }));
+      res.end(JSON.stringify({ success: false, error: err?.message || 'Internal Server Error' }));
     }
   }
 
@@ -198,7 +199,12 @@ export class PosServer {
           }),
         };
 
-        printerResult = await this.printerService.printReceipt(receiptData);
+        try {
+          printerResult = await this.printerService.printReceipt(receiptData);
+        } catch (printErr: any) {
+          console.warn('⚠️ [POS Server] Thermal print warning:', printErr?.message || printErr);
+          printerResult = { error: printErr?.message || String(printErr) };
+        }
       }
 
       this.sendJson(res, { success: true, invoice, printerResult });
@@ -675,9 +681,11 @@ export class PosServer {
       return;
     }
 
-    // 42. GET /api/update/check (فحص وجود إصدار جديد على GitHub Releases)
+    // 42. GET /api/update/check (فحص وجود إصدار جديد عبر المنصة أو GitHub)
     if (pathname === '/api/update/check' && req.method === 'GET') {
       try {
+        const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'http://localhost:3000';
+        this.updaterService.setPlatformUrl(platformUrl);
         const updateInfo = await this.updaterService.checkForUpdates();
         this.sendJson(res, { success: true, ...updateInfo });
       } catch (err: any) {

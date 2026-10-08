@@ -42,7 +42,7 @@ export const translations = {
     posNavLaunch: "Launch App",
 
     // POS Hero Section
-    posHeroReleaseTag: "Official Standalone Edition v1.0.0 — Ready to download and run",
+    posHeroReleaseTag: "Official Standalone Edition v1.1.0 — Ready to download and run",
     posHeroTitle1: "All-in-One Retail Cashier & Store Management",
     posHeroTitle2: "QuazLink POS & ERP",
     posHeroSubtitle: "Ultra-fast offline point-of-sale, inventory, and invoicing software built for retail shops, computer & electronics stores, and supermarkets. 100% offline, native thermal printing without Arabic text distortion, and fully compliant with the Egyptian ETA e-Receipt mandate.",
@@ -225,7 +225,7 @@ export const translations = {
     posNavLaunch: "تشغيل البرنامج",
 
     // POS Hero Section
-    posHeroReleaseTag: "الإصدار الرسمي المستقل v1.0.0 — جاهز للتحميل والتشغيل فوراً",
+    posHeroReleaseTag: "الإصدار الرسمي المستقل v1.1.0 — جاهز للتحميل والتشغيل فوراً",
     posHeroTitle1: "نظام الكاشير وإدارة المتاجر المتكامل",
     posHeroTitle2: "QuazLink POS & ERP",
     posHeroSubtitle: "أسرع نظام نقاط بيع ومخازن وفواتير محلي مصمم لتجارة التجزئة، محلات الكمبيوتر والإلكترونيات، والمتاجر العامة. يعمل بنسبة 100% بدون إنترنت، يدعم جميع الطابعات الحرارية بدون تقطيع في اللغة العربية، ومستوفٍ لمنظومة الإيصال الإلكتروني المصري.",

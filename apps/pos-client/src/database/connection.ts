@@ -33,6 +33,7 @@ if (!isElectron && typeof process !== 'undefined' && process.versions) {
 class SqlJsAdapter {
   private db: any;
   private dbPath: string;
+  private transactionDepth = 0;
 
   constructor(SQL: any, dbPath: string) {
     this.dbPath = dbPath;
@@ -44,57 +45,104 @@ class SqlJsAdapter {
     }
   }
 
+  public resetTransactionDepth(): void {
+    this.transactionDepth = 0;
+  }
+
+  public persist(): void {
+    if (this.dbPath !== ':memory:' && this.transactionDepth === 0) {
+      try {
+        const data = this.db.export();
+        fs.writeFileSync(this.dbPath, Buffer.from(data));
+      } catch (err: any) {
+        console.error('Failed to persist SQLite database:', err?.message || err);
+      }
+    }
+  }
+
   public prepare(sql: string) {
+    const self = this;
     const db = this.db;
-    const dbPath = this.dbPath;
     return {
       all(...params: any[]) {
         const stmt = db.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        const rows: any[] = [];
-        while (stmt.step()) {
-          rows.push(stmt.getAsObject());
+        try {
+          const cleanParams = params.map((p) => (p === undefined ? null : p));
+          if (cleanParams.length > 0) stmt.bind(cleanParams);
+          const rows: any[] = [];
+          while (stmt.step()) {
+            rows.push(stmt.getAsObject());
+          }
+          return rows;
+        } finally {
+          stmt.free();
         }
-        stmt.free();
-        return rows;
       },
       get(...params: any[]) {
         const stmt = db.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        let row = null;
-        if (stmt.step()) {
-          row = stmt.getAsObject();
+        try {
+          const cleanParams = params.map((p) => (p === undefined ? null : p));
+          if (cleanParams.length > 0) stmt.bind(cleanParams);
+          let row = null;
+          if (stmt.step()) {
+            row = stmt.getAsObject();
+          }
+          return row;
+        } finally {
+          stmt.free();
         }
-        stmt.free();
-        return row;
       },
       run(...params: any[]) {
         const stmt = db.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        stmt.step();
-        stmt.free();
-        const changes = db.getRowsModified();
-        if (dbPath !== ':memory:') {
-          const data = db.export();
-          fs.writeFileSync(dbPath, Buffer.from(data));
+        try {
+          const cleanParams = params.map((p) => (p === undefined ? null : p));
+          if (cleanParams.length > 0) stmt.bind(cleanParams);
+          stmt.step();
+          const changes = db.getRowsModified();
+          if (self.transactionDepth === 0) {
+            self.persist();
+          }
+          return { changes, lastInsertRowid: 0 };
+        } finally {
+          stmt.free();
         }
-        return { changes, lastInsertRowid: 0 };
       },
     };
   }
 
   public exec(sql: string) {
+    const trimmed = sql.trim().toUpperCase();
+    if (trimmed.startsWith('BEGIN')) {
+      this.transactionDepth++;
+      this.db.exec(sql);
+      return;
+    }
+    if (trimmed.startsWith('COMMIT') || trimmed.startsWith('END TRANSACTION')) {
+      this.db.exec(sql);
+      this.transactionDepth = Math.max(0, this.transactionDepth - 1);
+      if (this.transactionDepth === 0) {
+        this.persist();
+      }
+      return;
+    }
+    if (trimmed.startsWith('ROLLBACK')) {
+      try {
+        this.db.exec(sql);
+      } finally {
+        this.transactionDepth = 0;
+      }
+      return;
+    }
+
     this.db.exec(sql);
-    if (this.dbPath !== ':memory:') {
-      const data = this.db.export();
-      fs.writeFileSync(this.dbPath, Buffer.from(data));
+    if (this.transactionDepth === 0) {
+      this.persist();
     }
   }
 
   public close() {
-    if (this.dbPath !== ':memory:') {
-      const data = this.db.export();
-      fs.writeFileSync(this.dbPath, Buffer.from(data));
+    if (this.transactionDepth === 0) {
+      this.persist();
     }
     this.db.close();
   }
@@ -311,10 +359,17 @@ export class PosDatabase {
       this.db.exec('COMMIT');
       return result;
     } catch (error) {
-      this.db.exec('ROLLBACK');
+      try {
+        this.db.exec('ROLLBACK');
+      } catch {
+        // SQLite may have automatically aborted/rolled back upon constraint error
+      }
       throw error;
     } finally {
       this.inTransaction = false;
+      if (this.db && typeof this.db.resetTransactionDepth === 'function') {
+        this.db.resetTransactionDepth();
+      }
     }
   }
 

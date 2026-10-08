@@ -12,27 +12,27 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/downloads/QuazLink-POS-Setup.exe",
-        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Setup.exe",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Setup.exe",
         permanent: false,
       },
       {
         source: "/downloads/QuazLink-POS-Portable.zip",
-        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Portable.zip",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Portable.zip",
         permanent: false,
       },
       {
         source: "/downloads/QuazLink-POS-Legacy-Win7-Setup.exe",
-        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Legacy-Win7-Setup.exe",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Setup.exe",
         permanent: false,
       },
       {
         source: "/downloads/QuazLink-POS-Legacy-Win7-Portable.exe",
-        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Legacy-Win7-Portable.exe",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.exe",
         permanent: false,
       },
       {
         source: "/downloads/QuazLink-POS-Legacy-Win7-Portable.zip",
-        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.0.0/QuazLink-POS-Legacy-Win7-Portable.zip",
+        destination: "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.zip",
         permanent: false,
       },
     ];

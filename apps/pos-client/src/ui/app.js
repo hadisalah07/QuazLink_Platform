@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initAppSettings();
   focusSearch();
   setTimeout(autoCheckForUpdatesOnStartup, 1500);
+  // Periodic background check every 15 minutes for live update notifications
+  setInterval(autoCheckForUpdatesOnStartup, 15 * 60 * 1000);
 });
 
 
@@ -2238,7 +2240,7 @@ async function manualCheckForUpdates(silent = false) {
   const btnSpinner = document.getElementById('btnUpdateSpinner');
   const statusCard = document.getElementById('updateStatusCard');
 
-  if (btnText && !silent) btnText.textContent = 'جاري الفحص عبر GitHub...';
+  if (btnText && !silent) btnText.textContent = 'جاري الفحص عبر منصة QuazLink والسحابة...';
   if (btnSpinner) btnSpinner.style.display = 'inline';
 
   try {
@@ -2251,7 +2253,7 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.0.0';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.1.0';
 
       renderUpdateCard(data);
 

@@ -31,17 +31,23 @@ export class PrinterService {
       await this.sendToNetworkPrinter(result.escposCommands);
     } else {
       // Virtual mode: Save BMP image & raw commands for verification
-      const targetDir = outputDir || process.env.QUAZLINK_RECEIPTS_DIR || path.join(process.cwd(), '.receipts');
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, { recursive: true });
+      const homeDir = process.env.USERPROFILE || process.env.HOME || '.';
+      const defaultReceiptsDir = path.join(homeDir, '.quazlink', 'receipts');
+      const targetDir = outputDir || process.env.QUAZLINK_RECEIPTS_DIR || defaultReceiptsDir;
+      try {
+        if (!fs.existsSync(targetDir)) {
+          fs.mkdirSync(targetDir, { recursive: true });
+        }
+
+        const baseName = `receipt_${data.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+        const bmpPath = path.join(targetDir, `${baseName}.bmp`);
+        const rawPath = path.join(targetDir, `${baseName}.bin`);
+
+        fs.writeFileSync(bmpPath, result.rasterBytes);
+        fs.writeFileSync(rawPath, result.escposCommands);
+      } catch (err: any) {
+        console.warn('⚠️ [PrinterService] Could not write virtual receipt files:', err?.message || err);
       }
-
-      const baseName = `receipt_${data.invoiceNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-      const bmpPath = path.join(targetDir, `${baseName}.bmp`);
-      const rawPath = path.join(targetDir, `${baseName}.bin`);
-
-      fs.writeFileSync(bmpPath, result.rasterBytes);
-      fs.writeFileSync(rawPath, result.escposCommands);
     }
 
     return result;
