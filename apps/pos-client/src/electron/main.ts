@@ -43,10 +43,6 @@ process.on('unhandledRejection', (reason: any) => {
 
 logToFile(`🚀 QuazLink POS launching with argv: ${JSON.stringify(process.argv)}`);
 
-app.name = 'quazlink-pos-client';
-const userDataPath = path.join(CONFIG_DIR, 'pos_electron_data');
-app.setPath('userData', userDataPath);
-
 let mainWindow: BrowserWindow | null = null;
 let posServer: PosServer | null = null;
 let serverPort: number = 3030;
@@ -152,15 +148,12 @@ function showMainWindow(): void {
 }
 
 function createMainWindow(): void {
-  const icon = getAppIcon();
-
   mainWindow = new BrowserWindow({
-    title: 'QuazLink POS & ERP — نظام إدارة التجارة والكاشير',
+    title: 'QuazLink POS',
     width: 1366,
     height: 768,
     minWidth: 1024,
     minHeight: 600,
-    icon: icon.isEmpty() ? undefined : icon,
     backgroundColor: '#0a0e17',
     show: false, // Prevents white unrendered flash on startup
     autoHideMenuBar: true,
@@ -173,15 +166,14 @@ function createMainWindow(): void {
     },
   });
 
-  // Remove default Chromium menu bar
-  mainWindow.removeMenu();
-  Menu.setApplicationMenu(null);
+  const htmlPath = fs.existsSync(path.join(__dirname, '..', 'ui', 'index.html'))
+    ? path.join(__dirname, '..', 'ui', 'index.html')
+    : path.join(process.cwd(), 'src', 'ui', 'index.html');
 
-  // Load local POS server URL
-  const targetUrl = `http://localhost:${serverPort}`;
-  logToFile(`🪟 [Window] Loading URL: ${targetUrl}`);
-  mainWindow.loadURL(targetUrl).catch((err) => {
-    logToFile(`❌ [Window] loadURL error: ${err.message}`);
+  logToFile(`🪟 [Window] Loading UI from: ${htmlPath}`);
+  mainWindow.loadFile(htmlPath).catch((err) => {
+    logToFile(`❌ [Window] loadFile error: ${err.message}, falling back to local server`);
+    mainWindow?.loadURL(`http://localhost:${serverPort}`).catch(() => {});
   });
 
   // Smooth Reveal once DOM is ready
