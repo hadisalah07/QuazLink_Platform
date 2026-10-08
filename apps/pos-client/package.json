@@ -15,7 +15,7 @@
     "test:synergy": "tsx src/tests/test-phase4-synergy.ts",
     "test:phase5": "tsx src/tests/test-phase5-licensing-sync.ts",
     "test:all": "tsx src/tests/test-core-db.ts && tsx src/tests/test-printer-raster.ts && tsx src/tests/test-phase3-inventory.ts && tsx src/tests/test-phase4-synergy.ts && tsx src/tests/test-phase5-licensing-sync.ts",
-    "build": "tsc && node -e \"const fs = require('fs'); fs.mkdirSync('dist/database', {recursive:true}); fs.copyFileSync('src/database/schema.sql', 'dist/database/schema.sql'); fs.cpSync('src/ui', 'dist/ui', {recursive:true}); if(fs.existsSync('src/assets')) fs.cpSync('src/assets', 'dist/assets', {recursive:true});\"",
+    "build": "tsc && node -e \"const fs = require('fs'); fs.mkdirSync('dist/database', {recursive:true}); fs.copyFileSync('src/database/schema.sql', 'dist/database/schema.sql'); if(fs.existsSync('src/database/engine')) fs.cpSync('src/database/engine', 'dist/database/engine', {recursive:true}); fs.cpSync('src/ui', 'dist/ui', {recursive:true}); if(fs.existsSync('src/assets')) fs.cpSync('src/assets', 'dist/assets', {recursive:true});\"",
     "dist:dir": "npm run build && electron-builder --win --dir",
     "dist:exe": "npm run build && electron-builder --win",
     "dist:legacy": "npm run build && electron-builder --win --config electron-builder-legacy.json"

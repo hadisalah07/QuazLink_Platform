@@ -3,18 +3,24 @@ import * as path from 'node:path';
 import * as crypto from 'node:crypto';
 
 // Universal SQLite Engine Selector:
-// 1. Native node:sqlite on Node 22+ (instant, synchronous)
-// 2. sql.js (WebAssembly SQLite) for Electron, Windows 7, and Node < 22 (100% zero-native, cross-platform)
+// 1. Native node:sqlite on Node 22+ (only in pure Node.js environments, never in Electron)
+// 2. sql-wasm (WebAssembly SQLite) bundled directly in dist/database/engine
+// 3. sql-asm (Pure JavaScript asm.js SQLite) bundled as bulletproof universal fallback
 let NativeDatabaseSync: any = null;
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const nodeSqlite = require('node:sqlite');
-  if (nodeSqlite && nodeSqlite.DatabaseSync) {
-    NativeDatabaseSync = nodeSqlite.DatabaseSync;
+if (typeof process !== 'undefined' && process.versions && !process.versions.electron) {
+  const major = parseInt((process.versions.node || '0').split('.')[0], 10);
+  if (major >= 22) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const nodeSqlite = require('node:sqlite');
+      if (nodeSqlite && nodeSqlite.DatabaseSync) {
+        NativeDatabaseSync = nodeSqlite.DatabaseSync;
+      }
+    } catch {
+      // Fall through to embedded engine
+    }
   }
-} catch {
-  // Not available in this runtime
 }
 
 class SqlJsAdapter {
@@ -92,6 +98,7 @@ export class PosDatabase {
   private static sqlJsModule: any = null;
   public db: any;
   private dbPath: string;
+  private inTransaction = false;
 
   constructor(dbPath: string = ':memory:') {
     this.dbPath = dbPath;
@@ -107,11 +114,18 @@ export class PosDatabase {
     } else if (PosDatabase.sqlJsModule) {
       this.db = new SqlJsAdapter(PosDatabase.sqlJsModule, this.dbPath);
     } else {
-      // Synchronous attempt to load sql.js if possible
+      // Synchronous attempt: try loading bundled sql.js or asm.js
       try {
+        const engineDir = path.join(__dirname, 'engine');
+        const asmPath = path.join(engineDir, 'sql-asm.js');
+        if (fs.existsSync(asmPath)) {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const initAsm = require(asmPath);
+          // sql-asm export is synchronous if not awaited in some builds, or returns a promise
+          throw new Error('SQLite engine not initialized. Please call await PosDatabase.initializeEngine() at startup.');
+        }
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const initSqlJs = require('sql.js');
-        // If not initialized, throw descriptive error
         throw new Error('SQLite engine not initialized. Please call await PosDatabase.initializeEngine() at startup.');
       } catch (err: any) {
         throw new Error(`Fatal: SQLite engine unavailable (${err.message}).`);
@@ -123,10 +137,73 @@ export class PosDatabase {
 
   public static async initializeEngine(): Promise<void> {
     if (NativeDatabaseSync) return;
-    if (!PosDatabase.sqlJsModule) {
+    if (PosDatabase.sqlJsModule) return;
+
+    // Search paths for engine files
+    const possibleEngineDirs = [
+      path.join(__dirname, 'engine'),
+      path.join(__dirname, '..', 'database', 'engine'),
+      path.join(process.cwd(), 'dist', 'database', 'engine'),
+      path.join(process.cwd(), 'src', 'database', 'engine'),
+      path.join(process.cwd(), 'apps', 'pos-client', 'src', 'database', 'engine'),
+      path.join(process.cwd(), 'apps', 'pos-client', 'dist', 'database', 'engine'),
+    ];
+
+    let foundEngineDir: string | null = null;
+    for (const d of possibleEngineDirs) {
+      if (fs.existsSync(d) && (fs.existsSync(path.join(d, 'sql-wasm.js')) || fs.existsSync(path.join(d, 'sql-asm.js')))) {
+        foundEngineDir = d;
+        break;
+      }
+    }
+
+    // Strategy 1: Load bundled WebAssembly SQLite (sql-wasm.js + sql-wasm.wasm)
+    if (foundEngineDir) {
+      const wasmJsPath = path.join(foundEngineDir, 'sql-wasm.js');
+      const wasmBinaryPath = path.join(foundEngineDir, 'sql-wasm.wasm');
+
+      if (fs.existsSync(wasmJsPath)) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const initWasm = require(wasmJsPath);
+          PosDatabase.sqlJsModule = await initWasm({
+            locateFile: (file: string) => {
+              if (file === 'sql-wasm.wasm') return wasmBinaryPath;
+              return path.join(foundEngineDir!, file);
+            },
+          });
+          console.log('✅ [SQLite] Loaded bundled WebAssembly SQLite engine');
+          return;
+        } catch (err: any) {
+          console.warn('⚠️ [SQLite] WebAssembly engine init failed, falling back to ASM.js:', err.message);
+        }
+      }
+
+      // Strategy 2: Load bundled pure-JavaScript SQLite (sql-asm.js)
+      const asmJsPath = path.join(foundEngineDir, 'sql-asm.js');
+      if (fs.existsSync(asmJsPath)) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const initAsm = require(asmJsPath);
+          PosDatabase.sqlJsModule = await initAsm();
+          console.log('✅ [SQLite] Loaded bundled pure-JS SQLite engine (sql-asm.js)');
+          return;
+        } catch (err: any) {
+          console.warn('⚠️ [SQLite] Bundled ASM.js engine init failed:', err.message);
+        }
+      }
+    }
+
+    // Strategy 3: Standard npm module fallback
+    try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const initSqlJs = require('sql.js');
       PosDatabase.sqlJsModule = await initSqlJs();
+      console.log('✅ [SQLite] Loaded npm sql.js engine');
+      return;
+    } catch (err: any) {
+      console.error('❌ [SQLite] All SQLite engines unavailable:', err.message);
+      throw new Error(`Fatal: SQLite engine unavailable (${err.message})`);
     }
   }
 
@@ -142,18 +219,52 @@ export class PosDatabase {
     return new PosDatabase(':memory:');
   }
 
-  private initSchema(): void {
-    const schemaPath = path.join(__dirname, 'schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const sql = fs.readFileSync(schemaPath, 'utf8');
-      this.db.exec(sql);
-    } else {
-      // Fallback relative resolution if compiled
-      const fallbackPath = path.join(process.cwd(), 'apps', 'pos-client', 'src', 'database', 'schema.sql');
-      if (fs.existsSync(fallbackPath)) {
-        const sql = fs.readFileSync(fallbackPath, 'utf8');
-        this.db.exec(sql);
+  public static resetInstance(): void {
+    if (PosDatabase.instance) {
+      try {
+        PosDatabase.instance.db.close();
+      } catch {
+        // Ignore close errors
       }
+      PosDatabase.instance = null;
+    }
+  }
+
+  private initSchema(): void {
+    const possibleSchemaPaths = [
+      path.join(__dirname, 'schema.sql'),
+      path.join(__dirname, '..', 'database', 'schema.sql'),
+      path.join(process.cwd(), 'src', 'database', 'schema.sql'),
+      path.join(process.cwd(), 'dist', 'database', 'schema.sql'),
+      path.join(process.cwd(), 'apps', 'pos-client', 'src', 'database', 'schema.sql'),
+      path.join(process.cwd(), 'apps', 'pos-client', 'dist', 'database', 'schema.sql'),
+    ];
+
+    let schemaSql: string | null = null;
+    for (const p of possibleSchemaPaths) {
+      if (fs.existsSync(p)) {
+        schemaSql = fs.readFileSync(p, 'utf-8');
+        break;
+      }
+    }
+
+    if (schemaSql) {
+      this.db.exec(schemaSql);
+    }
+    this.runMigrations();
+  }
+
+  private runMigrations(): void {
+    try {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS _migrations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT UNIQUE NOT NULL,
+          applied_at TEXT NOT NULL
+        );
+      `);
+    } catch {
+      // Schema may already exist
     }
   }
 
@@ -180,8 +291,6 @@ export class PosDatabase {
     const stmt = this.db.prepare(sql);
     return stmt.run(...params);
   }
-
-  private inTransaction = false;
 
   public transaction<T>(callback: () => T): T {
     if (this.inTransaction) {
