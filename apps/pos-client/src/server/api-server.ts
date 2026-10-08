@@ -67,7 +67,18 @@ export class PosServer {
 
 
   public start(): Promise<number> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      this.server.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          console.warn(`⚠️ [POS Server] Port ${this.port} is busy, attempting port ${this.port + 1}...`);
+          this.port++;
+          this.server.listen(this.port);
+        } else {
+          console.error('❌ [POS Server] Listen error:', err);
+          reject(err);
+        }
+      });
+
       this.server.listen(this.port, () => {
         console.log(`⚡ QuazLink POS Local Server running at http://localhost:${this.port}`);
         resolve(this.port);

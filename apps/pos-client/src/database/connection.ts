@@ -8,12 +8,19 @@ import * as crypto from 'node:crypto';
 // 3. sql-asm (Pure JavaScript asm.js SQLite) bundled as bulletproof universal fallback
 let NativeDatabaseSync: any = null;
 
-if (typeof process !== 'undefined' && process.versions && !process.versions.electron) {
+const isElectron = Boolean(
+  (typeof process !== 'undefined' && process.versions && process.versions.electron) ||
+  (typeof process !== 'undefined' && process.env && process.env.ELECTRON_RUN_AS_NODE)
+);
+
+if (!isElectron && typeof process !== 'undefined' && process.versions) {
   const major = parseInt((process.versions.node || '0').split('.')[0], 10);
   if (major >= 22) {
     try {
+      // Dynamic require string concatenation prevents static bundler / AST interception
+      const sqliteModuleName = 'node' + ':sqlite';
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const nodeSqlite = require('node:sqlite');
+      const nodeSqlite = module.require ? module.require(sqliteModuleName) : require(sqliteModuleName);
       if (nodeSqlite && nodeSqlite.DatabaseSync) {
         NativeDatabaseSync = nodeSqlite.DatabaseSync;
       }
