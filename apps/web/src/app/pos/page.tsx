@@ -473,13 +473,14 @@ export default function PosPortalPage() {
             >
               {/* Card 1: Official Windows Installer (.exe) */}
               <SpotlightCard className="relative p-8 rounded-3xl bg-[#0B101D] border-2 border-emerald-500/40 flex flex-col justify-between group">
-                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-emerald-500 text-black font-bold text-xs uppercase tracking-wide">
-                  موصى به للمحلات
-                </div>
-
                 <div>
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                    <Laptop className="w-7 h-7 text-emerald-400" />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <Laptop className="w-7 h-7 text-emerald-400" />
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-full bg-emerald-500 text-black font-bold text-xs uppercase tracking-wide shrink-0 shadow-sm">
+                      موصى به للمحلات
+                    </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
@@ -526,13 +527,14 @@ export default function PosPortalPage() {
 
               {/* Card 2: Portable Edition (.zip) */}
               <SpotlightCard className="relative p-8 rounded-3xl bg-[#0B101D] border border-white/10 flex flex-col justify-between group hover:border-cyan-500/40 transition-colors">
-                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold text-xs">
-                  بدون تثبيت (Portable)
-                </div>
-
                 <div>
-                  <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                    <FolderArchive className="w-7 h-7 text-cyan-400" />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <FolderArchive className="w-7 h-7 text-cyan-400" />
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold text-xs shrink-0">
+                      بدون تثبيت (Portable)
+                    </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
@@ -588,13 +590,14 @@ export default function PosPortalPage() {
             >
               {/* Legacy Card 1: Windows 7 Installer (.exe) */}
               <SpotlightCard className="relative p-8 rounded-3xl bg-[#0E0F17] border-2 border-amber-500/40 flex flex-col justify-between group">
-                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wide">
-                  مخصص لأجهزة Win 7 & POSReady
-                </div>
-
                 <div>
-                  <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                    <Monitor className="w-7 h-7 text-amber-400" />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <Monitor className="w-7 h-7 text-amber-400" />
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wide shrink-0 shadow-sm">
+                      مخصص لأجهزة Win 7 & POSReady
+                    </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
@@ -641,13 +644,14 @@ export default function PosPortalPage() {
 
               {/* Legacy Card 2: Windows 7 Portable (.zip / .exe) */}
               <SpotlightCard className="relative p-8 rounded-3xl bg-[#0E0F17] border border-amber-500/20 flex flex-col justify-between group hover:border-amber-500/40 transition-colors">
-                <div className="absolute top-5 left-5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-xs">
-                  بدون تثبيت (Win 7 Portable)
-                </div>
-
                 <div>
-                  <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                    <FolderArchive className="w-7 h-7 text-amber-400" />
+                  <div className="flex items-center justify-between gap-4 mb-6">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                      <FolderArchive className="w-7 h-7 text-amber-400" />
+                    </div>
+                    <div className="px-3.5 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-xs shrink-0">
+                      بدون تثبيت (Win 7 Portable)
+                    </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
