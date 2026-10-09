@@ -9,10 +9,7 @@ files:
   - .env
   - src/ui/**/*
   - src/assets/**/*
-asar: true
-asarUnpack:
-  - "**/node_modules/playwright/**/*"
-  - "**/node_modules/playwright-core/**/*"
+asar: false
 mac:
   target: dmg
   icon: src/assets/icon.png
@@ -20,12 +17,14 @@ win:
   target: nsis
   icon: src/assets/icon.ico
 nsis:
+  include: installer.nsh
   oneClick: true
   perMachine: false
   allowToChangeInstallationDirectory: false
   deleteAppDataOnUninstall: false
-  createDesktopShortcut: true
+  createDesktopShortcut: "always"
   createStartMenuShortcut: true
   shortcutName: "QuazLink Runner"
   artifactName: "QuazLink-Runner-Setup-v${version}.${ext}"
+
 

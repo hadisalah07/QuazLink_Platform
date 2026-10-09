@@ -45,8 +45,18 @@ process.on('unhandledRejection', (reason: any) => {
 
 logToFile(`🚀 App launched with argv: ${JSON.stringify(process.argv)}`);
 
+// Robust Chromium flags for Windows desktop agent stability
+try {
+  app.commandLine.appendSwitch('no-sandbox');
+  app.commandLine.appendSwitch('disable-gpu-process-crash-limit');
+  app.commandLine.appendSwitch('disable-features', 'WidgetLayering');
+} catch {}
+
 app.name = 'quazlink-desktop-runner';
-const userDataPath = path.join(CONFIG_DIR, 'electron_data');
+const userDataPath = path.join(CONFIG_DIR, 'runner_electron_data');
+try {
+  if (!fs.existsSync(userDataPath)) fs.mkdirSync(userDataPath, { recursive: true });
+} catch {}
 app.setPath('userData', userDataPath);
 
 // Register custom protocol 'quazlink'
@@ -105,17 +115,20 @@ function showAppWindow() {
     return;
   }
   if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.setSkipTaskbar(false);
   mainWindow.show();
   mainWindow.center();
   mainWindow.focus();
   mainWindow.setAlwaysOnTop(true);
+  mainWindow.moveTop();
   setTimeout(() => {
     try {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.setAlwaysOnTop(false);
+        mainWindow.focus();
       }
     } catch {}
-  }, 1200);
+  }, 400);
 }
 
 function handleDeepLink(urlStr: string) {
@@ -209,10 +222,10 @@ function createWindow() {
     title: 'QuazLink Desktop Runner',
     width: 420,
     height: 670,
-    show: false, // Prevents white unrendered flash on startup
+    show: true, // Visible immediately upon startup
     frame: true,
     resizable: true,
-    alwaysOnTop: true,
+    alwaysOnTop: false,
     skipTaskbar: false,
     icon: icon.isEmpty() ? undefined : icon,
     backgroundColor: '#070a10',
@@ -223,6 +236,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
     },
   });
+
+  mainWindow.center();
+  mainWindow.show();
+  mainWindow.focus();
 
   const htmlPath = fs.existsSync(path.join(__dirname, 'ui', 'index.html'))
     ? path.join(__dirname, 'ui', 'index.html')
@@ -245,7 +262,7 @@ function createWindow() {
       logToFile('🪟 [Window] Fallback timeout showing window');
       showAppWindow();
     }
-  }, 1500);
+  }, 1000);
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL) => {
     logToFile(`❌ [Window] did-fail-load: code=${errorCode} desc=${errorDescription} url=${validatedURL}`);

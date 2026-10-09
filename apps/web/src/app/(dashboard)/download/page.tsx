@@ -560,14 +560,14 @@ export default function DownloadPage() {
             {/* Primary Download CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <a
-                href="/downloads/QuazLink-Runner-Setup-v26.10.13.exe"
-                download="QuazLink-Runner-Setup-v26.10.13.exe"
+                href="/downloads/QuazLink-Runner-Setup-v26.10.14.exe"
+                download="QuazLink-Runner-Setup-v26.10.14.exe"
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(34,211,238,0.5)] hover:shadow-[0_0_45px_rgba(34,211,238,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                 <div className="text-right">
                   <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Windows .exe)</div>
-                  <div className="text-[11px] text-cyan-200 font-mono font-normal">QuazLink-Runner-Setup-v26.10.13.exe • الإصدار الأحدث (~76 MB)</div>
+                  <div className="text-[11px] text-cyan-200 font-mono font-normal">QuazLink-Runner-Setup-v26.10.14.exe • الإصدار الأحدث (~76 MB)</div>
                 </div>
               </a>
 
@@ -610,7 +610,7 @@ export default function DownloadPage() {
                 </div>
                 <h4 className="text-sm font-bold text-white">حمّل وثبّت البرنامج</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  اضغط على زر التحميل، وافتح ملف <code className="text-cyan-300 font-mono">QuazLink-Runner-Setup-v26.10.13.exe</code>. سيتم التثبيت فورياً وإنشاء اختصار رسمي على سطح المكتب.
+                  اضغط على زر التحميل، وافتح ملف <code className="text-cyan-300 font-mono">QuazLink-Runner-Setup-v26.10.14.exe</code>. سيتم التثبيت فورياً وإنشاء اختصار رسمي على سطح المكتب.
                 </p>
               </SpotlightCard>
 

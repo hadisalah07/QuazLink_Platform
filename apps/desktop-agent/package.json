@@ -1,6 +1,6 @@
 {
   "name": "quazlink-runner",
-  "version": "26.10.13",
+  "version": "26.10.14",
   "description": "QuazLink Local Desktop Automation Runner",
   "main": "dist/main.js",
   "scripts": {

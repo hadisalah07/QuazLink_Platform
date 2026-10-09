@@ -96,13 +96,13 @@ router.get('/info', (_req, res) => {
     },
     runner: {
       name: 'QuazLink Automation Runner',
-      version: '26.10.13',
+      version: '26.10.14',
       description: 'محرك الأتمتة المكتبي الخفيف لتنفيذ فواتير الواتساب ومنشورات السوشيال ميديا',
       recommended: false,
       installer: {
-        filename: 'QuazLink-Runner-Setup-v26.10.13.exe',
-        downloadUrl: '/downloads/QuazLink-Runner-Setup-v26.10.13.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-Runner-Setup-v26.10.13.exe',
+        filename: 'QuazLink-Runner-Setup-v26.10.14.exe',
+        downloadUrl: '/downloads/QuazLink-Runner-Setup-v26.10.14.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-Runner-Setup-v26.10.14.exe',
         ...runnerInfo,
       },
     },
@@ -122,6 +122,7 @@ router.get('/file/:filename', (req, res) => {
     'QuazLink-POS-Legacy-Win7-Portable.zip',
     'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip',
     'QuazLink-Runner-Setup.exe',
+    'QuazLink-Runner-Setup-v26.10.14.exe',
     'QuazLink-Runner-Setup-v26.10.13.exe',
   ];
 
@@ -142,7 +143,8 @@ router.get('/file/:filename', (req, res) => {
       'QuazLink-POS-Legacy-Win7-Portable.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.exe',
       'QuazLink-POS-Legacy-Win7-Portable.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.zip',
       'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.zip',
-      'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.13/QuazLink-Runner-Setup-v26.10.13.exe',
+      'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.14/QuazLink-Runner-Setup-v26.10.14.exe',
+      'QuazLink-Runner-Setup-v26.10.14.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.14/QuazLink-Runner-Setup-v26.10.14.exe',
       'QuazLink-Runner-Setup-v26.10.13.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.13/QuazLink-Runner-Setup-v26.10.13.exe',
     };
 
