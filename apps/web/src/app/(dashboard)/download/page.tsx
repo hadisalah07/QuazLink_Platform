@@ -35,8 +35,13 @@ import {
   type DownloadsInfoResponse
 } from "@/lib/api";
 import { PLATFORM_VERSION } from "@/lib/version";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/lib/translations";
 
 export default function DownloadPage() {
+  const { lang, isAr } = useLanguage();
+  const t = translations[lang];
+
   const [activeTab, setActiveTab] = React.useState<"pos" | "runner">("pos");
 
   // Runner pairing state
@@ -76,7 +81,7 @@ export default function DownloadPage() {
       const res = await createDevicePairing("Desktop Automation Runner");
       setRunnerPairingToken(res.pairingToken);
     } catch (e: any) {
-      alert("فشل توليد رمز الربط: " + e.message);
+      alert("Failed to generate pairing token: " + e.message);
     } finally {
       setLoadingRunnerPair(false);
     }
@@ -85,7 +90,7 @@ export default function DownloadPage() {
   const handleGeneratePosLicense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!posHwId.trim()) {
-      setLicenseError("يرجى إدخال بصمة الجهاز (Hardware ID) التي تظهر داخل برنامج الكاشير.");
+      setLicenseError(isAr ? "يرجى إدخال بصمة الجهاز (Hardware ID) التي تظهر داخل برنامج الكاشير." : "Please enter the Hardware ID shown inside POS settings.");
       return;
     }
     setLicenseError(null);
@@ -100,26 +105,27 @@ export default function DownloadPage() {
       setPosLicenseKey(res.licenseKey);
       setPosExpiresAt(res.expiresAt);
     } catch (e: any) {
-      setLicenseError(e.message || "حدث خطأ أثناء توليد مفتاح الترخيص.");
+      setLicenseError(e.message || (isAr ? "حدث خطأ أثناء توليد مفتاح الترخيص." : "An error occurred while generating license key."));
     } finally {
       setLoadingLicense(false);
     }
   };
 
   return (
-    <div className="flex flex-col space-y-8 max-w-6xl mx-auto pb-20">
+    <div className={`flex flex-col space-y-8 max-w-6xl mx-auto pb-20 ${isAr ? "text-right" : "text-left"}`}>
       {/* Header & Product Switcher Tabs */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/10 pb-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
             <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            <span>QUAZLINK DESKTOP ECOSYSTEM • {PLATFORM_VERSION}</span>
+            <span>{t.dlDashTag} • {PLATFORM_VERSION}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
-            مركز تحميل برامج وتطبيقات <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">QuazLink</span>
+            {t.dlDashTitle}{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">QuazLink</span>
           </h1>
           <p className="text-sm text-gray-400 max-w-2xl leading-relaxed">
-            حمّل برامج كويزلينك المكتبية الرسمية على أي جهاز كمبيوتر أو لابتوب بنظام Windows للعمل الميداني وإدارة محلك وأتمتة أعمالك.
+            {t.dlDashSubtitle}
           </p>
         </div>
 
@@ -134,9 +140,9 @@ export default function DownloadPage() {
             }`}
           >
             <Store className="w-4 h-4" />
-            <span>نظام الكاشير والمخازن (POS &amp; ERP)</span>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-black/40 text-emerald-200 border border-emerald-400/30">
-              جديد
+            <span>{t.dlTabPos}</span>
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-black/40 text-emerald-200 border border-emerald-400/30 whitespace-nowrap">
+              {isAr ? "جديد" : "NEW"}
             </span>
           </button>
 
@@ -149,7 +155,7 @@ export default function DownloadPage() {
             }`}
           >
             <Zap className="w-4 h-4" />
-            <span>محرك الأتمتة (Desktop Runner)</span>
+            <span>{t.dlTabRunner}</span>
           </button>
         </div>
       </div>
@@ -160,21 +166,23 @@ export default function DownloadPage() {
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
             <Store className="w-5 h-5 text-emerald-400" />
           </div>
-          <div className="text-right">
+          <div>
             <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              <span>بوابة نظام الكاشير المستقلة (QuazLink POS Portal)</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono">مستقلة 100%</span>
+              <span>{t.dlPosBannerTitle}</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono whitespace-nowrap">
+                {t.dlPosBannerTag}
+              </span>
             </h4>
             <p className="text-xs text-gray-400">
-              قم بزيارة البوابة المستقلة المخصصة للتجار وأصحاب المحلات لتنزيل البرنامج، تفعيل الرخص، واستعراض توافق العتاد.
+              {t.dlPosBannerDesc}
             </p>
           </div>
         </div>
         <Link
           href="/pos"
-          className="shrink-0 px-4 py-2 rounded-xl bg-emerald-500 text-black font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-400 transition-colors shadow-md shadow-emerald-500/20"
+          className="shrink-0 px-4 py-2 rounded-xl bg-emerald-500 text-black font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-400 transition-colors shadow-md shadow-emerald-500/20 whitespace-nowrap"
         >
-          <span>فتح بوابة الكاشير المستقلة</span>
+          <span>{t.dlPosBannerBtn}</span>
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
       </div>
@@ -191,19 +199,15 @@ export default function DownloadPage() {
             <div className="max-w-3xl mx-auto text-center space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold">
                 <Store className="w-4 h-4 text-emerald-400" />
-                <span>OFFLINE-FIRST ENTERPRISE RETAIL ENGINE • v1.1.0</span>
+                <span>{t.dlPosSectionTag}</span>
               </div>
 
               <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
-                برنامج الكاشير ونقاط البيع{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400">
-                  QuazLink POS &amp; ERP
-                </span>
+                {t.dlPosSectionTitle}
               </h2>
 
               <p className="text-sm md:text-base text-gray-300 leading-relaxed">
-                برنامج مكتبي متكامل لإدارة المبيعات، الفواتير، المخازن، حسابات العملاء، وطباعة الإيصالات الحرارية.
-                يعمل بنسبة <strong>100% بدون إنترنت</strong> مع حفظ فوري فائق السرعة ومزامنة سحابية ذكية مع حسابك على QuazLink.
+                {t.dlPosSectionDesc}
               </p>
             </div>
 
@@ -215,9 +219,9 @@ export default function DownloadPage() {
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(16,185,129,0.5)] hover:shadow-[0_0_50px_rgba(16,185,129,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                <div className="text-right">
-                  <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Win 10/11 Setup)</div>
-                  <div className="text-[11px] text-emerald-100 font-mono font-normal">QuazLink-POS-Setup-v1.1.0.exe • تثبيت بنقرة واحدة (~70 MB)</div>
+                <div className={isAr ? "text-right" : "text-left"}>
+                  <div className="font-bold text-sm md:text-base">{t.dlPosBtnSetup}</div>
+                  <div className="text-[11px] text-emerald-100 font-mono font-normal">QuazLink-POS-Setup-v1.1.0.exe • (~70.6 MB)</div>
                 </div>
               </a>
 
@@ -227,9 +231,9 @@ export default function DownloadPage() {
                 className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-3 cursor-pointer"
               >
                 <FolderArchive className="w-5 h-5 text-emerald-400" />
-                <div className="text-right">
-                  <div>نسخة محمولة (Win 10/11 Portable)</div>
-                  <div className="text-[11px] text-gray-400 font-mono font-normal">QuazLink-POS-Portable-v1.1.0.zip • تشغيل مباشر (~73 MB)</div>
+                <div className={isAr ? "text-right" : "text-left"}>
+                  <div>{t.dlPosBtnPortable}</div>
+                  <div className="text-[11px] text-gray-400 font-mono font-normal">QuazLink-POS-Portable-v1.1.0.zip • (~73.8 MB)</div>
                 </div>
               </a>
             </div>
@@ -238,7 +242,7 @@ export default function DownloadPage() {
             <div className="pt-4 border-t border-white/10 flex flex-col items-center gap-3">
               <div className="text-xs text-amber-300 flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-amber-400" />
-                <span>لديك جهاز كاشير أو شاشة لمس بنظام Windows 7 / 8 / POSReady 7 القديم (32-bit &amp; 64-bit)؟</span>
+                <span>{isAr ? "لديك جهاز كاشير أو شاشة لمس بنظام Windows 7 / 8 / POSReady 7 القديم؟" : "Running legacy Windows 7, 8, or POSReady 7 terminals?"}</span>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <a
@@ -247,7 +251,7 @@ export default function DownloadPage() {
                   className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-2 transition-all shadow-sm"
                 >
                   <Download className="w-4 h-4 text-amber-400" />
-                  <span>تحميل نسخة Windows 7 (Setup-v1.1.0.exe ~73 MB)</span>
+                  <span>{t.dlPosBtnWin7Setup}</span>
                 </a>
 
                 <a
@@ -256,7 +260,7 @@ export default function DownloadPage() {
                   className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-semibold flex items-center gap-2 transition-all"
                 >
                   <FolderArchive className="w-4 h-4 text-amber-400" />
-                  <span>نسخة Win 7 محمولة (Portable-v1.1.0.zip ~73 MB)</span>
+                  <span>{t.dlPosBtnWin7Portable}</span>
                 </a>
               </div>
             </div>
@@ -265,19 +269,19 @@ export default function DownloadPage() {
             <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-gray-400 pt-2 font-mono">
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
                 <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-                الأنظمة: Windows 10 / 11 (64-bit)
+                {t.dlPosBadgeSystems}
               </span>
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
                 <Printer className="w-3.5 h-3.5 text-emerald-400" />
-                طابعات الفواتير: ESC/POS (80mm &amp; 58mm)
+                {t.dlPosBadgePrinters}
               </span>
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
                 <HardDrive className="w-3.5 h-3.5 text-emerald-400" />
-                قاعدة بيانات SQLite محلية مدمجة
+                {t.dlPosBadgeDb}
               </span>
               <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/40 border border-white/5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                تفعيل تجريبي تلقائي 60 يوماً
+                {t.dlPosBadgeTrial}
               </span>
             </div>
           </div>
@@ -285,9 +289,9 @@ export default function DownloadPage() {
           {/* 4 Steps Installation & Setup Guide */}
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-white">كيف تبدأ استخدام البرنامج في 4 خطوات بسيطة</h3>
+              <h3 className="text-2xl font-bold text-white">{t.posGuideTitle}</h3>
               <p className="text-xs text-gray-400 mt-1">
-                تنزيل سريع وتثبيت سلس على أي جهاز كمبيوتر في متجرك أو مستودعك
+                {t.posGuideSubtitle}
               </p>
             </div>
 
@@ -299,9 +303,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold font-mono text-lg flex items-center justify-center">
                   1
                 </div>
-                <h4 className="text-sm font-bold text-white">حمّل البرنامج على الجهاز</h4>
+                <h4 className="text-sm font-bold text-white">{t.posGuideStep1Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  اضغط على زر التحميل بالأعلى لتنزيل ملف <code className="text-emerald-300 font-mono">QuazLink-POS-Setup-v1.1.0.exe</code> على أي كمبيوتر لديك.
+                  {t.posGuideStep1Desc}
                 </p>
               </SpotlightCard>
 
@@ -312,9 +316,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold font-mono text-lg flex items-center justify-center">
                   2
                 </div>
-                <h4 className="text-sm font-bold text-white">التثبيت والتشغيل</h4>
+                <h4 className="text-sm font-bold text-white">{t.posGuideStep2Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  شغّل برنامج التثبيت. سيتم إنشاء اختصار رسمي على سطح المكتب. افتح البرنامج ليبدأ العمل فوراً في وضع ملء الشاشة.
+                  {t.posGuideStep2Desc}
                 </p>
               </SpotlightCard>
 
@@ -325,9 +329,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold font-mono text-lg flex items-center justify-center">
                   3
                 </div>
-                <h4 className="text-sm font-bold text-white">نسخ بصمة الجهاز</h4>
+                <h4 className="text-sm font-bold text-white">{t.posGuideStep3Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  من داخل البرنامج، توجه إلى تبويب <strong>الإعدادات ⚙️</strong> وانسخ <strong>بصمة الجهاز (Hardware ID)</strong> المكونة من كود فريد لجهازك.
+                  {t.posGuideStep3Desc}
                 </p>
               </SpotlightCard>
 
@@ -338,9 +342,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold font-mono text-lg flex items-center justify-center">
                   4
                 </div>
-                <h4 className="text-sm font-bold text-white">توليد وتفعيل الرخصة</h4>
+                <h4 className="text-sm font-bold text-white">{t.posGuideStep4Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  الصق بصمة الجهاز في الصندوق أدناه لإصدار رخصة دائمة باسم محلك، أو استمتع بفترة الـ 60 يوماً التجريبية المضمنة تلقائياً!
+                  {t.posGuideStep4Desc}
                 </p>
               </SpotlightCard>
             </div>
@@ -355,16 +359,16 @@ export default function DownloadPage() {
               <div className="space-y-1">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Key className="w-5 h-5 text-emerald-400" />
-                  <span>توليد وتفعيل ترخيص المحل لجهازك (Machine License Generator)</span>
+                  <span>{t.dlLicenseTitle}</span>
                 </h3>
                 <p className="text-xs text-gray-400">
-                  أدخل بصمة عتاد الجهاز (Hardware ID) الظاهرة في شاشة إعدادات الكاشير لإنشاء رخصة تشفير رقمية رسمية.
+                  {t.dlLicenseSubtitle}
                 </p>
               </div>
 
               <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-semibold self-start sm:self-auto flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>تشفير رقمي HMAC-SHA256</span>
+                <span>{t.dlLicenseSuccessSigned}</span>
               </div>
             </div>
 
@@ -372,27 +376,26 @@ export default function DownloadPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-xs font-bold text-gray-300 flex items-center gap-1">
-                    <span>بصمة الجهاز (Hardware Machine ID)</span>
-                    <span className="text-red-400">*</span>
+                    <span>{t.dlLicenseHwidLabel}</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="مثال: QL-HW-A1B2-C3D4-E5F6-7890"
+                    placeholder={t.dlLicenseHwidPlaceholder}
                     value={posHwId}
                     onChange={(e) => setPosHwId(e.target.value)}
                     className="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white font-mono text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all uppercase"
                   />
                   <span className="text-[11px] text-gray-500 block">
-                    تجد هذا الكود داخل شاشة إعدادات البرنامج على الجهاز المراد تشغيله.
+                    {isAr ? "تجد هذا الكود داخل شاشة إعدادات البرنامج على الجهاز المراد تشغيله." : "Find this code inside the POS settings screen on the terminal."}
                   </span>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-300">اسم المتجر / الفرع</label>
+                  <label className="text-xs font-bold text-gray-300">{t.dlLicenseBizLabel}</label>
                   <input
                     type="text"
-                    placeholder="مثال: فرع وسط البلد"
+                    placeholder={t.dlLicenseBizPlaceholder}
                     value={posBusinessName}
                     onChange={(e) => setPosBusinessName(e.target.value)}
                     className="w-full px-4 py-3 bg-white/5 border border-white/15 rounded-xl text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
@@ -402,7 +405,7 @@ export default function DownloadPage() {
 
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">نوع الترخيص:</span>
+                  <span className="text-xs text-gray-400">{t.dlLicenseTypeLabel}</span>
                   <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
                     <input
                       type="radio"
@@ -411,7 +414,7 @@ export default function DownloadPage() {
                       onChange={() => setPosTier("lifetime")}
                       className="text-emerald-500 focus:ring-emerald-500"
                     />
-                    <span>ترخيص دائم مدى الحياة (Lifetime)</span>
+                    <span>{t.dlLicenseLifetime}</span>
                   </label>
                   <label className="flex items-center gap-1.5 text-xs text-gray-300 cursor-pointer">
                     <input
@@ -421,7 +424,7 @@ export default function DownloadPage() {
                       onChange={() => setPosTier("saas_subscription")}
                       className="text-emerald-500 focus:ring-emerald-500"
                     />
-                    <span>اشتراك سنوي (1 سنة)</span>
+                    <span>{t.dlLicenseSubscription}</span>
                   </label>
                 </div>
 
@@ -431,7 +434,7 @@ export default function DownloadPage() {
                   className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-black font-extrabold rounded-xl text-xs shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Key className="w-4 h-4 text-black" />
-                  <span>{loadingLicense ? "جاري إصدار الترخيص..." : "توليد كود التفعيل للكمبيوتر"}</span>
+                  <span>{loadingLicense ? t.dlLicenseGenerating : t.dlLicenseGenerateBtn}</span>
                 </button>
               </div>
 
@@ -446,10 +449,10 @@ export default function DownloadPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
                       <CheckCircle className="w-4 h-4 text-emerald-400" />
-                      تم إنشاء مفتاح الترخيص بنجاح!
+                      {t.dlLicenseSuccessTitle}
                     </span>
                     <span className="text-[11px] font-mono text-gray-400">
-                      الصلاحية: {posExpiresAt ? `ينتهي في ${posExpiresAt}` : "دائم مدى الحياة (Lifetime)"}
+                      {posExpiresAt ? (isAr ? `ينتهي في ${posExpiresAt}` : `Expires: ${posExpiresAt}`) : t.dlLicenseLifetime}
                     </span>
                   </div>
 
@@ -466,19 +469,19 @@ export default function DownloadPage() {
                       {copiedKey === "pos-key" ? (
                         <>
                           <Check className="w-4 h-4 text-black" />
-                          <span>تم النسخ!</span>
+                          <span>{t.dlLicenseCopied}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-4 h-4 text-black" />
-                          <span>نسخ الكود</span>
+                          <span>{t.dlLicenseCopyBtn}</span>
                         </>
                       )}
                     </button>
                   </div>
 
                   <p className="text-[11px] text-gray-300 leading-relaxed">
-                    💡 <strong>طريقة التفعيل:</strong> افتح برنامج الكاشير على جهازك، ثم توجه إلى <strong>الإعدادات ⚙️</strong> &larr; الصق كود التفعيل في خانة <strong>&quot;مفتاح الترخيص&quot;</strong> واضغط <strong>&quot;تفعيل&quot;</strong>. سيتم فتح جميع الموديولات فوراً!
+                    {t.dlLicenseNotice}
                   </p>
                 </div>
               )}
@@ -490,33 +493,33 @@ export default function DownloadPage() {
             {[
               {
                 icon: Zap,
-                title: "100% Offline-First",
-                desc: "يعمل بسرعة خارقة بدون أي انتظار حتى في حال انقطاع الإنترنت أو بطئه التام."
+                title: t.dlPosFeat1Title,
+                desc: t.dlPosFeat1Desc
               },
               {
                 icon: Printer,
-                title: "طابعات الفواتير والباركود",
-                desc: "دعم فوري لكافة طابعات الفواتير الحرارية ESC/POS وقوارئ الباركود وأدراج النقدية."
+                title: t.dlPosFeat2Title,
+                desc: t.dlPosFeat2Desc
               },
               {
                 icon: Layers,
-                title: "إدارة المخازن وسيريال الأجهزة",
-                desc: "تتبع دقيق للأرصدة، تنبيهات النواقص، تاريخ الصلاحية، وسيريال الضمان للأجهزة."
+                title: t.dlPosFeat3Title,
+                desc: t.dlPosFeat3Desc
               },
               {
                 icon: Smartphone,
-                title: "فواتير الواتساب التلقائية",
-                desc: "إرسال فاتورة PDF أو نصية للعميل مباشرة عبر واتساب بمجرد إتمام عملية البيع."
+                title: t.dlPosFeat4Title,
+                desc: t.dlPosFeat4Desc
               },
               {
                 icon: RefreshCw,
-                title: "مزامنة سحابية مؤمنة",
-                desc: "مزامنة تلقائية مع لوحة تحكم QuazLink عند توفر الإنترنت لمتابعة مبيعات فروعك من هاتفك."
+                title: t.dlPosFeat5Title,
+                desc: t.dlPosFeat5Desc
               },
               {
                 icon: Clock,
-                title: "ورديات الكاشير وتقفيل Z-Report",
-                desc: "فتح وإغلاق الورديات، تسوية العهدة النقدية، وحساب الفروقات والتقارير المالية اليومية بدقة."
+                title: t.dlPosFeat6Title,
+                desc: t.dlPosFeat6Desc
               }
             ].map((f, i) => (
               <div
@@ -545,15 +548,15 @@ export default function DownloadPage() {
 
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              OFFICIAL DESKTOP RUNNER • {PLATFORM_VERSION}
+              <span>{t.dlRunnerSectionTag}</span>
             </div>
 
             <div className="space-y-3 max-w-2xl mx-auto">
               <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white">
-                تحميل برنامج <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">QuazLink Runner</span> للكمبيوتر
+                {t.dlRunnerSectionTitle}
               </h2>
               <p className="text-sm md:text-base text-gray-300 leading-relaxed">
-                محرك الأتمتة المكتبي الخفيف والموثوق. يقوم بتنفيذ مهام رسائل وفواتير الواتساب، ونشر الحالات، ومنشورات فيسبوك وإنستغرام تلقائياً من جهازك وعنوان الـ IP المنزلي الحقيقي لمنع الحظر بنسبة 100%.
+                {t.dlRunnerSectionDesc}
               </p>
             </div>
 
@@ -565,9 +568,9 @@ export default function DownloadPage() {
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(34,211,238,0.5)] hover:shadow-[0_0_45px_rgba(34,211,238,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                <div className="text-right">
-                  <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Windows .exe)</div>
-                  <div className="text-[11px] text-cyan-200 font-mono font-normal">QuazLink-Runner-Setup-v26.10.14.exe • الإصدار الأحدث (~76 MB)</div>
+                <div className={isAr ? "text-right" : "text-left"}>
+                  <div className="font-bold text-sm md:text-base">{t.dlRunnerBtnDownload}</div>
+                  <div className="text-[11px] text-cyan-200 font-mono font-normal">QuazLink-Runner-Setup-v26.10.14.exe • (~76 MB)</div>
                 </div>
               </a>
 
@@ -576,22 +579,22 @@ export default function DownloadPage() {
                 className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Laptop className="w-4 h-4 text-cyan-400" />
-                <span>فتح البرنامج المثبت بالفعل</span>
+                <span>{t.dlRunnerBtnOpen}</span>
               </a>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-gray-400 pt-2 font-mono">
               <span className="flex items-center gap-1.5">
                 <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
-                الحجم: ~76.5 ميجابايت
+                {isAr ? "الحجم: ~76.5 ميجابايت" : "Size: ~76.5 MB"}
               </span>
               <span className="flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                الأنظمة: Windows 10 / 11 (64-bit)
+                {isAr ? "الأنظمة: Windows 10 / 11 (64-bit)" : "OS: Windows 10 / 11 (64-bit)"}
               </span>
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                تثبيت بنقرة واحدة (One-Click Setup)
+                {isAr ? "تثبيت بنقرة واحدة (One-Click Setup)" : "One-Click Setup"}
               </span>
             </div>
           </div>
@@ -599,8 +602,8 @@ export default function DownloadPage() {
           {/* 3 Step Setup Guide */}
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-white">طريقة التثبيت والربط في دقيقة واحدة</h3>
-              <p className="text-xs text-gray-400 mt-1">خطوات سريعة وسهلة لتشغيل الرانر وربطه بحسابك</p>
+              <h3 className="text-xl font-bold text-white">{t.dlRunnerStepsTitle}</h3>
+              <p className="text-xs text-gray-400 mt-1">{t.dlRunnerStepsSubtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -608,9 +611,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold font-mono text-lg flex items-center justify-center">
                   1
                 </div>
-                <h4 className="text-sm font-bold text-white">حمّل وثبّت البرنامج</h4>
+                <h4 className="text-sm font-bold text-white">{t.dlRunnerStep1Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  اضغط على زر التحميل، وافتح ملف <code className="text-cyan-300 font-mono">QuazLink-Runner-Setup-v26.10.14.exe</code>. سيتم التثبيت فورياً وإنشاء اختصار رسمي على سطح المكتب.
+                  {t.dlRunnerStep1Desc}
                 </p>
               </SpotlightCard>
 
@@ -618,9 +621,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold font-mono text-lg flex items-center justify-center">
                   2
                 </div>
-                <h4 className="text-sm font-bold text-white">اربط جهازك بحسابك</h4>
+                <h4 className="text-sm font-bold text-white">{t.dlRunnerStep2Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  افتح البرنامج واضغط زر <strong>⚡ Open &amp; Auto-Pair</strong> في الموقع، أو ولّد رمز ربط من الأسفل والصقه في البرنامج لربطه بحسابك الشخصي.
+                  {t.dlRunnerStep2Desc}
                 </p>
               </SpotlightCard>
 
@@ -628,9 +631,9 @@ export default function DownloadPage() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-bold font-mono text-lg flex items-center justify-center">
                   3
                 </div>
-                <h4 className="text-sm font-bold text-white">جاهز لتنفيذ الأتمتة!</h4>
+                <h4 className="text-sm font-bold text-white">{t.dlRunnerStep3Title}</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  يظل الرانر يعمل بهدوء في الخلفية بجوار الساعة (System Tray). يستقبل فواتير الواتساب والمهام وينفذها بدقة وثبات تام.
+                  {t.dlRunnerStep3Desc}
                 </p>
               </SpotlightCard>
             </div>
@@ -642,10 +645,10 @@ export default function DownloadPage() {
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <Key className="w-5 h-5 text-cyan-400" />
-                  <span>توليد رمز ربط فوري (Machine Pairing Code)</span>
+                  <span>{t.dlRunnerPairTokenTitle}</span>
                 </h3>
                 <p className="text-xs text-gray-400 mt-1">
-                  إذا قمت بتثبيت البرنامج وتريد ربط هذا الكمبيوتر بحسابك، اضغط لتوليد رمز الربط المباشر.
+                  {t.dlRunnerPairTokenDesc}
                 </p>
               </div>
 
@@ -655,14 +658,14 @@ export default function DownloadPage() {
                 className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold rounded-xl text-xs hover:shadow-[0_0_20px_rgba(34,211,238,0.4)] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 self-start sm:self-auto"
               >
                 <Key className="w-4 h-4 text-black" />
-                <span>{loadingRunnerPair ? "جاري التوليد..." : "توليد كود الربط الآن"}</span>
+                <span>{loadingRunnerPair ? t.dlRunnerPairing : t.dlRunnerPairBtn}</span>
               </button>
             </div>
 
             {runnerPairingToken ? (
               <div className="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">رمز الربط المتاح:</span>
+                  <span className="text-xs text-gray-400">{isAr ? "رمز الربط المتاح:" : "Available Pairing Code:"}</span>
                   <span className="px-3.5 py-1.5 bg-black/60 border border-white/20 rounded-lg text-white font-mono font-bold text-lg tracking-widest">
                     {runnerPairingToken}
                   </span>
@@ -677,20 +680,20 @@ export default function DownloadPage() {
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
-                    <span>{copiedKey === "runner-token" ? "تم النسخ" : "نسخ الكود"}</span>
+                    <span>{copiedKey === "runner-token" ? t.dlRunnerPairTokenCopied : t.dlRunnerPairTokenCopyBtn}</span>
                   </button>
                   <a
                     href={`quazlink://pair?token=${runnerPairingToken}`}
                     className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded-lg text-xs flex items-center gap-1 cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.4)]"
                   >
                     <Zap className="w-3.5 h-3.5 fill-black" />
-                    <span>⚡ ربط تلقائي فوري</span>
+                    <span>{isAr ? "⚡ ربط تلقائي فوري" : "⚡ Instant Auto-Pair"}</span>
                   </a>
                 </div>
               </div>
             ) : (
               <p className="text-xs text-gray-500 font-mono">
-                اضغط على &quot;توليد كود الربط الآن&quot; لإنشاء رمز صالح لجهاز الكمبيوتر الخاص بك.
+                {isAr ? "اضغط على \"توليد رمز ربط يدوي\" لإنشاء رمز صالح لجهاز الكمبيوتر الخاص بك." : "Click \"Generate 6-Digit Pairing Code\" to link your computer to your QuazLink account."}
               </p>
             )}
           </SpotlightCard>

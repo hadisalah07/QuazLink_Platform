@@ -251,11 +251,11 @@ export default function PosPortalPage() {
             </div>
             <div className="flex items-center gap-2 text-xs font-medium text-gray-400">
               <Store className="w-3.5 h-3.5 text-emerald-400" />
-              <span>QuazLink POS & ERP — الفرع الرئيسي (B01) — كاشير رقم (POS-01)</span>
+              <span>{t.posDemoBranch}</span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-mono">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>الوردية #12 مفتوحة</span>
+              <span>{t.posDemoShiftOpen}</span>
             </div>
           </div>
 
@@ -263,12 +263,12 @@ export default function PosPortalPage() {
           <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 bg-[#080C16]">
             
             {/* Left 8 Cols: Sales Register Screen */}
-            <div className="lg:col-span-8 flex flex-col gap-4 text-right">
+            <div className={`lg:col-span-8 flex flex-col gap-4 ${isAr ? "text-right" : "text-left"}`}>
               {/* Barcode input simulation */}
               <div className="p-4 rounded-2xl bg-[#0F1626] border border-white/10 flex items-center justify-between gap-4">
-                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono">F2: بيع سريع</span>
-                <div className="flex-1 flex items-center gap-3 justify-end text-right">
-                  <span className="text-xs text-gray-400">امسح الباركود أو ابحث عن الصنف:</span>
+                <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-mono">{t.posDemoQuickCheckout}</span>
+                <div className={`flex-1 flex items-center gap-3 ${isAr ? "justify-end text-right" : "justify-start text-left"}`}>
+                  <span className="text-xs text-gray-400">{t.posDemoScanPlaceholder}</span>
                   <div className="px-3 py-1.5 rounded-lg bg-black/40 border border-emerald-500/40 text-emerald-300 font-mono text-sm flex items-center gap-2">
                     <span className="w-1.5 h-4 bg-emerald-400 animate-pulse" />
                     <span>6221155990012</span>
@@ -279,41 +279,41 @@ export default function PosPortalPage() {
               {/* Items Table */}
               <div className="rounded-2xl bg-[#0E1424] border border-white/5 overflow-hidden">
                 <div className="grid grid-cols-12 px-4 py-2.5 bg-white/5 text-xs font-semibold text-gray-300 border-b border-white/5">
-                  <div className="col-span-5 text-right">الصنف</div>
-                  <div className="col-span-2 text-center">الكمية</div>
-                  <div className="col-span-2 text-center">السعر</div>
-                  <div className="col-span-3 text-left">الإجمالي</div>
+                  <div className={`col-span-5 ${isAr ? "text-right" : "text-left"}`}>{t.posDemoColItem}</div>
+                  <div className="col-span-2 text-center">{t.posDemoColQty}</div>
+                  <div className="col-span-2 text-center">{t.posDemoColPrice}</div>
+                  <div className={`col-span-3 ${isAr ? "text-left" : "text-right"}`}>{t.posDemoColTotal}</div>
                 </div>
                 
                 <div className="divide-y divide-white/5 text-sm">
                   <div className="grid grid-cols-12 px-4 py-3 items-center hover:bg-white/[0.02]">
-                    <div className="col-span-5 text-right font-medium">
-                      <span>شاشة Dell UltraSharp 27" 4K</span>
-                      <span className="block text-[11px] text-emerald-400 font-mono">SN: DL-4K-992182 (ضمان سنتين)</span>
+                    <div className={`col-span-5 ${isAr ? "text-right" : "text-left"} font-medium`}>
+                      <span>{t.posDemoItem1Title}</span>
+                      <span className="block text-[11px] text-emerald-400 font-mono">{t.posDemoItem1Sub}</span>
                     </div>
                     <div className="col-span-2 text-center font-mono text-gray-300">1</div>
-                    <div className="col-span-2 text-center font-mono text-gray-300">18,500 ج.م</div>
-                    <div className="col-span-3 text-left font-mono font-bold text-emerald-400">18,500 ج.م</div>
+                    <div className="col-span-2 text-center font-mono text-gray-300">18,500 {t.posDemoCurrency}</div>
+                    <div className={`col-span-3 ${isAr ? "text-left" : "text-right"} font-mono font-bold text-emerald-400`}>18,500 {t.posDemoCurrency}</div>
                   </div>
 
                   <div className="grid grid-cols-12 px-4 py-3 items-center hover:bg-white/[0.02]">
-                    <div className="col-span-5 text-right font-medium">
-                      <span>كابل HDMI 2.1 Ultra High Speed 2M</span>
-                      <span className="block text-[11px] text-gray-500">باركود: 6220011244</span>
+                    <div className={`col-span-5 ${isAr ? "text-right" : "text-left"} font-medium`}>
+                      <span>{t.posDemoItem2Title}</span>
+                      <span className="block text-[11px] text-gray-500">{t.posDemoItem2Sub}</span>
                     </div>
                     <div className="col-span-2 text-center font-mono text-gray-300">2</div>
-                    <div className="col-span-2 text-center font-mono text-gray-300">350 ج.م</div>
-                    <div className="col-span-3 text-left font-mono font-bold text-emerald-400">700 ج.م</div>
+                    <div className="col-span-2 text-center font-mono text-gray-300">350 {t.posDemoCurrency}</div>
+                    <div className={`col-span-3 ${isAr ? "text-left" : "text-right"} font-mono font-bold text-emerald-400`}>700 {t.posDemoCurrency}</div>
                   </div>
 
                   <div className="grid grid-cols-12 px-4 py-3 items-center hover:bg-white/[0.02]">
-                    <div className="col-span-5 text-right font-medium">
-                      <span>ماوس لاسلكي Logitech MX Master 3S</span>
-                      <span className="block text-[11px] text-emerald-400 font-mono">SN: MX-3S-881924</span>
+                    <div className={`col-span-5 ${isAr ? "text-right" : "text-left"} font-medium`}>
+                      <span>{t.posDemoItem3Title}</span>
+                      <span className="block text-[11px] text-emerald-400 font-mono">{t.posDemoItem3Sub}</span>
                     </div>
                     <div className="col-span-2 text-center font-mono text-gray-300">1</div>
-                    <div className="col-span-2 text-center font-mono text-gray-300">4,200 ج.م</div>
-                    <div className="col-span-3 text-left font-mono font-bold text-emerald-400">4,200 ج.م</div>
+                    <div className="col-span-2 text-center font-mono text-gray-300">4,200 {t.posDemoCurrency}</div>
+                    <div className={`col-span-3 ${isAr ? "text-left" : "text-right"} font-mono font-bold text-emerald-400`}>4,200 {t.posDemoCurrency}</div>
                   </div>
                 </div>
               </div>
@@ -321,16 +321,16 @@ export default function PosPortalPage() {
               {/* Bottom Financial summary */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/5">
-                  <span className="text-[11px] text-gray-400 block">المجموع قبل الضريبة</span>
-                  <span className="text-base font-bold font-mono text-gray-200">20,526.32 ج.م</span>
+                  <span className="text-[11px] text-gray-400 block">{t.posDemoSubtotal}</span>
+                  <span className="text-base font-bold font-mono text-gray-200">20,526.32 {t.posDemoCurrency}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-white/5 border border-white/5">
-                  <span className="text-[11px] text-amber-300 block">ضريبة القيمة المضافة (14%)</span>
-                  <span className="text-base font-bold font-mono text-amber-400">2,873.68 ج.م</span>
+                  <span className="text-[11px] text-amber-300 block">{t.posDemoVat}</span>
+                  <span className="text-base font-bold font-mono text-amber-400">2,873.68 {t.posDemoCurrency}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                  <span className="text-[11px] text-emerald-300 block">الإجمالي النهائي المطلوب</span>
-                  <span className="text-lg font-black font-mono text-emerald-400">23,400.00 ج.م</span>
+                  <span className="text-[11px] text-emerald-300 block">{t.posDemoGrandTotal}</span>
+                  <span className="text-lg font-black font-mono text-emerald-400">23,400.00 {t.posDemoCurrency}</span>
                 </div>
               </div>
             </div>
@@ -339,25 +339,25 @@ export default function PosPortalPage() {
             <div className="lg:col-span-4 flex flex-col gap-4">
               <div className="p-5 rounded-2xl bg-[#0F1626] border border-emerald-500/20 text-center flex flex-col items-center">
                 <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-1">
-                  معاينة الإيصال الحراري الفوري
+                  {t.posDemoReceiptPreview}
                 </span>
                 <span className="text-[11px] text-gray-400 mb-4">
-                  طباعة نقطية عالية النقاء 1.8ms (80mm ESC/POS)
+                  {t.posDemoReceiptSpeed}
                 </span>
 
                 {/* Thermal Bill Mockup */}
-                <div className="w-full max-w-[260px] bg-white text-black p-4 rounded-lg shadow-xl font-mono text-[11px] text-right space-y-2 border border-gray-300">
+                <div className={`w-full max-w-[260px] bg-white text-black p-4 rounded-lg shadow-xl font-mono text-[11px] ${isAr ? "text-right" : "text-left"} space-y-2 border border-gray-300`}>
                   <div className="text-center font-bold text-xs pb-1 border-b border-dashed border-gray-400">
-                    شركة كويزلينك لتجارة التجزئة
-                    <div className="text-[9px] font-normal text-gray-700">س.ت: 409182 | ب.ض: 582-901-233</div>
+                    {t.posDemoReceiptCompany}
+                    <div className="text-[9px] font-normal text-gray-700">{t.posDemoReceiptTaxId}</div>
                   </div>
 
                   <div className="flex justify-between text-[10px]">
-                    <span>فاتورة رقم:</span>
+                    <span>{t.posDemoReceiptInvNo}</span>
                     <span className="font-bold">INV-B01-POS01-0042</span>
                   </div>
                   <div className="flex justify-between text-[10px]">
-                    <span>التاريخ والوقت:</span>
+                    <span>{t.posDemoReceiptDateTime}</span>
                     <span>2026-10-07 14:30</span>
                   </div>
                   
@@ -366,9 +366,9 @@ export default function PosPortalPage() {
                       <span>Dell UltraSharp 4K x1</span>
                       <span>18,500.00</span>
                     </div>
-                    <div className="text-[8px] text-gray-600">S/N: DL-4K-992182 (ضمان سنتين)</div>
+                    <div className="text-[8px] text-gray-600">S/N: DL-4K-992182 (2-Yr Warranty)</div>
                     <div className="flex justify-between font-bold">
-                      <span>كابل HDMI 2.1 x2</span>
+                      <span>HDMI 2.1 Cable x2</span>
                       <span>700.00</span>
                     </div>
                     <div className="flex justify-between font-bold">
@@ -379,16 +379,16 @@ export default function PosPortalPage() {
 
                   <div className="space-y-0.5 text-[10px]">
                     <div className="flex justify-between">
-                      <span>المبلغ الخاضع للضريبة:</span>
+                      <span>{t.posDemoReceiptTaxable}</span>
                       <span>20,526.32</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>ضريبة القيمة المضافة 14%:</span>
+                      <span>{t.posDemoReceiptVat}</span>
                       <span>2,873.68</span>
                     </div>
                     <div className="flex justify-between font-black text-xs pt-1 border-t border-gray-300">
-                      <span>الصافي المدفوع:</span>
-                      <span>23,400.00 ج.م</span>
+                      <span>{t.posDemoReceiptNet}</span>
+                      <span>23,400.00 {t.posDemoCurrency}</span>
                     </div>
                   </div>
 
@@ -397,13 +397,13 @@ export default function PosPortalPage() {
                     <div className="w-16 h-16 bg-gray-900 rounded p-1 flex items-center justify-center text-white">
                       <QrCode className="w-12 h-12 text-white" />
                     </div>
-                    <span className="text-[8px] text-gray-600">إيصال ضريبي إلكتروني معتمد (ETA TLV)</span>
+                    <span className="text-[8px] text-gray-600">{t.posDemoReceiptCertified}</span>
                   </div>
                 </div>
 
                 <div className="w-full mt-4 flex items-center justify-center gap-2 text-xs text-emerald-300">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>طابعة Xprinter 80mm جاهزة ومتصلة</span>
+                  <span>{t.posDemoPrinterStatus}</span>
                 </div>
               </div>
             </div>
@@ -479,33 +479,33 @@ export default function PosPortalPage() {
                       <Laptop className="w-7 h-7 text-emerald-400" />
                     </div>
                     <div className="px-3.5 py-1.5 rounded-full bg-emerald-500 text-black font-bold text-xs uppercase tracking-wide shrink-0 shadow-sm">
-                      موصى به للمحلات
+                      {t.posCard1Badge}
                     </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
-                    برنامج التثبيت الرسمي (Windows 10 / 11)
+                    {t.posCard1Title}
                   </h3>
                   <p className="text-xs text-gray-400 font-mono mb-4">
-                    QuazLink-POS-Setup-v1.1.0.exe • الإصدار 1.1.0
+                    {t.posCard1Subtitle}
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                    برنامج تثبيت قياسي كامل (NSIS Setup) يقوم بتهيئة بيئة التشغيل، إنشاء اختصارات سطح المكتب وقائمة ابدأ، وربط الطابعات وأجهزة الباركود تلقائياً.
+                    {t.posCard1Desc}
                   </p>
 
                   <div className="space-y-2.5 mb-8 text-xs text-gray-300">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>تثبيت بنقرة واحدة مع أيقونة رسمية على الديسكتوب</span>
+                      <span>{t.posCard1Feat1}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>محرك Chromium 126 مع قاعدة بيانات محلية SQLite فائقة السرعة</span>
+                      <span>{t.posCard1Feat2}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>حجم الملف: <strong>70.6 ميجابايت</strong> (جاهز للتحميل)</span>
+                      <span>{t.posCard1Feat3}</span>
                     </div>
                   </div>
                 </div>
@@ -517,10 +517,10 @@ export default function PosPortalPage() {
                     download="QuazLink-POS-Setup-v1.1.0.exe"
                   >
                     <Download className="w-5 h-5" />
-                    <span>تحميل برنامج التثبيت (Setup .exe)</span>
+                    <span>{t.posCard1Btn}</span>
                   </a>
                   <span className="block text-center text-[11px] text-gray-500 mt-2">
-                    رابط مباشر وسريع • يدعم استئناف التحميل
+                    {t.posCard1Footnote}
                   </span>
                 </div>
               </SpotlightCard>
@@ -533,33 +533,33 @@ export default function PosPortalPage() {
                       <FolderArchive className="w-7 h-7 text-cyan-400" />
                     </div>
                     <div className="px-3.5 py-1.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold text-xs shrink-0">
-                      بدون تثبيت (Portable)
+                      {t.posCard2Badge}
                     </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
-                    النسخة المحمولة بدون تثبيت
+                    {t.posCard2Title}
                   </h3>
                   <p className="text-xs text-gray-400 font-mono mb-4">
-                    QuazLink-POS-Portable-v1.1.0.zip • الإصدار 1.1.0
+                    {t.posCard2Subtitle}
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                    نسخة مجهزة للتشغيل الفوري من فلاشة USB أو أي مجلد بدون صلاحيات مدير النظام (No Admin Rights). فك الضغط واضغط مرتين للبدء فوراً.
+                    {t.posCard2Desc}
                   </p>
 
                   <div className="space-y-2.5 mb-8 text-xs text-gray-300">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>لا تتطلب أي خطوات تثبيت أو إعدادات مسبقة</span>
+                      <span>{t.posCard2Feat1}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>مثالية لأجهزة الكاشير المقيدة أو العمل من فلاشة USB</span>
+                      <span>{t.posCard2Feat2}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>حجم الملف: <strong>73.8 ميجابايت</strong> (مضغوط ZIP)</span>
+                      <span>{t.posCard2Feat3}</span>
                     </div>
                   </div>
                 </div>
@@ -571,10 +571,10 @@ export default function PosPortalPage() {
                     download="QuazLink-POS-Portable-v1.1.0.zip"
                   >
                     <FolderArchive className="w-5 h-5 text-cyan-400" />
-                    <span>تحميل النسخة المحمولة (Portable .zip)</span>
+                    <span>{t.posCard2Btn}</span>
                   </a>
                   <span className="block text-center text-[11px] text-gray-500 mt-2">
-                    تشغيل فوري • احتفظ ببياناتك على فلاشة
+                    {t.posCard2Footnote}
                   </span>
                 </div>
               </SpotlightCard>
@@ -596,33 +596,33 @@ export default function PosPortalPage() {
                       <Monitor className="w-7 h-7 text-amber-400" />
                     </div>
                     <div className="px-3.5 py-1.5 rounded-full bg-amber-500 text-black font-bold text-xs uppercase tracking-wide shrink-0 shadow-sm">
-                      مخصص لأجهزة Win 7 & POSReady
+                      {t.posCard3Badge}
                     </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
-                    نسخة التثبيت للأجهزة القديمة (Win 7 Edition)
+                    {t.posCard3Title}
                   </h3>
                   <p className="text-xs text-amber-300 font-mono mb-4">
-                    QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe • الإصدار 1.1.0
+                    {t.posCard3Subtitle}
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                    إصدار مخصص رسمياً لأجهزة نقاط البيع القديمة وشاشات اللمس (Elo, Posiflex, IBM) التي تعمل بنظام Windows 7 SP1 أو Windows 8 أو Windows POSReady 7 دون الحاجة لتحديث نظام التشغيل.
+                    {t.posCard3Desc}
                   </p>
 
                   <div className="space-y-2.5 mb-8 text-xs text-gray-300">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>متوافق 100% مع Windows 7 SP1 (32 بت و 64 بت)</span>
+                      <span>{t.posCard3Feat1}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>استهلاك ذاكرة منخفض جداً (يناسب أجهزة 2GB RAM)</span>
+                      <span>{t.posCard3Feat2}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>حجم خفيف فائق السرعة: <strong>73.8 ميجابايت</strong> (جاهز للتحميل)</span>
+                      <span>{t.posCard3Feat3}</span>
                     </div>
                   </div>
                 </div>
@@ -634,10 +634,10 @@ export default function PosPortalPage() {
                     download="QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
                   >
                     <Download className="w-5 h-5" />
-                    <span>تحميل نسخة Windows 7 (Setup .exe)</span>
+                    <span>{t.posCard3Btn}</span>
                   </a>
                   <span className="block text-center text-[11px] text-gray-500 mt-2">
-                    متوافق مع جميع شاشات اللمس وطابعات الفواتير القديمة
+                    {t.posCard3Footnote}
                   </span>
                 </div>
               </SpotlightCard>
@@ -650,33 +650,33 @@ export default function PosPortalPage() {
                       <FolderArchive className="w-7 h-7 text-amber-400" />
                     </div>
                     <div className="px-3.5 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold text-xs shrink-0">
-                      بدون تثبيت (Win 7 Portable)
+                      {t.posCard4Badge}
                     </div>
                   </div>
 
                   <h3 className="text-2xl font-bold text-white mb-2">
-                    النسخة المحمولة لويندوز 7
+                    {t.posCard4Title}
                   </h3>
                   <p className="text-xs text-amber-300 font-mono mb-4">
-                    QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip • الإصدار 1.1.0
+                    {t.posCard4Subtitle}
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
-                    ملف تنفيذي فوري يعمل مباشرة على أي جهاز كاشير بنظام ويندوز 7 بدون أي خطوات تثبيت أو ملفات إضافية. فقط فك الضغط وابدأ البيع.
+                    {t.posCard4Desc}
                   </p>
 
                   <div className="space-y-2.5 mb-8 text-xs text-gray-300">
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>تشغيل فوري بضغطة زر دون الحاجة لصلاحيات Administrator</span>
+                      <span>{t.posCard4Feat1}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>محرك SQLite WebAssembly خفيف وثابت بالكامل</span>
+                      <span>{t.posCard4Feat2}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>حجم الملف: <strong>73.6 ميجابايت</strong> (مضغوط ZIP)</span>
+                      <span>{t.posCard4Feat3}</span>
                     </div>
                   </div>
                 </div>
@@ -688,10 +688,10 @@ export default function PosPortalPage() {
                     download="QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
                   >
                     <FolderArchive className="w-5 h-5 text-amber-400" />
-                    <span>تحميل نسخة Win 7 المحمولة (Portable .zip)</span>
+                    <span>{t.posCard4Btn}</span>
                   </a>
                   <span className="block text-center text-[11px] text-gray-500 mt-2">
-                    تشغيل مباشر من فلاشة USB أو سطح المكتب
+                    {t.posCard4Footnote}
                   </span>
                 </div>
               </SpotlightCard>
@@ -700,25 +700,23 @@ export default function PosPortalPage() {
         </AnimatePresence>
 
         {/* System Requirements Bar */}
-        <div className="p-6 rounded-2xl bg-[#090D18] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-gray-300">
+        <div className={`p-6 rounded-2xl bg-[#090D18] border border-white/10 flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-gray-300 ${isAr ? "text-right" : "text-left"}`}>
           <div className="flex items-center gap-3">
             <Cpu className={`w-6 h-6 shrink-0 ${downloadOsTab === "modern" ? "text-emerald-400" : "text-amber-400"}`} />
             <div>
               <span className="font-bold text-white block">
-                {downloadOsTab === "modern" ? "متطلبات النسخة الحديثة (Modern):" : "متطلبات نسخة الأجهزة القديمة (Legacy Win7):"}
+                {downloadOsTab === "modern" ? t.posReqModernTitle : t.posReqLegacyTitle}
               </span>
               <span className="text-gray-400">
-                {downloadOsTab === "modern"
-                  ? "ويندوز 10 أو 11 (64 بت) • رامات 4 جيجابايت فأكثر • مساحة تخزين 600 ميجابايت • محرك Chromium الحديث"
-                  : "ويندوز 7 SP1 أو ويندوز 8 أو POSReady 7 (32/64 بت) • رامات 2 جيجابايت فقط • مساحة تخزين 200 ميجابايت"}
+                {downloadOsTab === "modern" ? t.posReqModernDesc : t.posReqLegacyDesc}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 border-t md:border-t-0 md:border-r border-white/10 pt-4 md:pt-0 md:pr-6">
+          <div className={`flex items-center gap-6 border-t md:border-t-0 ${isAr ? "md:border-r md:pr-6" : "md:border-l md:pl-6"} border-white/10 pt-4 md:pt-0`}>
             <div>
-              <span className="font-bold text-white block">الأجهزة والطرفيات المدعومة:</span>
-              <span className="text-gray-400">جميع طابعات الفواتير الحرارية (80mm/58mm)، قارئ الباركود USB/Serial، وأدراج النقدية.</span>
+              <span className="font-bold text-white block">{t.posReqHardwareTitle}</span>
+              <span className="text-gray-400">{t.posReqHardwareDesc}</span>
             </div>
           </div>
         </div>

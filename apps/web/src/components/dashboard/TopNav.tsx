@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { Bell, Search, Laptop, Download } from "lucide-react";
 import { getDevices } from "@/lib/api";
+import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 export function TopNav() {
   const [isOnline, setIsOnline] = React.useState(false);
@@ -48,6 +49,9 @@ export function TopNav() {
       </div>
       
       <div className="flex items-center space-x-3">
+        {/* Language Switcher */}
+        <LanguageSwitcher variant="nav" />
+
         {/* Runner Status Indicator */}
         <Link
           href="/settings"

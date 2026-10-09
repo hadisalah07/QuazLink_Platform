@@ -71,7 +71,7 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section 
-        className="relative w-full min-h-screen flex items-center justify-center z-0 overflow-hidden cursor-pointer"
+        className="relative w-full min-h-[82vh] sm:min-h-[85vh] flex items-center justify-center z-0 overflow-hidden cursor-pointer"
         onClick={handleFinish}
       >
         
@@ -128,15 +128,15 @@ export default function LandingPage() {
 
         {/* Text Content & Persistent Glowing Logo */}
         <motion.div
-          className="relative flex flex-col items-center justify-center text-center px-6 py-20 z-10 pointer-events-none"
+          className="relative flex flex-col items-center justify-center text-center px-4 sm:px-6 py-12 md:py-16 z-10 pointer-events-none"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: videoEnded ? 1 : 0, y: videoEnded ? 0 : 20 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
-          <div className="flex flex-col items-center space-y-6 pointer-events-auto">
+          <div className="flex flex-col items-center space-y-4 sm:space-y-5 pointer-events-auto max-w-4xl mx-auto">
             {/* Persistent Glowing QuazLink Logo */}
             <motion.div 
-              className="relative w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center cursor-pointer group"
+              className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center cursor-pointer group"
               onClick={handleReplay}
               title={t.replayTooltip}
               whileHover={{ scale: 1.05 }}
@@ -150,31 +150,31 @@ export default function LandingPage() {
               />
             </motion.div>
 
-            <div className="inline-flex items-center space-x-2 bg-[#0B101D] border border-white/10 px-4 py-1.5 rounded-full shadow-sm">
+            <div className="inline-flex items-center space-x-2 bg-[#0B101D] border border-white/10 px-3.5 py-1.5 rounded-full shadow-sm">
               <span className="w-2 h-2 rounded-full bg-[var(--color-quaz-cyan)] animate-pulse" />
-              <span className="text-sm font-medium text-gray-300">{t.heroBadge}</span>
+              <span className="text-xs sm:text-sm font-medium text-gray-300">{t.heroBadge}</span>
               <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                 v{APP_VERSION}
               </span>
             </div>
             
-            <h1 className="text-6xl md:text-8xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500">
+            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-white to-gray-500">
               QuazLink
             </h1>
             
-            <p className="text-lg md:text-xl text-gray-400 max-w-2xl">
+            <p className="text-sm sm:text-base md:text-lg text-gray-400 max-w-xl">
               {t.heroSubtitle}
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
-              <Link href="/accounts" className="px-8 py-4 bg-white text-black font-semibold rounded-full hover:bg-gray-200 transition-colors shadow-lg">
+            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 pt-1">
+              <Link href="/accounts" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-white text-black font-semibold text-sm sm:text-base rounded-full hover:bg-gray-200 transition-colors shadow-lg">
                 {t.getStarted}
               </Link>
-              <Link href="/pos" className="px-7 py-4 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold rounded-full border border-emerald-500/40 hover:border-emerald-500/80 transition-colors shadow-lg flex items-center gap-2">
+              <Link href="/pos" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-semibold text-sm sm:text-base rounded-full border border-emerald-500/40 hover:border-emerald-500/80 transition-colors shadow-lg flex items-center gap-2">
                 <Store className="w-4 h-4 text-emerald-400" />
                 <span>{t.posPortal}</span>
               </Link>
-              <Link href="/download" className="px-8 py-4 bg-[#0B101D] text-white font-semibold rounded-full border border-white/10 hover:border-white/30 hover:bg-[#121929] transition-colors shadow-lg flex items-center gap-2">
+              <Link href="/download" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-[#0B101D] text-white font-semibold text-sm sm:text-base rounded-full border border-white/10 hover:border-white/30 hover:bg-[#121929] transition-colors shadow-lg flex items-center gap-2">
                 <Download className="w-4 h-4" />
                 <span>{t.downloads}</span>
               </Link>
@@ -184,19 +184,19 @@ export default function LandingPage() {
       </section>
 
       {/* POS Spotlight Announcement Card */}
-      <section className="relative z-10 w-full max-w-7xl px-6 mb-12">
+      <section className="relative z-10 w-full max-w-6xl px-4 sm:px-6 mb-10">
         <Link href="/pos">
-          <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-[#0C1222] to-cyan-950/70 border border-emerald-500/30 hover:border-emerald-500/70 transition-colors duration-200 shadow-xl group cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
-                <Store className="w-8 h-8 text-emerald-400" />
+          <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-[#0C1222] to-cyan-950/70 border border-emerald-500/30 hover:border-emerald-500/70 transition-colors duration-200 shadow-xl group cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+            <div className="flex items-center gap-4 sm:gap-5">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
+                <Store className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400" />
               </div>
               <div className={isAr ? "text-right" : "text-left"}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 mb-1.5">
+                  <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold whitespace-nowrap shrink-0 border border-emerald-500/30">
                     {t.posCardTag}
                   </span>
-                  <h3 className="text-xl sm:text-2xl font-bold text-white">
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
                     {t.posCardTitle}
                   </h3>
                 </div>
@@ -206,7 +206,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm shrink-0 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 group-hover:bg-emerald-500/20 transition-colors duration-200">
+            <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs sm:text-sm shrink-0 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 group-hover:bg-emerald-500/20 transition-colors duration-200 whitespace-nowrap">
               <span>{t.posCardCta}</span>
               <ArrowRight className={`w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200 ${isAr ? "rotate-180 group-hover:-translate-x-1" : ""}`} />
             </div>
@@ -215,7 +215,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="relative z-10 w-full max-w-7xl px-6 pb-32 grid grid-cols-1 md:grid-cols-3 gap-6">
+      <section className="relative z-10 w-full max-w-6xl px-4 sm:px-6 pb-24 grid grid-cols-1 md:grid-cols-3 gap-5">
         <GlassCard interactive={true} className={`flex flex-col items-start group ${isAr ? "text-right" : "text-left"}`}>
           <div className="w-12 h-12 rounded-xl bg-[var(--color-quaz-cyan)]/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-200">
             <Bot className="w-6 h-6 text-[var(--color-quaz-cyan)]" />
