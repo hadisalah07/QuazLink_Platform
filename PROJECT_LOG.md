@@ -1011,3 +1011,36 @@
    - سحب الكود وإعادة بناء حاوية الويب على مكدس Coolify (`/data/coolify/services/n7serqao6hoykbzgragyiiif`).
    - التحقق عبر المتصفح والـ cURL وتوثيق نجاح استجابة `https://app.quazlink.site/api/version` وظهور الشارة والفوتر بنجاح 100%.
 
+---
+
+## 📅 [9 أكتوبر 2026] - توحيد إصدارات المنظومة والمزامنة الحية الشاملة (POS v1.1.0 & Automation Runner v26.10.13)
+
+### 1. ملخص المرحلة ونقطة الارتكاز (Current Standing Checkpoint):
+- **نظام الكاشير ونقاط البيع (QuazLink POS & ERP v1.1.0):**
+  - حل مشكلة حفظ المعاملات وتثبيت الفواتير في قاعدة بيانات SQLite المحلية (WebAssembly Commit Fix).
+  - حل مسار حفظ وتوليد الإيصالات الحرارية وضمان الصلاحيات التامة دون أخطاء نظام (`~/.quazlink/receipts`).
+  - دعم كامل لاختصارات التكبير والتصغير للشاشات اللمسية (`Ctrl + +` للتكبير، `Ctrl + -` للتصغير، `Ctrl + 0` لإعادة الضبط).
+  - إطلاق نظام التحديث التلقائي الذكي داخل واجهة الكاشير مع شريط إشعار عائم وتنبيه مرئي وزر فحص يدوي.
+  - تجهيز ورفع حزم التحميل الأربعة على GitHub Release (`pos-v1.1.0`):
+    - `QuazLink-POS-Setup-v1.1.0.exe` (70.6 MB - Windows 10/11 64-bit)
+    - `QuazLink-POS-Portable-v1.1.0.zip` (73.8 MB - Windows 10/11 64-bit Portable)
+    - `QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe` (73.8 MB - Windows 7/8/POSReady 32-bit)
+    - `QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip` (73.6 MB - Windows 7/8/POSReady 32-bit Portable)
+
+- **محرك الأتمتة المكتبي (QuazLink Automation Runner v26.10.13):**
+  - ترقية إصدار الرانر لمطابقة إصدار المنصة الموحد `v26.10.13`.
+  - تحصين نظام التحديث التلقائي (`app-updater.ts`) ليفحص خصيصاً ريليزات الرانر عبر النمط `QuazLink-Runner-Setup.*\.exe` ومنع التداخل مع ريليزات الـ POS.
+  - بناء وتوقيع ملف التثبيت الرسمي `QuazLink-Runner-Setup-v26.10.13.exe` (76.5 MB).
+  - إنشاء الإصدار الرسمي على GitHub Release (`v26.10.13`) ورفع الملفات عليه.
+
+- **المزامنة الحية ومنع التفاوت (Zero Discrepancy Platform-Wide Sync):**
+  - توحيد أسماء الملفات وأرقام الإصدارات صراحة في أسماء التحميلات بكل صفحات المنصة:
+    - بوابة الكاشير المستقلة (`https://app.quazlink.site/pos#downloads`).
+    - مركز التحميلات بالداشبورد (`https://app.quazlink.site/download`).
+  - تحديث توجيهات Next.js (`apps/web/next.config.ts`) وواجهة الـ API (`apps/api/src/routes/downloads.ts`) لتوجيه كل الروابط للـ CDN الرسمي فورياً.
+  - إزالة الـ Route المتعارض في Next.js لضمان توجيه استدعاءات `/api/downloads/info` و `/api/downloads/pos/license` بسلاسة تامة للباك إند.
+  - إتمام النشر الحي على سيرفر الإنتاج (`164.68.115.239`) وإعادة بناء حاويات `web` و `api` والتحقق من عمل كافة الروابط بنجاح 100%.
+
+---
+
+
