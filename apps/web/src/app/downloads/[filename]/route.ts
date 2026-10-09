@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
+import { Readable } from "node:stream";
 import path from "node:path";
 
 export const dynamic = "force-dynamic";
@@ -36,17 +37,9 @@ export async function GET(
       const end = parts[1] ? parseInt(parts[1], 10) : stat.size - 1;
       const chunkSize = end - start + 1;
       const stream = fs.createReadStream(/*turbopackIgnore: true*/ foundPath, { start, end });
+      const webStream = Readable.toWeb(stream);
 
-      // @ts-ignore
-      const readable = new ReadableStream({
-        start(controller) {
-          stream.on("data", (chunk) => controller.enqueue(chunk));
-          stream.on("end", () => controller.close());
-          stream.on("error", (err) => controller.error(err));
-        },
-      });
-
-      return new Response(readable, {
+      return new Response(webStream as any, {
         status: 206,
         headers: {
           "Content-Range": `bytes ${start}-${end}/${stat.size}`,
@@ -55,21 +48,15 @@ export async function GET(
           "Content-Type": "application/octet-stream",
           "Content-Disposition": `attachment; filename="${safeFilename}"`,
           "Cache-Control": "public, max-age=86400, s-maxage=604800",
+          "X-Content-Type-Options": "nosniff",
         },
       });
     }
 
     const stream = fs.createReadStream(/*turbopackIgnore: true*/ foundPath);
-    // @ts-ignore
-    const readable = new ReadableStream({
-      start(controller) {
-        stream.on("data", (chunk) => controller.enqueue(chunk));
-        stream.on("end", () => controller.close());
-        stream.on("error", (err) => controller.error(err));
-      },
-    });
+    const webStream = Readable.toWeb(stream);
 
-    return new Response(readable, {
+    return new Response(webStream as any, {
       status: 200,
       headers: {
         "Content-Length": stat.size.toString(),
