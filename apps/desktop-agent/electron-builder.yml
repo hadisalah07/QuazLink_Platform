@@ -27,4 +27,5 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: "QuazLink Runner"
+  artifactName: "QuazLink-Runner-Setup-v${version}.${ext}"
 

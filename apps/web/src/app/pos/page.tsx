@@ -486,7 +486,7 @@ export default function PosPortalPage() {
                     برنامج التثبيت الرسمي (Windows 10 / 11)
                   </h3>
                   <p className="text-xs text-gray-400 font-mono mb-4">
-                    QuazLink-POS-Setup.exe • الإصدار 1.0.0
+                    QuazLink-POS-Setup-v1.1.0.exe • الإصدار 1.1.0
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
@@ -504,16 +504,16 @@ export default function PosPortalPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <span>حجم الملف: <strong>204.3 ميجابايت</strong> (جاهز للتحميل)</span>
+                      <span>حجم الملف: <strong>70.6 ميجابايت</strong> (جاهز للتحميل)</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <a
-                    href="/api/downloads/file/QuazLink-POS-Setup.exe"
+                    href="/downloads/QuazLink-POS-Setup-v1.1.0.exe"
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition-all transform hover:-translate-y-0.5"
-                    download
+                    download="QuazLink-POS-Setup-v1.1.0.exe"
                   >
                     <Download className="w-5 h-5" />
                     <span>تحميل برنامج التثبيت (Setup .exe)</span>
@@ -539,7 +539,7 @@ export default function PosPortalPage() {
                     النسخة المحمولة بدون تثبيت
                   </h3>
                   <p className="text-xs text-gray-400 font-mono mb-4">
-                    QuazLink-POS-Portable.zip • الإصدار 1.0.0
+                    QuazLink-POS-Portable-v1.1.0.zip • الإصدار 1.1.0
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
@@ -557,16 +557,16 @@ export default function PosPortalPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>حجم الملف: <strong>221.6 ميجابايت</strong> (مضغوط ZIP)</span>
+                      <span>حجم الملف: <strong>73.8 ميجابايت</strong> (مضغوط ZIP)</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <a
-                    href="/api/downloads/file/QuazLink-POS-Portable.zip"
+                    href="/downloads/QuazLink-POS-Portable-v1.1.0.zip"
                     className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-cyan-500/50 transition-all"
-                    download
+                    download="QuazLink-POS-Portable-v1.1.0.zip"
                   >
                     <FolderArchive className="w-5 h-5 text-cyan-400" />
                     <span>تحميل النسخة المحمولة (Portable .zip)</span>
@@ -601,7 +601,7 @@ export default function PosPortalPage() {
                     نسخة التثبيت للأجهزة القديمة (Win 7 Edition)
                   </h3>
                   <p className="text-xs text-amber-300 font-mono mb-4">
-                    QuazLink-POS-Legacy-Win7-Setup.exe • Electron 22 LTS
+                    QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe • الإصدار 1.1.0
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
@@ -619,16 +619,16 @@ export default function PosPortalPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>حجم خفيف فائق السرعة: <strong>66.1 ميجابايت فقط</strong></span>
+                      <span>حجم خفيف فائق السرعة: <strong>73.8 ميجابايت</strong> (جاهز للتحميل)</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <a
-                    href="/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup.exe"
+                    href="/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400 transition-all transform hover:-translate-y-0.5"
-                    download
+                    download="QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
                   >
                     <Download className="w-5 h-5" />
                     <span>تحميل نسخة Windows 7 (Setup .exe)</span>
@@ -654,7 +654,7 @@ export default function PosPortalPage() {
                     النسخة المحمولة لويندوز 7
                   </h3>
                   <p className="text-xs text-amber-300 font-mono mb-4">
-                    QuazLink-POS-Legacy-Win7-Portable.zip • الإصدار 1.0.0
+                    QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip • الإصدار 1.1.0
                   </p>
 
                   <p className="text-sm text-gray-300 leading-relaxed mb-6">
@@ -672,16 +672,16 @@ export default function PosPortalPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span>حجم الملف: <strong>65.9 ميجابايت فقط</strong></span>
+                      <span>حجم الملف: <strong>73.6 ميجابايت</strong> (مضغوط ZIP)</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
                   <a
-                    href="/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable.zip"
+                    href="/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
                     className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-amber-500/50 transition-all"
-                    download
+                    download="QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
                   >
                     <FolderArchive className="w-5 h-5 text-amber-400" />
                     <span>تحميل نسخة Win 7 المحمولة (Portable .zip)</span>

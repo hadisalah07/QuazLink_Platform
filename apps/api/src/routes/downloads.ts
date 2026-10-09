@@ -51,15 +51,15 @@ router.get('/info', (_req, res) => {
       description: 'نظام الكاشير ونقاط البيع وإدارة المخازن والفواتير (يعمل بدون إنترنت Offline-First)',
       recommended: true,
       installer: {
-        filename: 'QuazLink-POS-Setup.exe',
-        downloadUrl: '/downloads/QuazLink-POS-Setup.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Setup.exe',
+        filename: 'QuazLink-POS-Setup-v1.1.0.exe',
+        downloadUrl: '/downloads/QuazLink-POS-Setup-v1.1.0.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Setup-v1.1.0.exe',
         ...posInstallerInfo,
       },
       portable: {
-        filename: 'QuazLink-POS-Portable.zip',
-        downloadUrl: '/downloads/QuazLink-POS-Portable.zip',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Portable.zip',
+        filename: 'QuazLink-POS-Portable-v1.1.0.zip',
+        downloadUrl: '/downloads/QuazLink-POS-Portable-v1.1.0.zip',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Portable-v1.1.0.zip',
         ...posPortableInfo,
       },
       requirements: {
@@ -76,15 +76,15 @@ router.get('/info', (_req, res) => {
       recommended: false,
       isLegacy: true,
       installer: {
-        filename: 'QuazLink-POS-Legacy-Win7-Setup.exe',
-        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Setup.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup.exe',
+        filename: 'QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe',
+        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe',
         ...posLegacySetupInfo,
       },
       portable: {
-        filename: 'QuazLink-POS-Legacy-Win7-Portable.zip',
-        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Portable.zip',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable.zip',
+        filename: 'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip',
+        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip',
         ...posLegacyPortableInfo,
       },
       requirements: {
@@ -96,13 +96,13 @@ router.get('/info', (_req, res) => {
     },
     runner: {
       name: 'QuazLink Automation Runner',
-      version: '26.9.5',
+      version: '26.10.13',
       description: 'محرك الأتمتة المكتبي الخفيف لتنفيذ فواتير الواتساب ومنشورات السوشيال ميديا',
       recommended: false,
       installer: {
-        filename: 'QuazLink-Runner-Setup.exe',
-        downloadUrl: '/downloads/QuazLink-Runner-Setup.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-Runner-Setup.exe',
+        filename: 'QuazLink-Runner-Setup-v26.10.13.exe',
+        downloadUrl: '/downloads/QuazLink-Runner-Setup-v26.10.13.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-Runner-Setup-v26.10.13.exe',
         ...runnerInfo,
       },
     },
@@ -113,11 +113,16 @@ router.get('/info', (_req, res) => {
 router.get('/file/:filename', (req, res) => {
   const allowedFiles = [
     'QuazLink-POS-Setup.exe',
+    'QuazLink-POS-Setup-v1.1.0.exe',
     'QuazLink-POS-Portable.zip',
+    'QuazLink-POS-Portable-v1.1.0.zip',
     'QuazLink-POS-Legacy-Win7-Setup.exe',
+    'QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe',
     'QuazLink-POS-Legacy-Win7-Portable.exe',
     'QuazLink-POS-Legacy-Win7-Portable.zip',
+    'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip',
     'QuazLink-Runner-Setup.exe',
+    'QuazLink-Runner-Setup-v26.10.13.exe',
   ];
 
   const { filename } = req.params;
@@ -128,12 +133,17 @@ router.get('/file/:filename', (req, res) => {
   const filePath = path.join(WEB_DOWNLOADS_DIR, filename);
   if (!fs.existsSync(filePath)) {
     const cdnMap: Record<string, string> = {
-      'QuazLink-POS-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Setup.exe',
-      'QuazLink-POS-Portable.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Portable.zip',
+      'QuazLink-POS-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Setup-v1.1.0.exe',
+      'QuazLink-POS-Setup-v1.1.0.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Setup-v1.1.0.exe',
+      'QuazLink-POS-Portable.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Portable-v1.1.0.zip',
+      'QuazLink-POS-Portable-v1.1.0.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Portable-v1.1.0.zip',
       'QuazLink-POS-Legacy-Win7-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Setup.exe',
+      'QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe',
       'QuazLink-POS-Legacy-Win7-Portable.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.exe',
       'QuazLink-POS-Legacy-Win7-Portable.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.zip',
-      'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.9.5/QuazLink-Runner-Setup.exe',
+      'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.zip',
+      'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.13/QuazLink-Runner-Setup-v26.10.13.exe',
+      'QuazLink-Runner-Setup-v26.10.13.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.13/QuazLink-Runner-Setup-v26.10.13.exe',
     };
 
     if (cdnMap[filename]) {

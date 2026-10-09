@@ -19,7 +19,10 @@ export type LogCallback = (message: string, type?: 'highlight' | 'success' | 'wa
 
 const GITHUB_REPO_OWNER = 'hadisalah07';
 const GITHUB_REPO_NAME = 'QuazLink_Platform';
-const ALLOWED_ASSET_NAME = 'QuazLink-Runner-Setup.exe';
+
+function isAllowedAssetName(name: string): boolean {
+  return /^QuazLink-Runner-Setup.*\.exe$/i.test(name) || name === 'QuazLink-Runner-Setup.exe';
+}
 
 /**
  * Validates whether a target download URL belongs strictly to the verified GitHub release endpoints.
@@ -84,7 +87,7 @@ export class AppUpdater {
     return new Promise((resolve, reject) => {
       const options = {
         hostname: 'api.github.com',
-        path: `/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases/latest`,
+        path: `/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/releases`,
         headers: {
           'User-Agent': 'QuazLink-Desktop-Runner-Updater',
           Accept: 'application/vnd.github.v3+json',
@@ -102,15 +105,27 @@ export class AppUpdater {
           }
 
           try {
-            const release = JSON.parse(rawData);
+            const parsed = JSON.parse(rawData);
+            const releases: any[] = Array.isArray(parsed) ? parsed : [parsed];
+
+            // Filter for the latest release containing a runner installer
+            const release = releases.find((r: any) => {
+              const assets = r.assets || [];
+              return assets.some((a: any) => isAllowedAssetName(a.name));
+            }) || releases[0];
+
+            if (!release) {
+              throw new Error('No compatible releases found on GitHub.');
+            }
+
             const latestTag = release.tag_name || '';
             const assets: any[] = release.assets || [];
 
             // Locate official installer asset
-            const asset = assets.find((a) => a.name === ALLOWED_ASSET_NAME) || assets.find((a) => a.name.endsWith('.exe'));
+            const asset = assets.find((a: any) => isAllowedAssetName(a.name)) || assets.find((a: any) => a.name.endsWith('.exe'));
 
             if (!asset) {
-              const err = new Error(`Installer asset ${ALLOWED_ASSET_NAME} not found in release ${latestTag}`);
+              const err = new Error(`Installer asset not found in release ${latestTag}`);
               logger?.(`[UPDATE] ⚠️ ${err.message}`, 'warn');
               return reject(err);
             }
@@ -186,7 +201,7 @@ export class AppUpdater {
         fs.mkdirSync(updateDir, { recursive: true });
       }
 
-      const installerPath = path.join(updateDir, ALLOWED_ASSET_NAME);
+      const installerPath = path.join(updateDir, 'QuazLink-Runner-Setup.exe');
       // Clean up previous temp installer if present
       if (fs.existsSync(installerPath)) {
         try {
@@ -194,7 +209,7 @@ export class AppUpdater {
         } catch {}
       }
 
-      logger?.(`[UPDATE] Starting download of ${ALLOWED_ASSET_NAME}...`, 'highlight');
+      logger?.(`[UPDATE] Starting download of update installer...`, 'highlight');
 
       await this.downloadWithRedirects(downloadUrl, installerPath, onProgress, 0);
 

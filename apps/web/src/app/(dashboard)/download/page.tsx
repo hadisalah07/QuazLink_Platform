@@ -210,26 +210,26 @@ export default function DownloadPage() {
             {/* Download Buttons Section */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <a
-                href="/downloads/QuazLink-POS-Setup.exe"
-                download="QuazLink-POS-Setup.exe"
+                href="/downloads/QuazLink-POS-Setup-v1.1.0.exe"
+                download="QuazLink-POS-Setup-v1.1.0.exe"
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(16,185,129,0.5)] hover:shadow-[0_0_50px_rgba(16,185,129,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                 <div className="text-right">
                   <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Win 10/11 Setup)</div>
-                  <div className="text-[11px] text-emerald-100 font-mono font-normal">تثبيت بنقرة واحدة مع اختصار سطح المكتب (~70 MB)</div>
+                  <div className="text-[11px] text-emerald-100 font-mono font-normal">QuazLink-POS-Setup-v1.1.0.exe • تثبيت بنقرة واحدة (~70 MB)</div>
                 </div>
               </a>
 
               <a
-                href="/downloads/QuazLink-POS-Portable.zip"
-                download="QuazLink-POS-Portable.zip"
+                href="/downloads/QuazLink-POS-Portable-v1.1.0.zip"
+                download="QuazLink-POS-Portable-v1.1.0.zip"
                 className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-3 cursor-pointer"
               >
                 <FolderArchive className="w-5 h-5 text-emerald-400" />
                 <div className="text-right">
                   <div>نسخة محمولة (Win 10/11 Portable)</div>
-                  <div className="text-[11px] text-gray-400 font-mono font-normal">فك الضغط وتشغيل مباشر بدون تثبيت (~73 MB)</div>
+                  <div className="text-[11px] text-gray-400 font-mono font-normal">QuazLink-POS-Portable-v1.1.0.zip • تشغيل مباشر (~73 MB)</div>
                 </div>
               </a>
             </div>
@@ -242,21 +242,21 @@ export default function DownloadPage() {
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <a
-                  href="/downloads/QuazLink-POS-Legacy-Win7-Setup.exe"
-                  download="QuazLink-POS-Legacy-Win7-Setup.exe"
+                  href="/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
+                  download="QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
                   className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-2 transition-all shadow-sm"
                 >
                   <Download className="w-4 h-4 text-amber-400" />
-                  <span>تحميل نسخة Windows 7 (32-bit Setup .exe ~73 MB)</span>
+                  <span>تحميل نسخة Windows 7 (Setup-v1.1.0.exe ~73 MB)</span>
                 </a>
 
                 <a
-                  href="/downloads/QuazLink-POS-Legacy-Win7-Portable.zip"
-                  download="QuazLink-POS-Legacy-Win7-Portable.zip"
+                  href="/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
+                  download="QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
                   className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-semibold flex items-center gap-2 transition-all"
                 >
                   <FolderArchive className="w-4 h-4 text-amber-400" />
-                  <span>نسخة Win 7 محمولة (32-bit Portable .zip ~73 MB)</span>
+                  <span>نسخة Win 7 محمولة (Portable-v1.1.0.zip ~73 MB)</span>
                 </a>
               </div>
             </div>
@@ -301,7 +301,7 @@ export default function DownloadPage() {
                 </div>
                 <h4 className="text-sm font-bold text-white">حمّل البرنامج على الجهاز</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  اضغط على زر التحميل بالأعلى لتنزيل ملف <code className="text-emerald-300 font-mono">QuazLink-POS-Setup.exe</code> على أي كمبيوتر لديك.
+                  اضغط على زر التحميل بالأعلى لتنزيل ملف <code className="text-emerald-300 font-mono">QuazLink-POS-Setup-v1.1.0.exe</code> على أي كمبيوتر لديك.
                 </p>
               </SpotlightCard>
 
@@ -560,12 +560,15 @@ export default function DownloadPage() {
             {/* Primary Download CTA */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <a
-                href="/downloads/QuazLink-Runner-Setup.exe"
-                download="QuazLink-Runner-Setup.exe"
+                href="/downloads/QuazLink-Runner-Setup-v26.10.13.exe"
+                download="QuazLink-Runner-Setup-v26.10.13.exe"
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(34,211,238,0.5)] hover:shadow-[0_0_45px_rgba(34,211,238,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
-                <span>تحميل برنامج التثبيت (Windows .exe)</span>
+                <div className="text-right">
+                  <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Windows .exe)</div>
+                  <div className="text-[11px] text-cyan-200 font-mono font-normal">QuazLink-Runner-Setup-v26.10.13.exe • الإصدار الأحدث (~76 MB)</div>
+                </div>
               </a>
 
               <a
@@ -580,7 +583,7 @@ export default function DownloadPage() {
             <div className="flex flex-wrap items-center justify-center gap-6 text-xs text-gray-400 pt-2 font-mono">
               <span className="flex items-center gap-1.5">
                 <HardDrive className="w-3.5 h-3.5 text-cyan-400" />
-                الحجم: ~80 ميجابايت
+                الحجم: ~76.5 ميجابايت
               </span>
               <span className="flex items-center gap-1.5">
                 <Cpu className="w-3.5 h-3.5 text-cyan-400" />
@@ -607,7 +610,7 @@ export default function DownloadPage() {
                 </div>
                 <h4 className="text-sm font-bold text-white">حمّل وثبّت البرنامج</h4>
                 <p className="text-xs text-gray-400 leading-relaxed">
-                  اضغط على زر التحميل، وافتح ملف <code className="text-cyan-300 font-mono">QuazLink-Runner-Setup.exe</code>. سيتم التثبيت فورياً وإنشاء اختصار رسمي على سطح المكتب.
+                  اضغط على زر التحميل، وافتح ملف <code className="text-cyan-300 font-mono">QuazLink-Runner-Setup-v26.10.13.exe</code>. سيتم التثبيت فورياً وإنشاء اختصار رسمي على سطح المكتب.
                 </p>
               </SpotlightCard>
 
