@@ -217,7 +217,7 @@ export default function DownloadPage() {
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                 <div className="text-right">
                   <div className="font-bold text-sm md:text-base">تحميل برنامج التثبيت (Win 10/11 Setup)</div>
-                  <div className="text-[11px] text-emerald-100 font-mono font-normal">تثبيت بنقرة واحدة مع اختصار سطح المكتب (~204 MB)</div>
+                  <div className="text-[11px] text-emerald-100 font-mono font-normal">تثبيت بنقرة واحدة مع اختصار سطح المكتب (~70 MB)</div>
                 </div>
               </a>
 
@@ -229,7 +229,7 @@ export default function DownloadPage() {
                 <FolderArchive className="w-5 h-5 text-emerald-400" />
                 <div className="text-right">
                   <div>نسخة محمولة (Win 10/11 Portable)</div>
-                  <div className="text-[11px] text-gray-400 font-mono font-normal">فك الضغط وتشغيل مباشر بدون تثبيت (~221 MB)</div>
+                  <div className="text-[11px] text-gray-400 font-mono font-normal">فك الضغط وتشغيل مباشر بدون تثبيت (~73 MB)</div>
                 </div>
               </a>
             </div>
