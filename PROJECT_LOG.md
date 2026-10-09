@@ -1039,8 +1039,38 @@
     - مركز التحميلات بالداشبورد (`https://app.quazlink.site/download`).
   - تحديث توجيهات Next.js (`apps/web/next.config.ts`) وواجهة الـ API (`apps/api/src/routes/downloads.ts`) لتوجيه كل الروابط للـ CDN الرسمي فورياً.
   - إزالة الـ Route المتعارض في Next.js لضمان توجيه استدعاءات `/api/downloads/info` و `/api/downloads/pos/license` بسلاسة تامة للباك إند.
-  - إتمام النشر الحي على سيرفر الإنتاج (`164.68.115.239`) وإعادة بناء حاويات `web` و `api` والتحقق من عمل كافة الروابط بنجاح 100%.
 
 ---
+
+## 📅 [9 أكتوبر 2026] - معالجة إطلاق محرك الأتمتة المكتبي وتحديث منصة التحميل (Automation Runner v26.10.14)
+
+### 1. التشخيص الهندسي العميق لجذر المشكلة (Root Cause Analysis):
+- **عمليات Chromium فرعية عالقة (Orphaned Renderer Processes):**
+  - عند محاولة تشغيل أو تحديث الرانر سابقاً، كان هناك عمليات تابعة (`--type=renderer`) باقية في الذاكرة دون عملية أم (Parent PIDs 17184 و 19956 متوفية بينما PIDs 19092 و 20416 عالقة).
+  - بوجود هذه العمليات، فإن أي تشغيل لاحق كان يصطدم بـ `app.requestSingleInstanceLock() = false` فيغلق التطبيق الجديد فورياً ظناً منه أن نسخة أخرى تعمل.
+- **انهيار محرك Chromium برمز الاستثناء `0x80000003` (STATUS_BREAKPOINT):**
+  - سجلت سجلات أحداث ويندوز (Windows Event Viewer) انهياراً متكرراً عند الإزاحة `0x00000000066b0e7f` بسبب غياب أعلام استقرار أمان Chromium على ويندوز (`--no-sandbox` و `--disable-gpu-process-crash-limit`)، وتضارب قفل البيانات في مسار `userData`.
+- **سلوك النافذة المخفية (Hidden Window Lag):**
+  - كان إنشاء النافذة يتم بـ `show: false` بانتظار حدث `ready-to-show` مع مهلة تأخير، فإذا تأخرت التهيئة الرسومية لا تظهر النافذة مطلقاً للمستخدم.
+  - إغلاق النافذة بزر "X" كان يخفيها إلى شريط المهام (System Tray)، وعند محاولة فتحها بالنقر مجدداً من سطح المكتب لم تكن Windows 11 تسمح للعملية الخلفية بسرقة التركيز وإظهار النافذة في الواجهة (Focus Stealing Restrictions).
+
+### 2. الحلول الهندسية والتطوير الجذري:
+- **تحصين ملف البداية الرئيسي ([apps/desktop-agent/src/main.ts](file:///d:/QuazLink_Platform/apps/desktop-agent/src/main.ts)):**
+  - إضافة أعلام Chromium الصامتة والمستقرة: `--no-sandbox` و `--disable-gpu-process-crash-limit` و `--disable-features=WidgetLayering`.
+  - عزل وتأمين مسار البيانات في مجلد مخصص نظيف `runner_electron_data`.
+  - إظهار النافذة فوراً وبشكل لحظي عند التشغيل بـ `show: true` وتوسيطها في منتصف الشاشة مع الحفاظ على الثيم الليلي الأصلي `#070a10` لمنع أي وميض أبيض.
+  - ترقية دالة `showAppWindow()` لتجاوز قيود التركيز في Windows 11 عبر `moveTop()` و `setAlwaysOnTop(true)` مؤقتاً لمدة 400ms وإعادتها، مع إظهار أيقونة شريط المهام فورياً `setSkipTaskbar(false)`.
+- **برنامج التثبيت الذكي ([apps/desktop-agent/installer.nsh](file:///d:/QuazLink_Platform/apps/desktop-agent/installer.nsh)):**
+  - إضافة ماكرو `customInit` لإغلاق وإنهاء أي عمليات سابقة أو عالقة لـ `QuazLink Runner.exe` قسرياً قبل بدء استبدال الملفات، لضمان تثبيت نظيف 100% دون أي ملفات مقفلة.
+  - تنظيف وحذف أي اختصارات قديمة غير صالحة من سطح المكتب وقائمة ابدأ (`QuazLink Desktop Runner.lnk`).
+  - التحول إلى النمط المباشر `asar: false` في [electron-builder.yml](file:///d:/QuazLink_Platform/apps/desktop-agent/electron-builder.yml) لضمان سهولة تشغيل Playwright وأدوات الأتمتة دون استخراج مؤقت.
+- **ترقية الإصدار والمزامنة الشاملة إلى `v26.10.14`:**
+  - ترقية `apps/desktop-agent/package.json` إلى `26.10.14`.
+  - ترقية مسارات التحميل وشارة الإصدار في [version.ts](file:///d:/QuazLink_Platform/apps/web/src/lib/version.ts) وصفحة التحميل [download/page.tsx](file:///d:/QuazLink_Platform/apps/web/src/app/(dashboard)/download/page.tsx) ومسار التوجيه [downloads/[filename]/route.ts](file:///d:/QuazLink_Platform/apps/web/src/app/downloads/[filename]/route.ts) ومسار الـ API [downloads.ts](file:///d:/QuazLink_Platform/apps/api/src/routes/downloads.ts).
+- **البناء والرفع السحابي على السيرفر الحي:**
+  - بناء حزمة التثبيت الرسمية `QuazLink-Runner-Setup-v26.10.14.exe` (80.3 MB).
+  - رفع الحزمة عبر SFTP المشفر إلى `/data/downloads/` على خادم الإنتاج السحابي (`164.68.115.239`).
+  - تحديث حاوية الويب وإعادة تشغيلها على الإنتاج، واختبار الرابط المباشر بـ `curl -sI https://app.quazlink.site/downloads/QuazLink-Runner-Setup-v26.10.14.exe` وتأكيد الاستجابة بـ `HTTP/1.1 200 OK` بحجم `80328931` بايت.
+
 
 
