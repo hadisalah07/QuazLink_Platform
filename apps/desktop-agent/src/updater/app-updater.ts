@@ -25,7 +25,8 @@ function isAllowedAssetName(name: string): boolean {
 }
 
 /**
- * Validates whether a target download URL belongs strictly to the verified GitHub release endpoints.
+ * Validates whether a target download URL belongs strictly to verified GitHub release endpoints
+ * or official QuazLink distribution domains.
  */
 function isAllowedDownloadUrl(urlStr: string): boolean {
   try {
@@ -40,8 +41,19 @@ function isAllowedDownloadUrl(urlStr: string): boolean {
       return true;
     }
 
-    // GitHub AWS S3/Azure objects redirect CDN for releases
-    if (parsed.hostname === 'objects.githubusercontent.com') {
+    // GitHub CDN assets (objects.githubusercontent.com, release-assets.githubusercontent.com, etc.)
+    if (
+      parsed.hostname === 'githubusercontent.com' ||
+      parsed.hostname.endsWith('.githubusercontent.com')
+    ) {
+      return true;
+    }
+
+    // Direct QuazLink official distribution domains
+    if (
+      parsed.hostname === 'quazlink.site' ||
+      parsed.hostname.endsWith('.quazlink.site')
+    ) {
       return true;
     }
 
@@ -272,7 +284,7 @@ export class AppUpdater {
         (res) => {
           // Handle HTTP 301, 302, 307, 308 redirects
           if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            const redirectUrl = res.headers.location;
+            const redirectUrl = new URL(res.headers.location, url).toString();
             this.downloadWithRedirects(redirectUrl, destination, onProgress, redirectCount + 1)
               .then(resolve)
               .catch(reject);

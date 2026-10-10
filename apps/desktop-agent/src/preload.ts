@@ -30,4 +30,6 @@ contextBridge.exposeInMainWorld('quazlink', {
     ipcRenderer.on('update-progress', (_event: any, data: any) => cb(data)),
   onUpdateAvailable: (cb: (data: any) => void) =>
     ipcRenderer.on('update-available', (_event: any, data: any) => cb(data)),
+  onUpdateError: (cb: (data: { error: string }) => void) =>
+    ipcRenderer.on('update-error', (_event: any, data: any) => cb(data)),
 });

@@ -472,7 +472,7 @@ if (gotTheLock) {
 
     // IPC handlers for mini UI
     ipcMain.on('get-state', (event) => {
-      event.reply('status-updated', { status: currentStatus, config: appConfig });
+      event.reply('status-updated', { status: currentStatus, config: appConfig, version: app.getVersion() });
     });
 
     ipcMain.on('pair-device', (_, pairingCode) => {
@@ -506,7 +506,7 @@ if (gotTheLock) {
       wsClient?.setShowBrowser(enabled);
       updateTrayMenu();
       if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
+        mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig, version: app.getVersion() });
       }
     });
 
@@ -585,6 +585,9 @@ if (gotTheLock) {
         );
       } catch (err: any) {
         logToTerminal(`[UPDATE] ❌ Installation failed: ${err.message}`, 'red');
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('update-error', { error: err.message });
+        }
       }
     });
 

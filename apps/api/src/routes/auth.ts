@@ -9,6 +9,7 @@ import {
   sessionCookieOptions,
   SESSION_COOKIE_MAX_AGE,
 } from '../lib/auth';
+import { extractClientIp, resolveGeoLocation } from '../lib/geoip';
 
 const router = Router();
 
@@ -16,9 +17,27 @@ const router = Router();
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
-// Only ever expose these fields to the client — never passwordHash.
-function safeUser(user: { id: string; email: string; name: string | null }) {
-  return { id: user.id, email: user.email, name: user.name };
+// Only ever expose safe fields to the client — never passwordHash.
+function safeUser(user: {
+  id: string;
+  email: string;
+  name: string | null;
+  role?: string;
+  country?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
+}) {
+  const isSuperAdmin = user.email.toLowerCase() === 'hadisalah07@gmail.com';
+  const role = isSuperAdmin ? 'admin' : (user.role || 'user');
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role,
+    country: user.country,
+    city: user.city,
+    countryCode: user.countryCode,
+  };
 }
 
 function issueSession(res: Response, userId: string) {
@@ -50,11 +69,21 @@ router.post('/signup', async (req: Request, res: Response) => {
     }
 
     const passwordHash = await hashPassword(password);
+    const ip = extractClientIp(req);
+    const loc = await resolveGeoLocation(ip, req.headers as any);
+    const isSuperAdmin = normalizedEmail === 'hadisalah07@gmail.com';
+
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         name: typeof name === 'string' && name.trim() ? name.trim() : null,
         passwordHash,
+        role: isSuperAdmin ? 'admin' : 'user',
+        lastLoginAt: new Date(),
+        lastLoginIp: ip,
+        country: loc.country,
+        city: loc.city,
+        countryCode: loc.countryCode,
       },
     });
 
@@ -88,8 +117,27 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    // Capture login IP and Geo Location
+    const ip = extractClientIp(req);
+    resolveGeoLocation(ip, req.headers as any).then(async (loc) => {
+      try {
+        const isSuperAdmin = normalizedEmail === 'hadisalah07@gmail.com';
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            lastLoginAt: new Date(),
+            lastLoginIp: ip,
+            country: loc.country,
+            city: loc.city,
+            countryCode: loc.countryCode,
+            ...(isSuperAdmin && user.role !== 'admin' ? { role: 'admin' } : {}),
+          },
+        });
+      } catch {}
+    }).catch(() => {});
+
     issueSession(res, user.id);
-    res.json(safeUser(user));
+    res.json(safeUser({ ...user, role: user.role || (normalizedEmail === 'hadisalah07@gmail.com' ? 'admin' : 'user') }));
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

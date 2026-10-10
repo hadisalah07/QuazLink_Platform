@@ -44,6 +44,10 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  role?: string;
+  country?: string | null;
+  city?: string | null;
+  countryCode?: string | null;
 }
 
 async function jsonOrThrow(res: Response) {
@@ -435,4 +439,110 @@ export async function generatePosLicense(input: {
   });
   return jsonOrThrow(res);
 }
+
+// --- Admin Control Center ---
+
+export interface AdminKPIs {
+  totalUsers: number;
+  activeUsersNow: number;
+  totalDevices: number;
+  onlineDevicesCount: number;
+  totalJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  activeJobs: number;
+  successRate: number;
+  totalCampaigns: number;
+  totalSocialAccounts: number;
+}
+
+export interface AdminGeoDistribution {
+  country: string;
+  countryCode: string;
+  flag: string;
+  count: number;
+  percentage: number;
+  cities: string[];
+}
+
+export interface AdminActiveSession {
+  deviceId: string;
+  deviceName: string;
+  platform: string;
+  appVersion: string;
+  status: string;
+  lastHeartbeat: string | null;
+  ipAddress: string | null;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+  location: {
+    country: string;
+    city: string;
+    countryCode: string;
+    flag: string;
+  };
+}
+
+export interface AdminUserItem {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  isMasterAdmin: boolean;
+  isOnline: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+  lastLoginIp: string | null;
+  location: {
+    country: string;
+    city: string;
+    countryCode: string;
+    flag: string;
+  };
+  devices: {
+    id: string;
+    name: string;
+    platform: string;
+    status: string;
+    isOnline: boolean;
+    ipAddress: string | null;
+    appVersion: string;
+    lastHeartbeat: string | null;
+    country: string;
+    city: string;
+    flag: string;
+  }[];
+  socialAccountsCount: number;
+  socialPlatforms: string[];
+  campaignsCount: number;
+}
+
+export interface AdminAnalyticsData {
+  kpis: AdminKPIs;
+  geoDistribution: AdminGeoDistribution[];
+  activeSessions: AdminActiveSession[];
+  users: AdminUserItem[];
+  serverTime: string;
+}
+
+export async function getAdminAnalytics(): Promise<AdminAnalyticsData> {
+  const res = await apiFetch(`/api/admin/analytics`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function updateUserRole(
+  userId: string,
+  role: "admin" | "user"
+): Promise<{ success: boolean; user: { id: string; email: string; role: string } }> {
+  const res = await apiFetch(`/api/admin/users/${userId}/role`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+  return jsonOrThrow(res);
+}
+
 

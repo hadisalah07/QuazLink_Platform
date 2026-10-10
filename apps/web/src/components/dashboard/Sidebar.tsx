@@ -1,13 +1,20 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt, Download, Store } from "lucide-react";
+import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt, Download, Store, ShieldCheck } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logout, type AuthUser } from "@/lib/api";
 import { PLATFORM_VERSION } from "@/lib/version";
 
-const navItems = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+  badge?: string;
+}
+
+const baseNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "Accounts", href: "/accounts", icon: Users },
@@ -32,6 +39,20 @@ export function Sidebar({ user }: { user: AuthUser }) {
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(true);
+
+  const isAdmin = user.role === "admin" || user.email.toLowerCase() === "hadisalah07@gmail.com";
+  const navItems: NavItem[] = React.useMemo(() => {
+    if (!isAdmin) return baseNavItems;
+    // Insert Admin Console right after Dashboard for high visibility
+    const items = [...baseNavItems];
+    items.splice(1, 0, {
+      name: "Admin Console",
+      href: "/admin",
+      icon: ShieldCheck,
+      badge: "ADMIN",
+    });
+    return items;
+  }, [isAdmin]);
 
   const displayName = user.name || user.email.split("@")[0];
 
@@ -89,7 +110,16 @@ export function Sidebar({ user }: { user: AuthUser }) {
               )}
             >
               <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-[var(--color-quaz-cyan)]" : "")} />
-              {isExpanded && <span className="whitespace-nowrap">{item.name}</span>}
+              {isExpanded && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="whitespace-nowrap truncate">{item.name}</span>
+                  {item.badge && (
+                    <span className="ml-2 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           );
         })}

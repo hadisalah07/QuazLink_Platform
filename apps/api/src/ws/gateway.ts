@@ -5,6 +5,7 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import crypto from 'crypto';
 import prisma from '../prisma';
 import { addWhatsappless, extractPhone } from '../services/whatsappless';
+import { resolveGeoLocation } from '../lib/geoip';
 
 interface AuthenticatedSocket extends WebSocket {
   deviceId?: string;
@@ -119,13 +120,28 @@ export function setupWebSocketGateway(server: HttpServer) {
       }
       activeDevices.get(device.userId)!.set(device.id, ws);
 
-      // Update DB presence
+      // Extract client IP and Geolocation
+      const rawForwarded = req.headers['x-forwarded-for'];
+      const runnerIp = typeof rawForwarded === 'string'
+        ? rawForwarded.split(',')[0].trim()
+        : (req.socket.remoteAddress || '127.0.0.1');
+
+      const geo = await resolveGeoLocation(runnerIp, req.headers as any);
+
+      // Update DB presence & location
       await prisma.device.update({
         where: { id: device.id },
-        data: { status: 'online', lastHeartbeat: new Date() },
+        data: {
+          status: 'online',
+          lastHeartbeat: new Date(),
+          ipAddress: runnerIp,
+          country: geo.country,
+          city: geo.city,
+          countryCode: geo.countryCode,
+        },
       });
 
-      console.log(`🟢 Desktop Runner Connected: [${device.name}] (User: ${device.user.email})`);
+      console.log(`🟢 Desktop Runner Connected: [${device.name}] (${geo.flag} ${geo.city}, ${geo.country}) (User: ${device.user.email})`);
 
       // 1. Send OTA Selectors ruleset
       ws.send(JSON.stringify({

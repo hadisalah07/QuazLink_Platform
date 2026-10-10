@@ -13,6 +13,7 @@ const SESSION_COOKIE = "session";
 // Prefix match so nested routes (e.g. /workflows/[id]) are covered too.
 const PROTECTED_PREFIXES = [
   "/dashboard",
+  "/admin",
   "/workflows",
   "/accounts",
   "/catalogs",
