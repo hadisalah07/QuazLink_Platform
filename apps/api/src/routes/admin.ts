@@ -16,6 +16,7 @@ router.use(requireAuth, requireAdmin);
 router.get('/analytics', async (req: Request, res: Response) => {
   try {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     // 1. Parallel KPI Aggregations
     const [
@@ -28,8 +29,11 @@ router.get('/analytics', async (req: Request, res: Response) => {
       activeJobs,
       totalCampaigns,
       totalSocialAccounts,
+      totalPosTerminals,
+      activePosTerminals,
       usersRaw,
       onlineDevicesRaw,
+      posTerminalsRaw,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.device.count(),
@@ -45,6 +49,12 @@ router.get('/analytics', async (req: Request, res: Response) => {
       prisma.job.count({ where: { status: { in: ['active', 'dispatched', 'pending'] } } }),
       prisma.campaign.count(),
       prisma.socialAccount.count(),
+      prisma.posTerminal.count(),
+      prisma.posTerminal.count({
+        where: {
+          lastSeenAt: { gte: fifteenMinutesAgo },
+        },
+      }),
       prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
@@ -70,6 +80,9 @@ router.get('/analytics', async (req: Request, res: Response) => {
           },
         },
         orderBy: { lastHeartbeat: 'desc' },
+      }),
+      prisma.posTerminal.findMany({
+        orderBy: { lastSeenAt: 'desc' },
       }),
     ]);
 
@@ -164,7 +177,59 @@ router.get('/analytics', async (req: Request, res: Response) => {
       }))
       .sort((a, b) => b.count - a.count);
 
-    // 5. Build Live Active Sessions
+    // 5. Build Standalone POS & ERP Terminals
+    const posTerminals = posTerminalsRaw.map((t) => {
+      const isOnline = t.lastSeenAt >= fifteenMinutesAgo;
+      const countryCode = t.countryCode || 'EG';
+      const country = t.country || 'Egypt';
+      const city = t.city || 'Cairo';
+      const flag = getCountryFlag(countryCode);
+
+      // Also contribute to country geo intelligence
+      const key = countryCode || 'UN';
+      if (!countryMap.has(key)) {
+        countryMap.set(key, {
+          country,
+          countryCode: key,
+          count: 0,
+          cities: new Set<string>(),
+        });
+      }
+      const geoEntry = countryMap.get(key)!;
+      geoEntry.count += 1;
+      if (city && city !== 'Unknown' && city !== 'City Node') {
+        geoEntry.cities.add(city);
+      }
+
+      return {
+        id: t.id,
+        hardwareId: t.hardwareId,
+        hostname: t.hostname || 'CASHIER-PC',
+        username: t.username || 'Administrator',
+        businessName: t.businessName || 'Retail Store',
+        osPlatform: t.osPlatform || 'win32',
+        osRelease: t.osRelease || 'Windows',
+        osArch: t.osArch || 'x64',
+        cpuModel: t.cpuModel || 'Generic CPU',
+        totalMemoryMB: t.totalMemoryMB || 4096,
+        appVersion: t.appVersion || 'v1.1.0',
+        licenseType: t.licenseType || 'trial',
+        licenseKey: t.licenseKey,
+        ipAddress: t.ipAddress || '127.0.0.1',
+        location: {
+          country,
+          city,
+          countryCode,
+          flag,
+        },
+        launchCount: t.launchCount,
+        firstSeenAt: t.firstSeenAt,
+        lastSeenAt: t.lastSeenAt,
+        isOnline,
+      };
+    });
+
+    // 6. Build Live Active Sessions
     const activeSessions = onlineDevicesRaw.map((d) => ({
       deviceId: d.id,
       deviceName: d.name,
@@ -203,10 +268,13 @@ router.get('/analytics', async (req: Request, res: Response) => {
         successRate,
         totalCampaigns,
         totalSocialAccounts,
+        totalPosTerminals,
+        activePosTerminals,
       },
       geoDistribution,
       activeSessions,
       users,
+      posTerminals,
       serverTime: new Date().toISOString(),
     });
   } catch (error: any) {

@@ -454,6 +454,8 @@ export interface AdminKPIs {
   successRate: number;
   totalCampaigns: number;
   totalSocialAccounts: number;
+  totalPosTerminals?: number;
+  activePosTerminals?: number;
 }
 
 export interface AdminGeoDistribution {
@@ -484,6 +486,33 @@ export interface AdminActiveSession {
     countryCode: string;
     flag: string;
   };
+}
+
+export interface PosTerminalItem {
+  id: string;
+  hardwareId: string;
+  hostname: string;
+  username: string;
+  businessName: string;
+  osPlatform: string;
+  osRelease: string;
+  osArch: string;
+  cpuModel: string;
+  totalMemoryMB: number;
+  appVersion: string;
+  licenseType: string;
+  licenseKey: string | null;
+  ipAddress: string;
+  location: {
+    country: string;
+    city: string;
+    countryCode: string;
+    flag: string;
+  };
+  launchCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isOnline: boolean;
 }
 
 export interface AdminUserItem {
@@ -525,6 +554,7 @@ export interface AdminAnalyticsData {
   geoDistribution: AdminGeoDistribution[];
   activeSessions: AdminActiveSession[];
   users: AdminUserItem[];
+  posTerminals?: PosTerminalItem[];
   serverTime: string;
 }
 

@@ -1,6 +1,7 @@
 import * as http from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as os from 'node:os';
 import { URL } from 'node:url';
 import { PosDatabase } from '../database/connection.js';
 import { ProductService } from '../services/product-service.js';
@@ -40,6 +41,7 @@ export class PosServer {
   private etaService: EtaService;
   private updaterService: PosUpdaterService;
   private uiDir: string;
+  private telemetryTimer: NodeJS.Timeout | null = null;
 
   constructor(options: PosServerOptions = {}) {
     this.port = options.port || 3030;
@@ -55,7 +57,7 @@ export class PosServer {
     this.shiftService = new ShiftService(this.db);
     this.syncService = new SyncService(this.db, this.settingsService, this.licensingService);
     this.etaService = new EtaService(this.db);
-    const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'http://localhost:3000';
+    const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
     this.updaterService = new PosUpdaterService('1.1.0', platformUrl);
 
     this.uiDir = options.uiDir || path.join(__dirname, '..', 'ui');
@@ -65,7 +67,6 @@ export class PosServer {
 
     this.server = http.createServer((req, res) => this.handleRequest(req, res));
   }
-
 
   public start(): Promise<number> {
     return new Promise((resolve, reject) => {
@@ -82,12 +83,52 @@ export class PosServer {
 
       this.server.listen(this.port, () => {
         console.log(`⚡ QuazLink POS Local Server running at http://localhost:${this.port}`);
+        this.scheduleTelemetryBeacon();
         resolve(this.port);
       });
     });
   }
 
+  private scheduleTelemetryBeacon(): void {
+    const sendBeacon = async () => {
+      try {
+        const hwId = this.licensingService.getHardwareId();
+        const bp = this.db.queryOne<any>('SELECT * FROM business_profile LIMIT 1');
+        const cpus = os.cpus();
+        const cpuModel = cpus && cpus[0] ? cpus[0].model : 'Standard Processor';
+        const totalMem = Math.round(os.totalmem() / (1024 * 1024));
+        const username = os.userInfo ? (os.userInfo().username || 'Cashier') : 'Cashier';
+
+        await this.updaterService.sendTelemetryBeacon({
+          hardwareId: hwId,
+          hostname: os.hostname(),
+          username,
+          osPlatform: process.platform,
+          osRelease: os.release(),
+          osArch: os.arch(),
+          cpuModel,
+          totalMemoryMB: totalMem,
+          appVersion: this.updaterService.getCurrentVersion(),
+          businessName: bp?.business_name || 'Retail Terminal',
+          licenseType: bp?.license_type || 'trial',
+          licenseKey: bp?.license_key || null,
+        });
+      } catch {}
+    };
+
+    // First ping after 2 seconds
+    setTimeout(sendBeacon, 2000);
+
+    // Periodic heartbeat every 15 minutes
+    this.telemetryTimer = setInterval(sendBeacon, 15 * 60 * 1000);
+    if (this.telemetryTimer.unref) this.telemetryTimer.unref();
+  }
+
   public stop(): Promise<void> {
+    if (this.telemetryTimer) {
+      clearInterval(this.telemetryTimer);
+      this.telemetryTimer = null;
+    }
     this.syncService.stopAutoSync();
     return new Promise((resolve) => {
       this.server.close(() => resolve());
@@ -684,9 +725,16 @@ export class PosServer {
     // 42. GET /api/update/check (فحص وجود إصدار جديد عبر المنصة أو GitHub)
     if (pathname === '/api/update/check' && req.method === 'GET') {
       try {
-        const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'http://localhost:3000';
+        const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
         this.updaterService.setPlatformUrl(platformUrl);
-        const updateInfo = await this.updaterService.checkForUpdates();
+        const hwId = this.licensingService.getHardwareId();
+        const bp = this.db.queryOne<any>('SELECT * FROM business_profile LIMIT 1');
+        const updateInfo = await this.updaterService.checkForUpdates({
+          hardwareId: hwId,
+          hostname: os.hostname(),
+          businessName: bp?.business_name || 'Retail Terminal',
+          osRelease: os.release(),
+        });
         this.sendJson(res, { success: true, ...updateInfo });
       } catch (err: any) {
         this.sendJson(res, {

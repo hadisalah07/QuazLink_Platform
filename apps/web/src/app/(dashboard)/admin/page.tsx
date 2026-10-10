@@ -27,6 +27,10 @@ import {
   Signal,
   ArrowUpRight,
   SlidersHorizontal,
+  Store,
+  HardDrive,
+  Copy,
+  Check,
 } from "lucide-react";
 import {
   getAdminAnalytics,
@@ -34,6 +38,7 @@ import {
   type AdminAnalyticsData,
   type AdminUserItem,
   type AdminActiveSession,
+  type PosTerminalItem,
 } from "@/lib/api";
 
 // Curated coordinates for prominent geographic hubs on a 800x400 SVG Map
@@ -74,6 +79,19 @@ export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = React.useState<"all" | "active" | "admins" | "with_runners">("all");
   const [selectedCountryFilter, setSelectedCountryFilter] = React.useState<string | null>(null);
   const [updatingUserId, setUpdatingUserId] = React.useState<string | null>(null);
+
+  // Standalone POS Terminals state
+  const [posSearchQuery, setPosSearchQuery] = React.useState("");
+  const [posFilterTab, setPosFilterTab] = React.useState<"all" | "online" | "win7" | "win10">("all");
+  const [copiedHwId, setCopiedHwId] = React.useState<string | null>(null);
+
+  const copyToClipboard = (text: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedHwId(text);
+      setTimeout(() => setCopiedHwId(null), 2000);
+    }
+  };
 
   const fetchData = React.useCallback(async (isBackground = false) => {
     if (!isBackground) setLoading(true);
@@ -202,6 +220,45 @@ export default function AdminDashboardPage() {
     return list;
   }, [data?.users, activeTab, searchQuery, selectedCountryFilter]);
 
+  // Standalone POS Terminals computation
+  const filteredPosTerminals = React.useMemo(() => {
+    if (!data?.posTerminals) return [];
+    let list = data.posTerminals;
+
+    if (posFilterTab === "online") {
+      list = list.filter((t) => t.isOnline);
+    } else if (posFilterTab === "win7") {
+      list = list.filter(
+        (t) =>
+          (t.osRelease || "").toLowerCase().includes("6.1") ||
+          (t.osRelease || "").toLowerCase().includes("windows 7")
+      );
+    } else if (posFilterTab === "win10") {
+      list = list.filter(
+        (t) =>
+          !(t.osRelease || "").toLowerCase().includes("6.1") &&
+          !(t.osRelease || "").toLowerCase().includes("windows 7")
+      );
+    }
+
+    if (posSearchQuery.trim()) {
+      const q = posSearchQuery.toLowerCase().trim();
+      list = list.filter(
+        (t) =>
+          (t.businessName && t.businessName.toLowerCase().includes(q)) ||
+          t.hardwareId.toLowerCase().includes(q) ||
+          t.hostname.toLowerCase().includes(q) ||
+          t.username.toLowerCase().includes(q) ||
+          t.location.country.toLowerCase().includes(q) ||
+          t.location.city.toLowerCase().includes(q) ||
+          t.ipAddress.includes(q) ||
+          t.cpuModel.toLowerCase().includes(q)
+      );
+    }
+
+    return list;
+  }, [data?.posTerminals, posFilterTab, posSearchQuery]);
+
   if (loading && !data) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -326,101 +383,145 @@ export default function AdminDashboardPage() {
           <span className="text-[11px] text-gray-500 font-mono">Telemetry: Live Stream</span>
         </div>
 
-        {/* 4 Primary KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 6 Primary Vital KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
           {/* Total Registered Users */}
-          <div className="p-5 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-cyan-500/40 transition-all">
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-cyan-500/40 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                 Total Users
               </span>
-              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                <Users className="w-5 h-5" />
+              <div className="p-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                <Users className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4 flex items-baseline space-x-2">
-              <span className="text-3xl font-extrabold text-white tracking-tight">
+            <div className="mt-3 flex items-baseline space-x-1.5">
+              <span className="text-2xl font-extrabold text-white tracking-tight">
                 {kpis?.totalUsers || 0}
               </span>
-              <span className="text-xs text-gray-400">Registered Accounts</span>
+              <span className="text-[11px] text-gray-400">Accounts</span>
             </div>
-            <div className="mt-3 text-xs text-cyan-400/90 flex items-center space-x-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Cloud Database Verified</span>
+            <div className="mt-2 text-[10px] text-cyan-400/90 flex items-center space-x-1">
+              <CheckCircle2 className="w-3 h-3" />
+              <span>Platform Verified</span>
             </div>
-            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-cyan-500/5 rounded-full blur-xl pointer-events-none" />
           </div>
 
           {/* Live Active Users Now */}
-          <div className="p-5 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Active Users Now
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                Active Users
               </span>
-              <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                <Radio className="w-5 h-5 animate-pulse" />
+              <div className="p-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <Radio className="w-4 h-4 animate-pulse" />
               </div>
             </div>
-            <div className="mt-4 flex items-baseline space-x-2">
-              <span className="text-3xl font-extrabold text-emerald-400 tracking-tight">
+            <div className="mt-3 flex items-baseline space-x-1.5">
+              <span className="text-2xl font-extrabold text-emerald-400 tracking-tight">
                 {kpis?.activeUsersNow || 0}
               </span>
-              <span className="text-xs text-emerald-300/80 font-medium">Online Live</span>
+              <span className="text-[11px] text-emerald-300/80 font-medium">Online Live</span>
             </div>
-            <div className="mt-3 text-xs text-gray-400 flex items-center space-x-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>
-                {kpis?.onlineDevicesCount || 0} Desktop Runner{kpis?.onlineDevicesCount === 1 ? "" : "s"} streaming
-              </span>
+            <div className="mt-2 text-[10px] text-gray-400 flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>{kpis?.onlineDevicesCount || 0} Runners streaming</span>
             </div>
-            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl pointer-events-none" />
           </div>
 
-          {/* Connected Desktop Nodes */}
-          <div className="p-5 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-purple-500/40 transition-all">
+          {/* Desktop Automation Nodes */}
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-purple-500/40 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
                 Desktop Nodes
               </span>
-              <div className="p-2 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                <Laptop className="w-5 h-5" />
+              <div className="p-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                <Laptop className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4 flex items-baseline space-x-2">
-              <span className="text-3xl font-extrabold text-white tracking-tight">
+            <div className="mt-3 flex items-baseline space-x-1.5">
+              <span className="text-2xl font-extrabold text-white tracking-tight">
                 {kpis?.totalDevices || 0}
               </span>
-              <span className="text-xs text-gray-400">Paired Machines</span>
+              <span className="text-[11px] text-gray-400">Runners</span>
             </div>
-            <div className="mt-3 text-xs text-purple-400/90 flex items-center space-x-1.5">
-              <Cpu className="w-3.5 h-3.5" />
-              <span>Zero-Ban Automation Nodes</span>
+            <div className="mt-2 text-[10px] text-purple-400/90 flex items-center space-x-1">
+              <Cpu className="w-3 h-3" />
+              <span>Stealth Local Nodes</span>
             </div>
-            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-purple-500/5 rounded-full blur-xl pointer-events-none" />
+          </div>
+
+          {/* Standalone POS Terminals (أجهزة الكاشير والمحلات) */}
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-cyan-400/50 transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-300">
+                POS Terminals
+              </span>
+              <div className="p-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                <Store className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline space-x-1.5">
+              <span className="text-2xl font-extrabold text-cyan-300 tracking-tight">
+                {kpis?.totalPosTerminals || 0}
+              </span>
+              <span className="text-[11px] text-gray-400">Stores</span>
+            </div>
+            <div className="mt-2 text-[10px] text-cyan-400/80 flex items-center space-x-1 truncate">
+              <HardDrive className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">Local Desktop POS</span>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-cyan-500/5 rounded-full blur-xl pointer-events-none" />
+          </div>
+
+          {/* Active POS Cashiers Online */}
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-emerald-400/50 transition-all">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300">
+                Online Cashiers
+              </span>
+              <div className="p-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                <MonitorCheck className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline space-x-1.5">
+              <span className="text-2xl font-extrabold text-emerald-400 tracking-tight">
+                {kpis?.activePosTerminals || 0}
+              </span>
+              <span className="text-[11px] text-emerald-300/80 font-medium">Active Now</span>
+            </div>
+            <div className="mt-2 text-[10px] text-emerald-400 flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Transacting Live</span>
+            </div>
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl pointer-events-none" />
           </div>
 
           {/* Automation Operations & Success Rate */}
-          <div className="p-5 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
+          <div className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Automation Operations
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                Automation
               </span>
-              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                <Zap className="w-5 h-5" />
+              <div className="p-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Zap className="w-4 h-4" />
               </div>
             </div>
-            <div className="mt-4 flex items-baseline space-x-2">
-              <span className="text-3xl font-extrabold text-white tracking-tight">
+            <div className="mt-3 flex items-baseline space-x-1.5">
+              <span className="text-2xl font-extrabold text-white tracking-tight">
                 {kpis?.totalJobs || 0}
               </span>
-              <span className="text-xs text-amber-400 font-semibold">{kpis?.successRate || 100}% Success</span>
+              <span className="text-[11px] text-amber-400 font-semibold">{kpis?.successRate || 100}%</span>
             </div>
-            <div className="mt-3 text-xs text-gray-400 flex items-center space-x-1.5">
-              <span>{kpis?.completedJobs || 0} Completed</span>
+            <div className="mt-2 text-[10px] text-gray-400 flex items-center space-x-1">
+              <span>{kpis?.completedJobs || 0} Ok</span>
               <span>•</span>
-              <span className="text-red-400">{kpis?.failedJobs || 0} Failed</span>
+              <span className="text-red-400">{kpis?.failedJobs || 0} Err</span>
             </div>
-            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-amber-500/5 rounded-full blur-xl pointer-events-none" />
           </div>
         </div>
 
@@ -511,6 +612,218 @@ export default function AdminDashboardPage() {
             </svg>
           </div>
         </div>
+      </div>
+
+      {/* ── SECTION: STANDALONE POS & RETAIL TERMINALS (أجهزة الكاشير والمحلات بدون حساب) ────── */}
+      <div className="p-6 rounded-2xl bg-slate-900/50 border border-white/10 backdrop-blur-xl space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-5">
+          <div>
+            <div className="flex items-center space-x-2.5">
+              <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                <Store className="w-5 h-5" />
+              </div>
+              <h2 className="text-lg font-bold text-white tracking-tight flex items-center space-x-2">
+                <span>Standalone POS &amp; Retail Terminals ({data?.posTerminals?.length || 0})</span>
+                <span className="text-sm font-semibold text-cyan-400">
+                  (أجهزة الكاشير والمحلات بدون حساب منصة)
+                </span>
+              </h2>
+            </div>
+            <p className="text-xs text-gray-400 mt-1 max-w-2xl">
+              أجهزة الكاشير ونظام نقاط البيع التي تم تحميلها وتشغيلها محلياً على أجهزة الكمبيوتر دون إنشاء حساب على المنصة. يتم رصد بصمة العتاد الفريدة (Hardware ID)، مواصفات المعالج، الذاكرة العشوائية، إصدار الويندوز، والموقع الجغرافي الفعلي لحظة بلحظة.
+            </p>
+          </div>
+
+          {/* Search Input for POS */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={posSearchQuery}
+              onChange={(e) => setPosSearchQuery(e.target.value)}
+              placeholder="Search store name, hostname, HW-ID, city, CPU..."
+              className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Filters bar */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 text-xs">
+          <button
+            onClick={() => setPosFilterTab("all")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "all"
+                ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            All Machines ({data?.posTerminals?.length || 0})
+          </button>
+          <button
+            onClick={() => setPosFilterTab("online")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "online"
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            🟢 Online Cashiers Now ({data?.posTerminals?.filter((t) => t.isOnline).length || 0})
+          </button>
+          <button
+            onClick={() => setPosFilterTab("win7")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "win7"
+                ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            🪟 Windows 7 ({data?.posTerminals?.filter((t) => (t.osRelease || "").includes("6.1") || (t.osRelease || "").toLowerCase().includes("windows 7")).length || 0})
+          </button>
+          <button
+            onClick={() => setPosFilterTab("win10")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "win10"
+                ? "bg-indigo-500/20 text-indigo-400 border border-indigo-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            🪟 Windows 10 / 11 ({data?.posTerminals?.filter((t) => !(t.osRelease || "").includes("6.1") && !(t.osRelease || "").toLowerCase().includes("windows 7")).length || 0})
+          </button>
+        </div>
+
+        {/* Grid of Terminals */}
+        {filteredPosTerminals.length === 0 ? (
+          <div className="py-12 text-center text-gray-400 text-sm space-y-3 bg-slate-950/40 rounded-xl border border-white/5">
+            <Store className="w-10 h-10 text-gray-600 mx-auto" />
+            <p className="text-gray-300 font-medium">No Standalone POS Machines Recorded Yet</p>
+            <p className="text-xs text-gray-500 max-w-md mx-auto">
+              بمجرد أن يقوم أي شخص بتحميل وتثبيت برنامج الكاشير وتشغيله على جهازه، ستظهر بيانات المحل والعتاد والموقع هنا تلقائياً دون الحاجة لتسجيل حساب.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredPosTerminals.map((terminal) => {
+              const isCopied = copiedHwId === terminal.hardwareId;
+              const ramGB = terminal.totalMemoryMB ? Math.round(terminal.totalMemoryMB / 1024) : 4;
+              const isWin7 = (terminal.osRelease || "").includes("6.1") || (terminal.osRelease || "").toLowerCase().includes("windows 7");
+
+              return (
+                <div
+                  key={terminal.id}
+                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.05] transition-all space-y-4 group relative overflow-hidden"
+                >
+                  {/* Top Business Name & Online Status */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <Store className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                        <h3 className="font-bold text-white text-sm truncate" title={terminal.businessName}>
+                          {terminal.businessName}
+                        </h3>
+                      </div>
+                      <div className="text-[11px] font-mono text-gray-400 truncate flex items-center space-x-1 pl-6">
+                        <span>{terminal.hostname}</span>
+                        <span>•</span>
+                        <span className="text-gray-500">{terminal.username}</span>
+                      </div>
+                    </div>
+
+                    {terminal.isOnline ? (
+                      <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse flex-shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>ONLINE</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 flex-shrink-0">
+                        <span>OFFLINE</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Hardware Fingerprint ID (with quick copy) */}
+                  <div className="p-2.5 rounded-xl bg-slate-950/70 border border-white/10 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[9px] font-mono uppercase tracking-wider text-gray-500">Hardware ID Fingerprint</div>
+                      <div className="text-xs font-mono font-bold text-cyan-300 truncate">
+                        {terminal.hardwareId}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard(terminal.hardwareId)}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                      title="Copy Hardware ID"
+                    >
+                      {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+
+                  {/* Hardware & OS Specs Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    {/* OS Spec */}
+                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                      <div className="text-[9px] text-gray-500 font-mono uppercase">Operating System</div>
+                      <div className="font-semibold text-gray-200 truncate flex items-center space-x-1">
+                        <span>{isWin7 ? "Windows 7" : "Windows 10/11"}</span>
+                        <span className="text-[10px] text-gray-500">({terminal.osArch})</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-gray-400 truncate">{terminal.osRelease}</div>
+                    </div>
+
+                    {/* RAM & CPU */}
+                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                      <div className="text-[9px] text-gray-500 font-mono uppercase">Memory &amp; CPU</div>
+                      <div className="font-semibold text-gray-200 truncate flex items-center space-x-1">
+                        <Cpu className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                        <span>{ramGB} GB RAM</span>
+                      </div>
+                      <div className="text-[10px] font-mono text-gray-400 truncate" title={terminal.cpuModel}>
+                        {terminal.cpuModel}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location & IP Section */}
+                  <div className="p-2.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xl select-none">{terminal.location.flag}</span>
+                      <div>
+                        <div className="font-semibold text-white">
+                          {terminal.location.city}, {terminal.location.country}
+                        </div>
+                        <div className="text-[10px] font-mono text-cyan-400/90">
+                          {terminal.ipAddress}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/5 text-gray-300 border border-white/10">
+                        v{terminal.appVersion}
+                      </span>
+                      <div className="text-[10px] text-gray-500 mt-1 capitalize font-medium">
+                        {terminal.licenseType}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Timestamps */}
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500 font-mono">
+                    <div>
+                      <span>Launches: </span>
+                      <span className="text-gray-300 font-bold">{terminal.launchCount}</span>
+                    </div>
+                    <div>
+                      <span>Last Seen: </span>
+                      <span className="text-gray-300">
+                        {new Date(terminal.lastSeenAt).toLocaleDateString()} {new Date(terminal.lastSeenAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── SECTION 1: GEOGRAPHIC DISTRIBUTION & LOCATIONS (فاتحين منين) ───── */}

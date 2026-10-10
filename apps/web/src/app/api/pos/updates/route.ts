@@ -37,6 +37,20 @@ export async function GET(request: Request) {
   // Compare versions
   const isNewer = compareVersions(POS_LATEST_VERSION, clientVersion) > 0;
 
+  // Asynchronously notify backend telemetry if hardwareId is present
+  const hardwareId = searchParams.get("hardwareId");
+  if (hardwareId) {
+    const internalHost = process.env.INTERNAL_API_HOST || "api";
+    const internalUrl = `http://${internalHost}:3001/api/pos/updates${new URL(request.url).search}`;
+    const fwdHeaders: Record<string, string> = {};
+    const xff = request.headers.get("x-forwarded-for") || request.headers.get("cf-connecting-ip");
+    if (xff) fwdHeaders["x-forwarded-for"] = xff;
+    const cfIp = request.headers.get("cf-connecting-ip");
+    if (cfIp) fwdHeaders["cf-connecting-ip"] = cfIp;
+
+    fetch(internalUrl, { headers: fwdHeaders }).catch(() => {});
+  }
+
   return NextResponse.json({
     success: true,
     hasUpdate: isNewer,

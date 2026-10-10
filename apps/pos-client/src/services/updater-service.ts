@@ -27,7 +27,7 @@ export const CURRENT_VERSION = '1.1.0';
 
 export class PosUpdaterService {
   private currentVersion: string = CURRENT_VERSION;
-  private platformUrl: string = process.env.QUAZLINK_PLATFORM_URL || 'http://localhost:3000';
+  private platformUrl: string = process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
   private isDownloading: boolean = false;
   private cachedUpdate: PosUpdateCheckResult | null = null;
   private downloadProgress = { percent: 0, downloadedMB: '0', totalMB: '0' };
@@ -90,10 +90,10 @@ export class PosUpdaterService {
    * Primary check: queries QuazLink Platform API (/api/pos/updates).
    * Fallback: queries GitHub Releases API.
    */
-  public async checkForUpdates(): Promise<PosUpdateCheckResult> {
+  public async checkForUpdates(telemetryParams?: Record<string, string>): Promise<PosUpdateCheckResult> {
     // 1. Try Platform API endpoint first
     try {
-      const platformResult = await this.checkPlatformForUpdates();
+      const platformResult = await this.checkPlatformForUpdates(telemetryParams);
       if (platformResult) {
         this.cachedUpdate = platformResult;
         return platformResult;
@@ -130,9 +130,17 @@ export class PosUpdaterService {
   /**
    * Queries the official QuazLink Platform web endpoint
    */
-  public async checkPlatformForUpdates(): Promise<PosUpdateCheckResult | null> {
+  public async checkPlatformForUpdates(telemetryParams?: Record<string, string>): Promise<PosUpdateCheckResult | null> {
     return new Promise((resolve, reject) => {
-      const checkUrl = `${this.platformUrl}/api/pos/updates?currentVersion=${encodeURIComponent(this.currentVersion)}`;
+      let checkUrl = `${this.platformUrl}/api/pos/updates?currentVersion=${encodeURIComponent(this.currentVersion)}`;
+      if (telemetryParams) {
+        for (const [k, v] of Object.entries(telemetryParams)) {
+          if (v !== undefined && v !== null) {
+            checkUrl += `&${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`;
+          }
+        }
+      }
+
       let parsedUrl: URL;
       try {
         parsedUrl = new URL(checkUrl);
@@ -148,7 +156,7 @@ export class PosUpdaterService {
             'User-Agent': 'QuazLink-POS-Client-Updater',
             Accept: 'application/json',
           },
-          timeout: 5000,
+          timeout: 6000,
         },
         (res) => {
           let rawData = '';
@@ -193,6 +201,48 @@ export class PosUpdaterService {
         req.destroy();
         reject(new Error('Platform update check timed out after 5 seconds'));
       });
+    });
+  }
+
+  /**
+   * Sends standalone POS machine telemetry & specs directly to QuazLink Platform
+   */
+  public async sendTelemetryBeacon(telemetry: Record<string, any>): Promise<boolean> {
+    return new Promise((resolve) => {
+      try {
+        const beaconUrl = `${this.platformUrl}/api/pos/telemetry`;
+        const parsedUrl = new URL(beaconUrl);
+        const postData = JSON.stringify(telemetry);
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+
+        const req = client.request(
+          beaconUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Content-Length': Buffer.byteLength(postData),
+              'User-Agent': 'QuazLink-POS-Client-Telemetry',
+            },
+            timeout: 7000,
+          },
+          (res) => {
+            res.resume(); // Discard body
+            resolve(res.statusCode === 200 || res.statusCode === 201);
+          }
+        );
+
+        req.on('error', () => resolve(false));
+        req.on('timeout', () => {
+          req.destroy();
+          resolve(false);
+        });
+
+        req.write(postData);
+        req.end();
+      } catch {
+        resolve(false);
+      }
     });
   }
 

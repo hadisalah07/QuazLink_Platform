@@ -136,3 +136,27 @@ model AiAdPreset {
   @@unique([userId, presetKey])
 }
 
+model PosTerminal {
+  id            String    @id @default(uuid())
+  hardwareId    String    @unique
+  hostname      String?
+  username      String?
+  osPlatform    String?   // 'win32'
+  osRelease     String?   // 'Windows 10 Pro', '6.1.7601' (Win 7)
+  osArch        String?   // 'x64', 'ia32'
+  cpuModel      String?
+  totalMemoryMB Int?
+  appVersion    String?   @default("1.1.0")
+  businessName  String?   @default("Retail Store")
+  licenseType   String?   @default("trial")
+  licenseKey    String?
+  ipAddress     String?
+  country       String?
+  city          String?
+  countryCode   String?
+  launchCount   Int       @default(1)
+  firstSeenAt   DateTime  @default(now())
+  lastSeenAt    DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
