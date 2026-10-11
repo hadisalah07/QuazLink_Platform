@@ -2555,17 +2555,17 @@ function renderUpdateCard(data) {
         <div>
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
             <span style="font-size: 1.3rem;">🚀</span>
-            <strong style="color: #fff; font-size: 1.05rem;">يتوفر إصدار جديد جاهز للتثبيت!</strong>
-            <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-family: 'JetBrains Mono'; font-weight: 800; font-size: 0.85rem; padding: 2px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.4);">
+            <strong class="update-card-title" style="font-size: 1.05rem;">يتوفر إصدار جديد جاهز للتثبيت!</strong>
+            <span class="update-version-badge">
               الإصدار الجديد: v${data.latestVersion}
             </span>
           </div>
-          <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">
+          <div class="update-meta-text" style="font-size: 0.78rem; margin-bottom: 10px;">
             📅 تاريخ الإطلاق: <b>${pubDate}</b> • 📦 حجم التحديث: <b>${sizeMB}</b>
           </div>
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 14px; max-width: 650px;">
-            <span style="font-size: 0.74rem; font-weight: 700; color: #fff; display: block; margin-bottom: 4px;">ملاحظات الإصدار والتحسينات الجديدة:</span>
-            <p style="margin: 0; font-size: 0.76rem; color: var(--text-dim); line-height: 1.5; white-space: pre-line;">${data.releaseNotes || 'تحسينات عامة على سرعة الطباعة، حوكمة السيريالات، واستقرار النظام.'}</p>
+          <div class="update-notes-box">
+            <span class="update-notes-title" style="font-size: 0.74rem; font-weight: 700; display: block; margin-bottom: 4px;">ملاحظات الإصدار والتحسينات الجديدة:</span>
+            <p class="update-notes-body" style="margin: 0; font-size: 0.76rem; line-height: 1.5; white-space: pre-line;">${data.releaseNotes || 'تحسينات عامة على سرعة الطباعة، حوكمة السيريالات، واستقرار النظام.'}</p>
           </div>
         </div>
 
@@ -2579,8 +2579,8 @@ function renderUpdateCard(data) {
       <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 1.5rem;">✅</span>
         <div>
-          <strong style="color: #fff; font-size: 0.95rem; display: block;">برنامج الكاشير محدث بالكامل (Up-to-Date)!</strong>
-          <span style="font-size: 0.76rem; color: var(--text-dim);">أنت تستخدم أحدث إصدار رسمي معتمد (v${data.currentVersion || '1.0.0'}). لا توجد تحديثات معلقة.</span>
+          <strong class="update-card-title" style="font-size: 0.95rem; display: block;">برنامج الكاشير محدث بالكامل (Up-to-Date)!</strong>
+          <span class="update-subtext" style="font-size: 0.76rem;">أنت تستخدم أحدث إصدار رسمي معتمد (v${data.currentVersion || '1.0.0'}). لا توجد تحديثات معلقة.</span>
         </div>
       </div>
     `;

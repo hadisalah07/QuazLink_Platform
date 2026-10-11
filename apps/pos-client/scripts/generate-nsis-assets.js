@@ -54,22 +54,22 @@ function rawToBmp24(width, height, rawRgbBuffer) {
 const sidebarSvg = `
 <svg width="164" height="314" viewBox="0 0 164 314" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Background Gradient -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <!-- Background Gradient perfectly aligned to #090d16 on right border -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" stop-color="#020617"/>
-      <stop offset="45%" stop-color="#090d16"/>
-      <stop offset="100%" stop-color="#0f172a"/>
+      <stop offset="60%" stop-color="#060a14"/>
+      <stop offset="100%" stop-color="#090d16"/>
     </linearGradient>
 
     <!-- Cyan Glow -->
-    <radialGradient id="glowCyan" cx="50%" cy="30%" r="50%">
-      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+    <radialGradient id="glowCyan" cx="45%" cy="28%" r="55%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.38"/>
       <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
     </radialGradient>
 
     <!-- Indigo Glow Bottom -->
-    <radialGradient id="glowIndigo" cx="50%" cy="85%" r="50%">
-      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3"/>
+    <radialGradient id="glowIndigo" cx="45%" cy="85%" r="50%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.32"/>
       <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
     </radialGradient>
 
@@ -98,18 +98,18 @@ const sidebarSvg = `
   <line x1="0" y1="200" x2="164" y2="200" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="3,3"/>
   <line x1="0" y1="280" x2="164" y2="280" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="3,3"/>
   
-  <line x1="40" y1="0" x2="40" y2="314" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="3,3"/>
-  <line x1="124" y1="0" x2="124" y2="314" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="3,3"/>
+  <line x1="36" y1="0" x2="36" y2="314" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="3,3"/>
+  <line x1="128" y1="0" x2="128" y2="314" stroke="#334155" stroke-width="0.75" stroke-opacity="0.3" stroke-dasharray="3,3"/>
 
   <!-- Top Accent Neon Bar -->
-  <rect x="20" y="22" width="124" height="2" rx="1" fill="#06b6d4" opacity="0.8"/>
+  <rect x="20" y="20" width="124" height="2" rx="1" fill="#06b6d4" opacity="0.9"/>
 
   <!-- Central Shield / Badge Container -->
-  <g transform="translate(42, 48)">
+  <g transform="translate(42, 44)">
     <!-- Outer Glow -->
     <rect x="-4" y="-4" width="88" height="88" rx="20" fill="none" stroke="#06b6d4" stroke-width="1.5" stroke-opacity="0.6"/>
     <!-- Card Inner -->
-    <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#shieldGrad)" stroke="#38bdf8" stroke-width="1"/>
+    <rect x="0" y="0" width="80" height="80" rx="16" fill="url(#shieldGrad)" stroke="#38bdf8" stroke-width="1.2"/>
     
     <!-- Lightning Bolt Symbol (QuazLink Logo) -->
     <path d="M44 14 L22 44 L38 44 L32 66 L58 36 L42 36 Z" fill="url(#boltGrad)"/>
@@ -117,42 +117,43 @@ const sidebarSvg = `
 
   <!-- Typography -->
   <!-- Brand Name -->
-  <text x="82" y="160" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">QuazLink</text>
+  <text x="82" y="156" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">QuazLink</text>
   
   <!-- Subtitle Tag -->
-  <g transform="translate(24, 172)">
-    <rect x="0" y="0" width="116" height="20" rx="10" fill="#06b6d4" fill-opacity="0.15" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.5"/>
-    <text x="58" y="14" font-family="'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="800" fill="#38bdf8" text-anchor="middle" letter-spacing="1">POS &amp; RETAIL ERP</text>
+  <g transform="translate(22, 168)">
+    <rect x="0" y="0" width="120" height="20" rx="10" fill="#06b6d4" fill-opacity="0.18" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.6"/>
+    <text x="60" y="14" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="800" fill="#38bdf8" text-anchor="middle" letter-spacing="0.8">POS &amp; RETAIL ERP</text>
   </g>
 
   <!-- Features Mini List / Bullet Badges -->
-  <g transform="translate(18, 212)">
+  <g transform="translate(18, 208)">
     <!-- Bullet 1 -->
-    <circle cx="6" cy="6" r="3" fill="#10b981"/>
-    <text x="16" y="10" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="600" fill="#cbd5e1">Offline-First Engine</text>
+    <circle cx="6" cy="6" r="3.5" fill="#10b981"/>
+    <text x="16" y="10" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#f1f5f9">Offline-First Engine</text>
 
     <!-- Bullet 2 -->
-    <circle cx="6" cy="22" r="3" fill="#06b6d4"/>
-    <text x="16" y="26" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="600" fill="#cbd5e1">Dual-OS Win7 / 10 / 11</text>
+    <circle cx="6" cy="24" r="3.5" fill="#06b6d4"/>
+    <text x="16" y="28" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#f1f5f9">Dual-OS Win7 / 10 / 11</text>
 
     <!-- Bullet 3 -->
-    <circle cx="6" cy="38" r="3" fill="#6366f1"/>
-    <text x="16" y="42" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="600" fill="#cbd5e1">Cloud Auto-Sync</text>
+    <circle cx="6" cy="42" r="3.5" fill="#a855f7"/>
+    <text x="16" y="46" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#f1f5f9">Cloud Real-Time Sync</text>
   </g>
 
   <!-- Bottom Version & Security Seal -->
-  <rect x="14" y="280" width="136" height="18" rx="4" fill="#0f172a" stroke="#334155" stroke-width="0.8"/>
-  <text x="82" y="293" font-family="'Segoe UI', Roboto, sans-serif" font-size="8" font-weight="700" fill="#94a3b8" text-anchor="middle">OFFICIAL ENTERPRISE OS</text>
+  <rect x="14" y="280" width="136" height="18" rx="4" fill="#0f172a" stroke="#06b6d4" stroke-width="0.8"/>
+  <text x="82" y="293" font-family="'Segoe UI', Roboto, sans-serif" font-size="8" font-weight="800" fill="#38bdf8" text-anchor="middle">OFFICIAL ENTERPRISE OS</text>
 </svg>
 `;
 
-// SVG design for 150 x 57 px header
+// SVG design for 150 x 57 px header - seamlessly blends with #090d16 at x=0
 const headerSvg = `
 <svg width="150" height="57" viewBox="0 0 150 57" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="headerBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#020617"/>
-      <stop offset="100%" stop-color="#0f172a"/>
+    <linearGradient id="headerBg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="60%" stop-color="#0a1020"/>
+      <stop offset="100%" stop-color="#020617"/>
     </linearGradient>
     <linearGradient id="boltGradH" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#38bdf8"/>
@@ -165,13 +166,13 @@ const headerSvg = `
 
   <!-- Logo Icon -->
   <g transform="translate(10, 8)">
-    <rect x="0" y="0" width="40" height="40" rx="8" fill="#1e293b" stroke="#06b6d4" stroke-width="1"/>
+    <rect x="0" y="0" width="40" height="40" rx="8" fill="#1e293b" stroke="#06b6d4" stroke-width="1.2"/>
     <path d="M22 7 L11 22 L19 22 L16 33 L29 18 L21 18 Z" fill="url(#boltGradH)"/>
   </g>
 
   <!-- Brand Name & Badge -->
-  <text x="58" y="25" font-family="'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="800" fill="#ffffff">QuazLink</text>
-  <text x="58" y="40" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="700" fill="#38bdf8">POS &amp; ERP SETUP</text>
+  <text x="58" y="25" font-family="'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="900" fill="#ffffff">QuazLink</text>
+  <text x="58" y="40" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="800" fill="#38bdf8">POS &amp; ERP SETUP</text>
 </svg>
 `;
 

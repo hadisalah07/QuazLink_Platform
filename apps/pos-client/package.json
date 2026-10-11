@@ -1,6 +1,6 @@
 {
   "name": "quazlink-pos-client",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "QuazLink Enterprise POS & Retail Engine (Offline-First)",
   "private": true,
   "main": "dist/electron/main.js",
@@ -55,7 +55,8 @@
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/uninstallerSidebar.bmp",
       "installerHeader": "build/installerHeader.bmp",
-      "installerHeaderIcon": "src/assets/icon.ico"
+      "installerHeaderIcon": "src/assets/icon.ico",
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "QuazLink-POS-Portable.${ext}"

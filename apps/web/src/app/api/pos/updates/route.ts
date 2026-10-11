@@ -4,12 +4,12 @@ import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.2.2";
+export const POS_LATEST_VERSION = "1.2.3";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
 export const POS_RELEASE_DATE = "2026-10-12";
-export const POS_RELEASE_NOTES = `• تحسين شامل للوضع النهاري (Light Mode): إعادة ضبط التباين بالكامل والقضاء على النصوص الباهتة وتوفير بيئة عمل مريحة للعين في الإضاءة الساطعة.
-• وضوح أزرار الكيبورد السريعة (F1 إلى F12): أزرار كيبورد حقيقية بألوان عالية التباين وخطوط داكنة واضحة.
-• لوحة الحساب والكاشير: فئات النقدية السريعة (+50, +100, +200, +500) أصبحت بارزة وواضحة جداً مع ضبط كارت الصافي المستحق والباقي للزبون.`;
+export const POS_RELEASE_NOTES = `• تصميم فاخر وهوية متطورة لبرنامج التثبيت (NSIS Setup Theme): واجهة تثبيت داكنة متناسقة ومخصصة لـ QuazLink مع شريط تقدم نيون وبيانات واضحة.
+• إتقان الوضع النهاري (Light Mode) لصفحة الإعدادات والتحديثات: تباين فائق لنسبة التنزيل وشريط التقدم وبطاقات النظام، والقضاء التام على أي نصوص بيضاء على خلفية فاتحة.
+• أزرار التنقل الفرعية: تبويبات إعدادات النظام واضحة ومتباينة مع تمييز التبويب النشط باللون الأزرق الملكي الفاخر.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     currentVersion: clientVersion,
     latestVersion: POS_LATEST_VERSION,
     minRequiredVersion: POS_MIN_REQUIRED_VERSION,
-    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (تعديل كروت الأصناف والوضع النهاري الفاتح)`,
+    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (تطوير تصميم مثبت البرنامج وإتقان تباين التحديثات)`,
     releaseNotes: POS_RELEASE_NOTES,
     downloadUrl: "/downloads/QuazLink-POS-Setup.exe",
     portableUrl: "/downloads/QuazLink-POS-Portable.zip",

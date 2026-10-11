@@ -1683,6 +1683,134 @@ main.pos-workspace.app-view.active {
 }
 
 /* ==========================================================================
+   Updates Pane Design System (Base Dark Theme)
+   ========================================================================== */
+.update-header-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 12px;
+  padding: 18px 22px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.update-card-title {
+  color: #fff;
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 800;
+}
+
+.update-version-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.update-desc-text {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  margin: 6px 0 0 0;
+  line-height: 1.4;
+}
+
+.update-status-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.update-meta-text {
+  color: var(--text-muted);
+}
+
+.update-notes-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 14px;
+  max-width: 650px;
+}
+
+.update-notes-title {
+  color: #fff;
+}
+
+.update-notes-body {
+  color: var(--text-dim);
+}
+
+.update-progress-card {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.95));
+  border: 1px solid var(--accent-cyan);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.update-progress-title {
+  color: #fff;
+  font-size: 0.92rem;
+}
+
+.update-progress-stats {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.update-progress-track {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.update-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  transition: width 0.3s ease;
+}
+
+.update-progress-hint {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  margin-top: 10px;
+  margin-bottom: 0;
+}
+
+.update-auto-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.update-auto-title {
+  color: #fff;
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.update-auto-desc {
+  font-size: 0.74rem;
+  color: var(--text-dim);
+}
+
+.update-auto-badge {
+  color: var(--accent-emerald);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* ==========================================================================
    Full-System Light Mode Design System (الوضع النهاري الفاتح - عالي التباين ومريح للعين)
    ========================================================================== */
 
@@ -2304,26 +2432,36 @@ body.theme-light #salesKpiCount,
 /* Subtabs */
 body.theme-light .view-subtabs,
 [data-theme="light"] .view-subtabs {
-  background: #f1f5f9;
+  background: #f8fafc;
   border: 1.5px solid #cbd5e1;
+  padding: 4px;
+  border-radius: 9px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 body.theme-light .subtab,
 [data-theme="light"] .subtab {
-  color: #334155;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  color: #1e293b;
+  font-size: 0.78rem;
   font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
 }
 body.theme-light .subtab:hover,
 [data-theme="light"] .subtab:hover {
   color: #090d16;
-  background: #e2e8f0;
+  background: #f1f5f9;
+  border-color: #94a3b8;
 }
 body.theme-light .subtab.active,
 [data-theme="light"] .subtab.active {
-  background: #ffffff;
-  color: #0369a1;
-  font-weight: 800;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1.5px solid #0369a1 !important;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3) !important;
 }
 
 /* Table Row Action Buttons */
@@ -2462,6 +2600,211 @@ body.theme-light .settings-pane h4,
 body.theme-light .settings-pane p,
 [data-theme="light"] .settings-pane p {
   color: #334155 !important;
+}
+body.theme-light .settings-pane strong,
+[data-theme="light"] .settings-pane strong {
+  color: #090d16 !important;
+  font-weight: 800 !important;
+}
+body.theme-light .settings-pane label,
+[data-theme="light"] .settings-pane label {
+  color: #090d16 !important;
+  font-weight: 700 !important;
+}
+body.theme-light .settings-pane span:not(.update-version-badge):not(.update-progress-stats):not(.update-auto-badge):not(#subtabUpdateDot):not(#shiftStatusBadge):not(#licStatusBadge):not(#syncCloudStatusBadge),
+[data-theme="light"] .settings-pane span:not(.update-version-badge):not(.update-progress-stats):not(.update-auto-badge):not(#subtabUpdateDot):not(#shiftStatusBadge):not(#licStatusBadge):not(#syncCloudStatusBadge) {
+  color: #1e293b;
+}
+
+/* Floating Update Notification Banner in Light Mode */
+body.theme-light #updateAlertBanner,
+[data-theme="light"] #updateAlertBanner {
+  background: linear-gradient(90deg, #065f46, #047857) !important;
+  color: #ffffff !important;
+  border-bottom: 2.5px solid #10b981 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12) !important;
+}
+body.theme-light #updateAlertBanner button.btn-emerald,
+[data-theme="light"] #updateAlertBanner button.btn-emerald {
+  background: #10b981 !important;
+  color: #064e3b !important;
+  font-weight: 900 !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+}
+body.theme-light #updateAlertBanner button.btn-secondary,
+[data-theme="light"] #updateAlertBanner button.btn-secondary {
+  background: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   Updates Pane Cards in Light Mode (عالي التباين وراحة كاملة للعين)
+   ========================================================================== */
+body.theme-light .update-header-card,
+[data-theme="light"] .update-header-card {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-top: 3.5px solid #059669 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.theme-light .update-card-title,
+[data-theme="light"] .update-card-title {
+  color: #090d16 !important;
+  font-weight: 900 !important;
+  font-size: 1.15rem !important;
+}
+
+body.theme-light .update-version-badge,
+[data-theme="light"] .update-version-badge {
+  background: #ecfdf5 !important;
+  border: 1.5px solid #86efac !important;
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+body.theme-light .update-desc-text,
+[data-theme="light"] .update-desc-text {
+  color: #334155 !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+}
+
+body.theme-light #btnManualCheckUpdate,
+[data-theme="light"] #btnManualCheckUpdate {
+  background: #047857 !important;
+  color: #ffffff !important;
+  border: 1.5px solid #065f46 !important;
+  font-weight: 800 !important;
+  padding: 10px 22px !important;
+  box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25) !important;
+}
+body.theme-light #btnManualCheckUpdate:hover,
+[data-theme="light"] #btnManualCheckUpdate:hover {
+  background: #065f46 !important;
+}
+
+/* Update Status Card */
+body.theme-light .update-status-card,
+[data-theme="light"] .update-status-card {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-top: 3.5px solid #0284c7 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.theme-light .update-meta-text,
+[data-theme="light"] .update-meta-text {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+body.theme-light .update-meta-text b,
+[data-theme="light"] .update-meta-text b {
+  color: #090d16 !important;
+  font-weight: 800 !important;
+}
+
+body.theme-light .update-notes-box,
+[data-theme="light"] .update-notes-box {
+  background: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+}
+
+body.theme-light .update-notes-title,
+[data-theme="light"] .update-notes-title {
+  color: #090d16 !important;
+  font-weight: 800 !important;
+}
+
+body.theme-light .update-notes-body,
+[data-theme="light"] .update-notes-body {
+  color: #1e293b !important;
+  font-weight: 500 !important;
+}
+
+/* Download Progress Card in Light Mode */
+body.theme-light .update-progress-card,
+[data-theme="light"] .update-progress-card {
+  background: #ffffff !important;
+  border: 1.5px solid #0284c7 !important;
+  border-top: 3.5px solid #0284c7 !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08) !important;
+}
+
+body.theme-light .update-progress-title,
+[data-theme="light"] .update-progress-title {
+  color: #090d16 !important;
+  font-weight: 900 !important;
+  font-size: 0.98rem !important;
+}
+
+body.theme-light .update-progress-stats,
+[data-theme="light"] .update-progress-stats {
+  color: #0284c7 !important;
+  background: #f0f9ff !important;
+  border: 1.5px solid #bae6fd !important;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  font-weight: 800 !important;
+  font-size: 0.88rem !important;
+}
+
+body.theme-light .update-progress-track,
+[data-theme="light"] .update-progress-track {
+  background: #f1f5f9 !important;
+  border: 1.5px solid #cbd5e1 !important;
+  height: 14px !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06) !important;
+}
+
+body.theme-light .update-progress-fill,
+[data-theme="light"] .update-progress-fill {
+  background: linear-gradient(90deg, #059669, #0284c7) !important;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.4) !important;
+}
+
+body.theme-light .update-progress-hint,
+[data-theme="light"] .update-progress-hint {
+  color: #334155 !important;
+  font-weight: 600 !important;
+  font-size: 0.78rem !important;
+}
+
+/* Auto Update Settings Card in Light Mode */
+body.theme-light .update-auto-card,
+[data-theme="light"] .update-auto-card {
+  background: #ffffff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+body.theme-light .update-auto-title,
+[data-theme="light"] .update-auto-title {
+  color: #090d16 !important;
+  font-weight: 800 !important;
+  font-size: 0.92rem !important;
+}
+
+body.theme-light .update-auto-desc,
+[data-theme="light"] .update-auto-desc {
+  color: #475569 !important;
+  font-weight: 500 !important;
+}
+
+body.theme-light .update-auto-badge,
+[data-theme="light"] .update-auto-badge {
+  background: #ecfdf5 !important;
+  border: 1.5px solid #86efac !important;
+  color: #065f46 !important;
+  font-weight: 800 !important;
+  padding: 4px 10px !important;
+  border-radius: 6px !important;
 }
 
 body.theme-light .switch-slider,

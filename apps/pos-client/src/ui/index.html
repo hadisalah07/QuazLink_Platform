@@ -42,7 +42,7 @@
       <div class="brand">
         <span class="brand-logo">⚡</span>
         <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
-        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.2</span>
+        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.3</span>
       </div>
       <!-- View Switcher Navigation Tabs -->
       <nav class="nav-tabs">
@@ -955,22 +955,22 @@
     <div id="paneSettingsUpdates" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; overflow-y: auto; padding: 4px;">
       
       <!-- Version & Check Header Card -->
-      <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 18px 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+      <div class="update-header-card">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.4rem;">🔄</span>
-              <h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 800;">تحديثات برنامج QuazLink POS & ERP</h3>
-              <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.4);">
-                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.1</span>
+              <h3 class="update-card-title">تحديثات برنامج QuazLink POS & ERP</h3>
+              <span class="update-version-badge">
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.2</span>
               </span>
             </div>
-            <p style="font-size: 0.76rem; color: var(--text-dim); margin: 6px 0 0 0; line-height: 1.4;">
+            <p class="update-desc-text">
               تحقق من توفر ميزات جديدة وإصلاحات أمنية صادرة من فريق تطوير QuazLink، وقم بتثبيتها تلقائياً بنقرة واحدة دون فقدان أي بيانات أو فواتير.
             </p>
           </div>
 
-          <button type="button" id="btnManualCheckUpdate" class="btn-checkout primary" style="width: auto; padding: 10px 22px; font-weight: 800; font-size: 0.88rem;" onclick="manualCheckForUpdates()">
+          <button type="button" id="btnManualCheckUpdate" class="btn-checkout primary" onclick="manualCheckForUpdates()">
             <span id="btnUpdateSpinner" style="display:none;">⏳ </span>
             <span id="btnUpdateText">🔄 التحقق من وجود تحديثات (Check for Update)</span>
           </button>
@@ -978,32 +978,32 @@
       </div>
 
       <!-- Update Status Card / Alert -->
-      <div id="updateStatusCard" style="display: none; background: rgba(15, 23, 42, 0.85); border: 1px solid var(--border-glass); border-radius: 12px; padding: 20px;">
+      <div id="updateStatusCard" class="update-status-card" style="display: none;">
         <!-- Populated via JS -->
       </div>
 
       <!-- Live Download Progress Card -->
-      <div id="updateProgressCard" style="display: none; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12), rgba(15, 23, 42, 0.95)); border: 1px solid var(--accent-cyan); border-radius: 12px; padding: 20px;">
+      <div id="updateProgressCard" class="update-progress-card" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <strong style="color: #fff; font-size: 0.92rem;">جاري تنزيل التحديث في الخلفية... ⚡</strong>
-          <span id="updateProgressStats" style="font-family: 'JetBrains Mono'; color: var(--accent-cyan); font-weight: 700; font-size: 0.85rem;">0% (0 MB / 0 MB)</span>
+          <strong class="update-progress-title">جاري تنزيل التحديث في الخلفية... ⚡</strong>
+          <span id="updateProgressStats" class="update-progress-stats">0% (0 MB / 0 MB)</span>
         </div>
-        <div style="background: rgba(0,0,0,0.5); border-radius: 8px; height: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
-          <div id="updateProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #06b6d4); transition: width 0.3s ease;"></div>
+        <div class="update-progress-track">
+          <div id="updateProgressBar" class="update-progress-fill" style="width: 0%;"></div>
         </div>
-        <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 10px; margin-bottom: 0;">
+        <p class="update-progress-hint">
           💡 بمجرد اكتمال التنزيل، سيقوم البرنامج بفتح مثبت التحديث تلقائياً وتحديث الملفات بأمان تام.
         </p>
       </div>
 
       <!-- Auto Update Settings Card -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 12px; padding: 16px 20px;">
+      <div class="update-auto-card">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <strong style="color: #fff; font-size: 0.9rem; display: block; margin-bottom: 2px;">فحص التحديثات التلقائي عند بدء التشغيل</strong>
-            <span style="font-size: 0.74rem; color: var(--text-dim);">إظهار شريط إشعار فوري عند توفر إصدار أحدث لضمان تشغيل المتجر بأعلى أداء وأمان.</span>
+            <strong class="update-auto-title">فحص التحديثات التلقائي عند بدء التشغيل</strong>
+            <span class="update-auto-desc">إظهار شريط إشعار فوري عند توفر إصدار أحدث لضمان تشغيل المتجر بأعلى أداء وأمان.</span>
           </div>
-          <span style="color: var(--accent-emerald); font-size: 0.82rem; font-weight: 700;">✅ مفعل تلقائياً</span>
+          <span class="update-auto-badge">✅ مفعل تلقائياً</span>
         </div>
       </div>
 
