@@ -2290,12 +2290,15 @@ async function autoCheckForUpdatesOnStartup() {
     const res = await fetch('/api/update/check');
     const data = await res.json();
 
+    if (data.currentVersion) {
+      const curDisplay = document.getElementById('currentAppVerDisplay');
+      if (curDisplay) curDisplay.textContent = data.currentVersion;
+      const headerVer = document.getElementById('headerAppVersionBadge');
+      if (headerVer) headerVer.textContent = 'v' + data.currentVersion;
+    }
+
     if (data.success && data.hasUpdate) {
       cachedUpdateInfo = data;
-
-      // Update current version displays
-      const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.0.0';
 
       // 1. Show Top Floating Update Alert Banner
       const banner = document.getElementById('updateAlertBanner');
@@ -2357,7 +2360,9 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.1.0';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.0';
+      const headerVer = document.getElementById('headerAppVersionBadge');
+      if (headerVer && data.currentVersion) headerVer.textContent = 'v' + data.currentVersion;
 
       renderUpdateCard(data);
 
