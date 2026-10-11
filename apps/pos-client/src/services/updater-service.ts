@@ -379,7 +379,8 @@ export class PosUpdaterService {
           }
 
           console.log(`🚀 [PosUpdater] Spawning update installer: ${installerPath}`);
-          const child = spawn(installerPath, [], {
+          // Run installer with /S (Silent Mode) for seamless instant 1-click in-app update
+          const child = spawn(installerPath, ['/S'], {
             detached: true,
             stdio: 'ignore',
           });
