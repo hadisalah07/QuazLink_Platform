@@ -42,7 +42,7 @@ export const translations = {
     posNavLaunch: "Launch App",
 
     // POS Hero Section
-    posHeroReleaseTag: "Official Standalone Edition v1.1.0 — Ready to download and run",
+    posHeroReleaseTag: "Official Standalone Edition v1.2.0 — Ready to download and run",
     posHeroTitle1: "All-in-One Retail Cashier & Store Management",
     posHeroTitle2: "QuazLink POS & ERP",
     posHeroSubtitle: "Ultra-fast offline point-of-sale, inventory, and invoicing software built for retail shops, computer & electronics stores, and supermarkets. 100% offline, native thermal printing without Arabic text distortion, and fully compliant with the Egyptian ETA e-Receipt mandate.",
@@ -185,7 +185,7 @@ export const translations = {
     // POS Download Cards
     posCard1Badge: "RECOMMENDED FOR RETAIL",
     posCard1Title: "Official Installer (Windows 10 / 11)",
-    posCard1Subtitle: "QuazLink-POS-Setup-v1.1.0.exe • Version 1.1.0",
+    posCard1Subtitle: "QuazLink-POS-Setup-v1.2.0.exe • Version 1.2.0",
     posCard1Desc: "Full standard Windows setup package (NSIS). Configures runtime environment, creates Desktop & Start Menu shortcuts, and binds printers and scanners automatically.",
     posCard1Feat1: "One-click install with official desktop shortcut",
     posCard1Feat2: "Chromium 126 engine with ultra-fast local SQLite database",
@@ -195,7 +195,7 @@ export const translations = {
 
     posCard2Badge: "PORTABLE (NO INSTALL)",
     posCard2Title: "Portable Edition (No Install)",
-    posCard2Subtitle: "QuazLink-POS-Portable-v1.1.0.zip • Version 1.1.0",
+    posCard2Subtitle: "QuazLink-POS-Portable-v1.2.0.zip • Version 1.2.0",
     posCard2Desc: "Pre-configured for instant execution from a USB flash drive or any folder without administrator rights (No Admin Rights). Extract and double-click to start immediately.",
     posCard2Feat1: "Requires zero installation steps or prior configuration",
     posCard2Feat2: "Ideal for restricted cashier terminals or running from a USB drive",
@@ -205,7 +205,7 @@ export const translations = {
 
     posCard3Badge: "WIN 7 & POSREADY DEDICATED",
     posCard3Title: "Legacy Hardware Installer (Win 7 Edition)",
-    posCard3Subtitle: "QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe • Version 1.1.0",
+    posCard3Subtitle: "QuazLink-POS-Legacy-Win7-Setup-v1.2.0.exe • Version 1.2.0",
     posCard3Desc: "Officially built for legacy POS hardware and touch terminals (Elo, Posiflex, IBM) running Windows 7 SP1, Windows 8, or POSReady 7 without needing an OS upgrade.",
     posCard3Feat1: "100% compatible with Windows 7 SP1 (32-bit & 64-bit)",
     posCard3Feat2: "Ultra-low memory footprint (optimized for 2GB RAM terminals)",
@@ -215,7 +215,7 @@ export const translations = {
 
     posCard4Badge: "WIN 7 PORTABLE",
     posCard4Title: "Windows 7 Portable Edition",
-    posCard4Subtitle: "QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip • Version 1.1.0",
+    posCard4Subtitle: "QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip • Version 1.2.0",
     posCard4Desc: "Instant standalone executable running directly on any Windows 7 POS machine without installation steps or extra dependencies. Extract and start selling.",
     posCard4Feat1: "Instant one-click start without Administrator privileges",
     posCard4Feat2: "Lightweight and rock-solid SQLite WebAssembly engine",
@@ -374,7 +374,7 @@ export const translations = {
     posNavLaunch: "تشغيل البرنامج",
 
     // POS Hero Section
-    posHeroReleaseTag: "الإصدار الرسمي المستقل v1.1.0 — جاهز للتحميل والتشغيل فوراً",
+    posHeroReleaseTag: "الإصدار الرسمي المستقل v1.2.0 — جاهز للتحميل والتشغيل فوراً",
     posHeroTitle1: "نظام الكاشير وإدارة المتاجر المتكامل",
     posHeroTitle2: "QuazLink POS & ERP",
     posHeroSubtitle: "أسرع نظام نقاط بيع ومخازن وفواتير محلي مصمم لتجارة التجزئة، محلات الكمبيوتر والإلكترونيات، والمتاجر العامة. يعمل بنسبة 100% بدون إنترنت، يدعم جميع الطابعات الحرارية بدون تقطيع في اللغة العربية، ومستوفٍ لمنظومة الإيصال الإلكتروني المصري.",
@@ -517,7 +517,7 @@ export const translations = {
     // POS Download Cards
     posCard1Badge: "موصى به للمحلات",
     posCard1Title: "برنامج التثبيت الرسمي (Windows 10 / 11)",
-    posCard1Subtitle: "QuazLink-POS-Setup-v1.1.0.exe • الإصدار 1.1.0",
+    posCard1Subtitle: "QuazLink-POS-Setup-v1.2.0.exe • الإصدار 1.2.0",
     posCard1Desc: "برنامج تثبيت قياسي كامل (NSIS Setup) يقوم بتهيئة بيئة التشغيل، إنشاء اختصارات سطح المكتب وقائمة ابدأ، وربط الطابعات وأجهزة الباركود تلقائياً.",
     posCard1Feat1: "تثبيت بنقرة واحدة مع أيقونة رسمية على الديسكتوب",
     posCard1Feat2: "محرك Chromium 126 مع قاعدة بيانات محلية SQLite فائقة السرعة",
@@ -527,7 +527,7 @@ export const translations = {
 
     posCard2Badge: "بدون تثبيت (Portable)",
     posCard2Title: "النسخة المحمولة بدون تثبيت",
-    posCard2Subtitle: "QuazLink-POS-Portable-v1.1.0.zip • الإصدار 1.1.0",
+    posCard2Subtitle: "QuazLink-POS-Portable-v1.2.0.zip • الإصدار 1.2.0",
     posCard2Desc: "نسخة مجهزة للتشغيل الفوري من فلاشة USB أو أي مجلد بدون صلاحيات مدير النظام (No Admin Rights). فك الضغط واضغط مرتين للبدء فوراً.",
     posCard2Feat1: "لا تتطلب أي خطوات تثبيت أو إعدادات مسبقة",
     posCard2Feat2: "مثالية لأجهزة الكاشير المقيدة أو العمل من فلاشة USB",
@@ -537,7 +537,7 @@ export const translations = {
 
     posCard3Badge: "مخصص لأجهزة Win 7 & POSReady",
     posCard3Title: "نسخة التثبيت للأجهزة القديمة (Win 7 Edition)",
-    posCard3Subtitle: "QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe • الإصدار 1.1.0",
+    posCard3Subtitle: "QuazLink-POS-Legacy-Win7-Setup-v1.2.0.exe • الإصدار 1.2.0",
     posCard3Desc: "إصدار مخصص رسمياً لأجهزة نقاط البيع القديمة وشاشات اللمس (Elo, Posiflex, IBM) التي تعمل بنظام Windows 7 SP1 أو Windows 8 أو Windows POSReady 7 دون الحاجة لتحديث نظام التشغيل.",
     posCard3Feat1: "متوافق 100% مع Windows 7 SP1 (32 بت و 64 بت)",
     posCard3Feat2: "استهلاك ذاكرة منخفض جداً (يناسب أجهزة 2GB RAM)",
@@ -547,7 +547,7 @@ export const translations = {
 
     posCard4Badge: "بدون تثبيت (Win 7 Portable)",
     posCard4Title: "النسخة المحمولة لويندوز 7",
-    posCard4Subtitle: "QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip • الإصدار 1.1.0",
+    posCard4Subtitle: "QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip • الإصدار 1.2.0",
     posCard4Desc: "ملف تنفيذي فوري يعمل مباشرة على أي جهاز كاشير بنظام ويندوز 7 بدون أي خطوات تثبيت أو ملفات إضافية. فقط فك الضغط وابدأ البيع.",
     posCard4Feat1: "تشغيل فوري بضغطة زر دون الحاجة لصلاحيات Administrator",
     posCard4Feat2: "محرك SQLite WebAssembly خفيف وثابت بالكامل",
@@ -604,13 +604,13 @@ export const translations = {
     dlPosBannerTitle: "بوابة نظام الكاشير المستقلة (QuazLink POS Portal)",
     dlPosBannerDesc: "قم بزيارة البوابة المستقلة المخصصة للتجار وأصحاب المحلات لتنزيل البرنامج، تفعيل الرخص، واستعراض توافق العتاد.",
     dlPosBannerBtn: "فتح بوابة الكاشير المستقلة",
-    dlPosSectionTag: "محرك تجزئة متكامل يعمل بدون إنترنت v1.1.0",
+    dlPosSectionTag: "محرك تجزئة متكامل يعمل بدون إنترنت v1.2.0",
     dlPosSectionTitle: "برنامج الكاشير ونقاط البيع QuazLink POS & ERP",
     dlPosSectionDesc: "برنامج مكتبي متكامل لإدارة المبيعات، الفواتير، المخازن، حسابات العملاء، وطباعة الإيصالات الحرارية. يعمل بنسبة 100% بدون إنترنت مع حفظ فوري فائق السرعة ومزامنة سحابية ذكية مع حسابك على QuazLink.",
     dlPosBtnSetup: "تحميل برنامج التثبيت (Win 10/11 Setup)",
     dlPosBtnPortable: "نسخة محمولة (Win 10/11 Portable)",
-    dlPosBtnWin7Setup: "تحميل نسخة Windows 7 (Setup-v1.1.0.exe ~73 MB)",
-    dlPosBtnWin7Portable: "نسخة محمولة Win 7 (Portable-v1.1.0.zip ~73 MB)",
+    dlPosBtnWin7Setup: "تحميل نسخة Windows 7 (Setup-v1.2.0.exe ~73 MB)",
+    dlPosBtnWin7Portable: "نسخة محمولة Win 7 (Portable-v1.2.0.zip ~73 MB)",
     dlPosBadgeSystems: "الأنظمة: Windows 10 / 11 (64-bit)",
     dlPosBadgePrinters: "طابعات الفواتير: ESC/POS (80mm & 58mm)",
     dlPosBadgeDb: "محلية مدمجة SQLite قاعدة بيانات",

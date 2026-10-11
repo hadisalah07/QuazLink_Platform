@@ -63,6 +63,13 @@
           <span id="shiftStatusText">وردية #1</span>
         </span>
       </div>
+      <!-- On-Screen Zoom Controls (Ctrl + / -) -->
+      <div class="zoom-controls-header" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 2px 6px;">
+        <button type="button" class="btn-zoom" onclick="adjustZoom(-0.1)" title="تصغير الشاشة (Ctrl -)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 6px; border-radius:4px;">−</button>
+        <span id="headerZoomLevel" onclick="resetZoom()" title="إعادة الضبط 100% (Ctrl 0)" style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#38bdf8; cursor:pointer; min-width:38px; text-align:center;">100%</span>
+        <button type="button" class="btn-zoom" onclick="adjustZoom(0.1)" title="تكبير الشاشة (Ctrl +)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 6px; border-radius:4px;">+</button>
+      </div>
+
       <span class="badge-terminal">الفرع: B01</span>
       <div class="time-clock" id="liveClock">00:00:00</div>
     </div>

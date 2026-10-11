@@ -10,4 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleFullscreen: () => ipcRenderer.send('window-toggle-fullscreen'),
   setZoomFactor: (factor: number) => ipcRenderer.send('window-set-zoom', factor),
   getZoomFactor: () => ipcRenderer.invoke('window-get-zoom'),
+  onZoomChanged: (callback: (factor: number) => void) => {
+    ipcRenderer.on('zoom-changed', (_e, factor) => callback(factor));
+  },
 });

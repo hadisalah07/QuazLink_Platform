@@ -58,7 +58,7 @@ export class PosServer {
     this.syncService = new SyncService(this.db, this.settingsService, this.licensingService);
     this.etaService = new EtaService(this.db);
     const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
-    this.updaterService = new PosUpdaterService('1.1.0', platformUrl);
+    this.updaterService = new PosUpdaterService('1.2.0', platformUrl);
 
     this.uiDir = options.uiDir || path.join(__dirname, '..', 'ui');
     if (!fs.existsSync(this.uiDir)) {

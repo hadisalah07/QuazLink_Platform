@@ -165,22 +165,63 @@ function initKeyboardShortcuts() {
       e.preventDefault();
       closeAllModals();
     }
-    // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd or Equal
-    else if (e.ctrlKey && (e.key === '=' || e.key === '+' || e.code === 'Equal' || e.code === 'NumpadAdd')) {
+    // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd (Windows 7 / Arabic Keyboards supported)
+    else if (
+      e.ctrlKey &&
+      (e.key === '=' ||
+        e.key === '+' ||
+        e.code === 'Equal' ||
+        e.code === 'NumpadAdd' ||
+        e.keyCode === 187 ||
+        e.keyCode === 107 ||
+        e.keyCode === 61)
+    ) {
       e.preventDefault();
       adjustZoom(0.1);
     }
-    // Zoom Out: Ctrl + - or Ctrl + _ or NumpadSubtract or Minus
-    else if (e.ctrlKey && (e.key === '-' || e.key === '_' || e.code === 'Minus' || e.code === 'NumpadSubtract')) {
+    // Zoom Out: Ctrl + - or Ctrl + _ or NumpadSubtract (Windows 7 / Arabic Keyboards supported)
+    else if (
+      e.ctrlKey &&
+      (e.key === '-' ||
+        e.key === '_' ||
+        e.code === 'Minus' ||
+        e.code === 'NumpadSubtract' ||
+        e.keyCode === 189 ||
+        e.keyCode === 109 ||
+        e.keyCode === 173)
+    ) {
       e.preventDefault();
       adjustZoom(-0.1);
     }
     // Zoom Reset: Ctrl + 0 or Numpad0 or Digit0
-    else if (e.ctrlKey && (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0')) {
+    else if (
+      e.ctrlKey &&
+      (e.key === '0' ||
+        e.code === 'Digit0' ||
+        e.code === 'Numpad0' ||
+        e.keyCode === 48 ||
+        e.keyCode === 96)
+    ) {
       e.preventDefault();
       resetZoom();
     }
   });
+
+  // Ctrl + Mouse Wheel Zoom (Fast Zoom In / Zoom Out for Cashiers)
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          adjustZoom(0.1);
+        } else {
+          adjustZoom(-0.1);
+        }
+      }
+    },
+    { passive: false }
+  );
 }
 
 // -------------------------------------------------------------
@@ -192,6 +233,13 @@ function initZoomControls() {
   const savedZoom = parseFloat(localStorage.getItem('quazlink_pos_zoom') || '1.0');
   if (savedZoom && !isNaN(savedZoom) && savedZoom !== 1.0) {
     applyZoom(savedZoom, false);
+  }
+
+  // Sync zoom events from Electron Native accelerators
+  if (window.electronAPI && typeof window.electronAPI.onZoomChanged === 'function') {
+    window.electronAPI.onZoomChanged((factor) => {
+      applyZoom(factor, true);
+    });
   }
 }
 
@@ -212,6 +260,10 @@ function applyZoom(factor, notify = true) {
   }
   document.body.style.zoom = factor;
   localStorage.setItem('quazlink_pos_zoom', String(factor));
+
+  const zoomBadge = document.getElementById('headerZoomLevel');
+  if (zoomBadge) zoomBadge.textContent = `${Math.round(factor * 100)}%`;
+
   if (notify) {
     const pct = Math.round(factor * 100);
     showToast(`🔍 مستوى التكبير: ${pct}%${pct === 100 ? ' (الافتراضي)' : ''}`, pct === 100 ? 'info' : 'success');

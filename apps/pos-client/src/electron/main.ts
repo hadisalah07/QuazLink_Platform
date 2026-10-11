@@ -307,16 +307,18 @@ function createMainWindow(): void {
     }
 
     if (input.control) {
-      // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd or Equal
-      if (
+      // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd or Equal or Add
+      const isZoomIn =
         input.key === '=' ||
         input.key === '+' ||
+        input.key === 'Add' ||
         input.code === 'Equal' ||
-        input.code === 'NumpadAdd'
-      ) {
+        input.code === 'NumpadAdd';
+
+      if (isZoomIn) {
         if (mainWindow) {
           const currentZoom = mainWindow.webContents.getZoomFactor();
-          const newZoom = Math.min(2.5, Math.round((currentZoom + 0.1) * 10) / 10);
+          const newZoom = Math.min(2.5, Math.max(0.5, Math.round((currentZoom + 0.1) * 10) / 10));
           mainWindow.webContents.setZoomFactor(newZoom);
           logToFile(`🔍 [Zoom] Zoom In: factor=${newZoom}`);
           mainWindow.webContents.send('zoom-changed', newZoom);
@@ -325,16 +327,18 @@ function createMainWindow(): void {
         return;
       }
 
-      // Zoom Out: Ctrl + - or Ctrl + _ or NumpadSubtract or Minus
-      if (
+      // Zoom Out: Ctrl + - or Ctrl + _ or NumpadSubtract or Minus or Subtract
+      const isZoomOut =
         input.key === '-' ||
         input.key === '_' ||
+        input.key === 'Subtract' ||
         input.code === 'Minus' ||
-        input.code === 'NumpadSubtract'
-      ) {
+        input.code === 'NumpadSubtract';
+
+      if (isZoomOut) {
         if (mainWindow) {
           const currentZoom = mainWindow.webContents.getZoomFactor();
-          const newZoom = Math.max(0.5, Math.round((currentZoom - 0.1) * 10) / 10);
+          const newZoom = Math.max(0.5, Math.min(2.5, Math.round((currentZoom - 0.1) * 10) / 10));
           mainWindow.webContents.setZoomFactor(newZoom);
           logToFile(`🔍 [Zoom] Zoom Out: factor=${newZoom}`);
           mainWindow.webContents.send('zoom-changed', newZoom);
@@ -344,11 +348,12 @@ function createMainWindow(): void {
       }
 
       // Reset Zoom: Ctrl + 0 or Numpad0 or Digit0
-      if (
+      const isZoomReset =
         input.key === '0' ||
         input.code === 'Digit0' ||
-        input.code === 'Numpad0'
-      ) {
+        input.code === 'Numpad0';
+
+      if (isZoomReset) {
         if (mainWindow) {
           mainWindow.webContents.setZoomFactor(1.0);
           logToFile('🔍 [Zoom] Reset to 1.0 (100%)');

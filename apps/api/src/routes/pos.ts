@@ -4,13 +4,17 @@ import { extractClientIp, resolveGeoLocation } from '../lib/geoip';
 
 const router = Router();
 
-export const POS_LATEST_VERSION = '1.1.0';
-export const POS_RELEASE_DATE = '2026-10-08';
-export const POS_RELEASE_NOTES = `• حل مشكلة إتمام المعاملات وحفظ الفواتير في قاعدة البيانات (Fix WASM commit reset)
-• تصحيح مسار الإيصالات الحرارية ومنع أخطاء الصلاحيات (EPERM fix to ~/.quazlink/receipts)
-• إضافة نظام الفحص والتحديث التلقائي المباشر من المنصة (Check for Updates)
-• إشعار فوري داخل شاشة الكاشير عند توفر إصدار جديد مع إمكانية التثبيت التلقائي بنقرة واحدة
-• تحسينات في استقرار الاتصال وسرعة المزامنة السحابية`;
+export const POS_LATEST_VERSION = '1.2.0';
+export const POS_RELEASE_DATE = '2026-10-11';
+export const POS_RELEASE_NOTES = `• ميزة التكبير والتصغير الفوري (Zoom In / Out): إمكانية تكبير وتصغير شاشات الكاشير وERP بسهولة:
+  - تكبير الشاشة: اضغط على Ctrl مع (+) أو زر Numpad (+)
+  - تصغير الشاشة: اضغط على Ctrl مع (-) أو زر Numpad (-)
+  - إعادة الضبط للحجم الطبيعي 100%: اضغط على Ctrl + 0
+  - التكبير السريع بالفأرة: اضغط على Ctrl وحرك عجلة الفأرة (Mouse Wheel)
+• شريط تحكم مرئي مدمج أعلى الشاشة: أزرار (+) و (-) ونسبة مئوية واضحة للتحكم الفوري باللمس أو الماوس
+• توافق كامل ومخصص لأنظمة Windows 7: دعم استجابة المفاتيح على الويندوز القديم مع اللغات العربية والإنجليزية
+• حفظ تلقائي لمستوى التكبير: استعادة حجم الشاشة المفضل تلقائياً عند فتح البرنامج
+• تحسينات في استقرار العرض وسرعة استجابة واجهة المستخدم`;
 
 /**
  * POST /api/pos/telemetry
@@ -151,7 +155,7 @@ router.get('/updates', async (req: Request, res: Response) => {
       currentVersion: cleanCurrent,
       latestVersion: POS_LATEST_VERSION,
       minRequiredVersion: '1.0.0',
-      releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار الاستقرار والأداء)`,
+      releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار التكبير ودعم Windows 7 الكامل)`,
       releaseNotes: POS_RELEASE_NOTES,
       downloadUrl: '/downloads/QuazLink-POS-Setup.exe',
       portableUrl: '/downloads/QuazLink-POS-Portable.zip',

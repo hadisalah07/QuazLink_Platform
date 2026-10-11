@@ -214,26 +214,26 @@ export default function DownloadPage() {
             {/* Download Buttons Section */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
               <a
-                href="/downloads/QuazLink-POS-Setup-v1.1.0.exe"
-                download="QuazLink-POS-Setup-v1.1.0.exe"
+                href="/downloads/QuazLink-POS-Setup-v1.2.0.exe"
+                download="QuazLink-POS-Setup-v1.2.0.exe"
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-600 to-cyan-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold rounded-2xl text-base shadow-[0_0_35px_rgba(16,185,129,0.5)] hover:shadow-[0_0_50px_rgba(16,185,129,0.8)] transition-all flex items-center justify-center gap-3 cursor-pointer group"
               >
                 <Download className="w-5 h-5 group-hover:-translate-y-0.5 transition-transform" />
                 <div className={isAr ? "text-right" : "text-left"}>
                   <div className="font-bold text-sm md:text-base">{t.dlPosBtnSetup}</div>
-                  <div className="text-[11px] text-emerald-100 font-mono font-normal">QuazLink-POS-Setup-v1.1.0.exe • (~70.6 MB)</div>
+                  <div className="text-[11px] text-emerald-100 font-mono font-normal">QuazLink-POS-Setup-v1.2.0.exe • (~70.6 MB)</div>
                 </div>
               </a>
 
               <a
-                href="/downloads/QuazLink-POS-Portable-v1.1.0.zip"
-                download="QuazLink-POS-Portable-v1.1.0.zip"
+                href="/downloads/QuazLink-POS-Portable-v1.2.0.zip"
+                download="QuazLink-POS-Portable-v1.2.0.zip"
                 className="w-full sm:w-auto px-6 py-4 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-3 cursor-pointer"
               >
                 <FolderArchive className="w-5 h-5 text-emerald-400" />
                 <div className={isAr ? "text-right" : "text-left"}>
                   <div>{t.dlPosBtnPortable}</div>
-                  <div className="text-[11px] text-gray-400 font-mono font-normal">QuazLink-POS-Portable-v1.1.0.zip • (~73.8 MB)</div>
+                  <div className="text-[11px] text-gray-400 font-mono font-normal">QuazLink-POS-Portable-v1.2.0.zip • (~73.8 MB)</div>
                 </div>
               </a>
             </div>
@@ -246,8 +246,8 @@ export default function DownloadPage() {
               </div>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <a
-                  href="/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
-                  download="QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe"
+                  href="/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.2.0.exe"
+                  download="QuazLink-POS-Legacy-Win7-Setup-v1.2.0.exe"
                   className="px-5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 text-xs font-bold flex items-center gap-2 transition-all shadow-sm"
                 >
                   <Download className="w-4 h-4 text-amber-400" />
@@ -255,8 +255,8 @@ export default function DownloadPage() {
                 </a>
 
                 <a
-                  href="/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
-                  download="QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip"
+                  href="/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip"
+                  download="QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip"
                   className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-semibold flex items-center gap-2 transition-all"
                 >
                   <FolderArchive className="w-4 h-4 text-amber-400" />
