@@ -58,7 +58,7 @@ export class PosServer {
     this.syncService = new SyncService(this.db, this.settingsService, this.licensingService);
     this.etaService = new EtaService(this.db);
     const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
-    this.updaterService = new PosUpdaterService('1.2.0', platformUrl);
+    this.updaterService = new PosUpdaterService('1.2.1', platformUrl);
 
     this.uiDir = options.uiDir || path.join(__dirname, '..', 'ui');
     if (!fs.existsSync(this.uiDir)) {
@@ -138,7 +138,7 @@ export class PosServer {
   private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     // Enable CORS for local integration
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
@@ -293,8 +293,8 @@ export class PosServer {
       return;
     }
 
-    // 7. PUT /api/products/:id (تعديل منتج)
-    if (pathname.match(/^\/api\/products\/[^/]+$/) && req.method === 'PUT') {
+    // 7. PUT / POST /api/products/:id (تعديل منتج)
+    if (pathname.match(/^\/api\/products\/[^/]+$/) && (req.method === 'PUT' || req.method === 'POST')) {
       const id = pathname.replace('/api/products/', '');
       const body = await this.readBody(req);
       const updated = this.productService.updateProduct(id, body);

@@ -60,6 +60,9 @@ export class ProductService {
     const existing = this.getProductById(id);
     if (!existing) throw new Error(`Product not found: ${id}`);
 
+    const hasSerialInt = input.hasSerial !== undefined ? (input.hasSerial ? 1 : 0) : null;
+    const newStock = input.stockQuantity !== undefined ? input.stockQuantity : null;
+
     this.db.run(
       `UPDATE products SET
         name = COALESCE(?, name),
@@ -68,8 +71,10 @@ export class ProductService {
         buy_price = COALESCE(?, buy_price),
         sell_price_retail = COALESCE(?, sell_price_retail),
         sell_price_wholesale = COALESCE(?, sell_price_wholesale),
+        stock_quantity = COALESCE(?, stock_quantity),
         min_stock_alert = COALESCE(?, min_stock_alert),
         unit = COALESCE(?, unit),
+        has_serial = COALESCE(?, has_serial),
         updated_at = datetime('now')
       WHERE id = ?`,
       [
@@ -79,11 +84,27 @@ export class ProductService {
         input.buyPrice ?? null,
         input.sellPriceRetail ?? null,
         input.sellPriceWholesale ?? null,
+        newStock,
         input.minStockAlert ?? null,
         input.unit ?? null,
+        hasSerialInt,
         id,
       ]
     );
+
+    // If stock quantity was adjusted directly, record a stock movement
+    if (newStock !== null && newStock !== existing.stockQuantity) {
+      const diff = newStock - existing.stockQuantity;
+      try {
+        this.db.run(
+          `INSERT INTO stock_movements (id, product_id, type, quantity, balance_after, reference_id)
+           VALUES (?, ?, 'adjustment', ?, ?, NULL)`,
+          [this.db.generateId(), id, diff, newStock]
+        );
+      } catch (e) {
+        console.warn('⚠️ [ProductService] Stock adjustment log warning:', e);
+      }
+    }
 
     return this.getProductById(id)!;
   }

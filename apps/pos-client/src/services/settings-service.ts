@@ -10,9 +10,10 @@ export class SettingsService {
   private defaultSettings: Record<string, string> = {
     enable_shifts: 'false', // Default is false (optional) as requested!
     enable_serials: 'true',
-    enable_ai_ad: 'true',
+    enable_ai_ad: 'false', // Deactivated by default as requested!
     enable_whatsapp: 'true',
     enable_credit_ledgers: 'true',
+    theme: 'dark',
     store_name: 'كويزلينك ستور للإلكترونيات والكمبيوتر',
     store_phone: '01000000000',
     store_address: 'القاهرة، مصر',

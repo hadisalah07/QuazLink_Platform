@@ -4,18 +4,13 @@ import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.2.0";
+export const POS_LATEST_VERSION = "1.2.1";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
-export const POS_RELEASE_DATE = "2026-10-11";
-export const POS_RELEASE_NOTES = `• ميزة التكبير والتصغير الفوري (Zoom In / Out): إمكانية تكبير وتصغير شاشات الكاشير وERP بسهولة:
-  - تكبير الشاشة: اضغط على Ctrl مع (+) أو زر Numpad (+)
-  - تصغير الشاشة: اضغط على Ctrl مع (-) أو زر Numpad (-)
-  - إعادة الضبط للحجم الطبيعي 100%: اضغط على Ctrl + 0
-  - التكبير السريع بالفأرة: اضغط على Ctrl وحرك عجلة الفأرة (Mouse Wheel)
-• شريط تحكم مرئي مدمج أعلى الشاشة: أزرار (+) و (-) ونسبة مئوية واضحة للتحكم الفوري باللمس أو الماوس
-• توافق كامل ومخصص لأنظمة Windows 7: دعم استجابة المفاتيح على الويندوز القديم مع اللغات العربية والإنجليزية
-• حفظ تلقائي لمستوى التكبير: استعادة حجم الشاشة المفضل تلقائياً عند فتح البرنامج
-• تحسينات في استقرار العرض وسرعة استجابة واجهة المستخدم`;
+export const POS_RELEASE_DATE = "2026-10-12";
+export const POS_RELEASE_NOTES = `• إضافة ميزة تعديل كارت الصنف (✏️ تعديل): إمكانية تعديل اسم المنتج، الباركود، أسعار الشراء والقطاعي والجملة، الرصيد المخزني، حد التنبيه، وتخصيص السيريال مباشرة من شاشة المخزن مع تسجيل حركة تسوية مخزنية تلقائية.
+• دعم الوضع النهاري الفاتح (Light Mode): نظام سمات بصري عالي التباين ومريح للعين في الإضاءة الساطعة لكامل الشاشات (الكاشير، المخزن، الفواتير، الإعدادات، والنوافذ المنبثقة) مع زر تبديل سريع أعلى الشاشة وإمكانية التفعيل من الإعدادات.
+• ضبط أمان زر إعلانات الذكاء الاصطناعي (AI Ad Generator): أصبح معطلاً افتراضياً في جدول المخزن، ويمكن للعملاء المؤهلين تفعيله بمرونة من إعدادات الموديولات.
+• استقرار فائق وتوافق مزدوج 100%: يعمل بكفاءة وسلاسة على أنظمة Windows 7 SP1 وأنظمة Windows 10/11 دون أي تهنيج أو استهلاك زائد للذاكرة.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -61,7 +56,7 @@ export async function GET(request: Request) {
     currentVersion: clientVersion,
     latestVersion: POS_LATEST_VERSION,
     minRequiredVersion: POS_MIN_REQUIRED_VERSION,
-    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار التكبير ودعم Windows 7 الكامل)`,
+    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (تعديل كروت الأصناف والوضع النهاري الفاتح)`,
     releaseNotes: POS_RELEASE_NOTES,
     downloadUrl: "/downloads/QuazLink-POS-Setup.exe",
     portableUrl: "/downloads/QuazLink-POS-Portable.zip",

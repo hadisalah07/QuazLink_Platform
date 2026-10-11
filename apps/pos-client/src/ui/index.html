@@ -42,7 +42,7 @@
       <div class="brand">
         <span class="brand-logo">⚡</span>
         <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
-        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.0</span>
+        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.1</span>
       </div>
       <!-- View Switcher Navigation Tabs -->
       <nav class="nav-tabs">
@@ -70,6 +70,9 @@
         <span id="headerZoomLevel" onclick="resetZoom()" title="إعادة الضبط 100% (Ctrl 0)" style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#38bdf8; cursor:pointer; min-width:38px; text-align:center;">100%</span>
         <button type="button" class="btn-zoom" onclick="adjustZoom(0.1)" title="تكبير الشاشة (Ctrl +)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 6px; border-radius:4px;">+</button>
       </div>
+
+      <!-- Quick Light / Dark Mode Toggle -->
+      <button type="button" class="btn-theme-toggle" id="btnHeaderThemeToggle" onclick="toggleTheme()" title="تبديل الوضع النهاري / الليلي (Light / Dark Mode)">🌙</button>
 
       <span class="badge-terminal">الفرع: B01</span>
       <div class="time-clock" id="liveClock">00:00:00</div>
@@ -718,19 +721,38 @@
           </label>
         </div>
 
-        <!-- Feature 3: AI Ad Generator -->
+        <!-- Feature: Light Mode / Daytime Theme -->
+        <div class="module-card">
+          <div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+              <span style="font-size: 1.1rem;">☀️</span>
+              <strong style="color: #fff; font-size: 0.9rem;">الوضع النهاري الفاتح (Light Mode)</strong>
+              <span class="badge-terminal" style="font-size: 0.65rem;">مظهر اختياري</span>
+            </div>
+            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+              تحويل واجهة النظام بالكامل للوضع الأبيض عالي التباين لسهولة القراءة في الإضاءة النهارية الساطعة.
+            </p>
+          </div>
+          <label class="switch-toggle">
+            <input type="checkbox" id="setting_theme_light" onchange="onThemeToggleChanged()">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+
+        <!-- Feature 3: AI Ad Generator (Deactivated by default) -->
         <div class="module-card">
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">✨</span>
-              <strong style="color: #fff; font-size: 0.9rem;">توليد الإعلانات بالذكاء الاصطناعي</strong>
+              <strong style="color: #fff; font-size: 0.9rem;">توليد الإعلانات بالذكاء الاصطناعي (AI Ad Generator)</strong>
+              <span class="badge-terminal" style="font-size: 0.65rem; color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.4);">معطل افتراضياً</span>
             </div>
             <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
-              توليد بوستات فيسبوك وبرودكاست واتساب تلقائياً للمنتجات من شاشة المخزن بنقرة واحدة.
+              إظهار زر ✨ إعلان AI في كروت المخزن لتوليد بوستات تسويقية تلقائية (يمكن تفعيله للعملاء المؤهلين فقط).
             </p>
           </div>
           <label class="switch-toggle">
-            <input type="checkbox" id="setting_enable_ai_ad">
+            <input type="checkbox" id="setting_enable_ai_ad" onchange="onAiAdToggleChanged()">
             <span class="switch-slider"></span>
           </label>
         </div>
@@ -940,7 +962,7 @@
               <span style="font-size: 1.4rem;">🔄</span>
               <h3 style="color: #fff; font-size: 1.1rem; margin: 0; font-weight: 800;">تحديثات برنامج QuazLink POS & ERP</h3>
               <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.4);">
-                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.0</span>
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.1</span>
               </span>
             </div>
             <p style="font-size: 0.76rem; color: var(--text-dim); margin: 6px 0 0 0; line-height: 1.4;">
@@ -1079,6 +1101,74 @@
       <div class="modal-footer">
         <button class="btn-sub" onclick="closeNewProductModal()">إلغاء</button>
         <button class="btn-checkout primary" onclick="submitNewProduct()">حفظ المنتج</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Product Modal (تعديل كارت الصنف) -->
+  <div class="pos-modal-backdrop" id="editProductModal">
+    <div class="pos-modal" style="width: 580px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.2rem;">✏️</span>
+          <h3 style="margin:0; font-size:1.05rem;">تعديل كارت الصنف / المنتج</h3>
+        </div>
+        <button type="button" class="modal-close" onclick="closeEditProductModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="epId">
+        
+        <div class="form-grid-2">
+          <div class="input-group">
+            <label>اسم المنتج:*</label>
+            <input type="text" id="epName" placeholder="اسم الصنف">
+          </div>
+          <div class="input-group">
+            <label>الباركود / SKU:*</label>
+            <input type="text" id="epBarcode" placeholder="الباركود الدولي">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="input-group">
+            <label>سعر الشراء (EGP):*</label>
+            <input type="number" id="epBuyPrice" step="0.01" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>سعر القطاعي (EGP):*</label>
+            <input type="number" id="epSellRetail" step="0.01" placeholder="0.00">
+          </div>
+          <div class="input-group">
+            <label>سعر الجملة (EGP):</label>
+            <input type="number" id="epSellWholesale" step="0.01" placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="form-grid-3">
+          <div class="input-group">
+            <label>رصيد المخزن الحالي:*</label>
+            <input type="number" id="epStock" step="1" placeholder="0">
+          </div>
+          <div class="input-group">
+            <label>حد النقص والتنبيه:*</label>
+            <input type="number" id="epMinAlert" step="1" placeholder="3">
+          </div>
+          <div class="input-group">
+            <label>الوحدة:</label>
+            <input type="text" id="epUnit" placeholder="قطعة">
+          </div>
+        </div>
+
+        <div class="input-group checkbox-row" style="margin-top: 4px;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="epHasSerial">
+            <span><b>جهاز يحمل رقم تسلسلي (Serial / IMEI)</b> — يلزم إدخال سيريال عند البيع</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-sub" onclick="closeEditProductModal()">إلغاء</button>
+        <button type="button" class="btn-checkout primary" onclick="submitEditProduct()">💾 حفظ التعديلات</button>
       </div>
     </div>
   </div>

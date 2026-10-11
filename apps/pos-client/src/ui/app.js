@@ -20,6 +20,7 @@ let lastCustomerPhone = '';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   initClock();
   initZoomControls();
   initGlobalBarcodeListener();
@@ -58,6 +59,68 @@ function showToast(message, type = 'info') {
       if (toast.parentNode) toast.parentNode.removeChild(toast);
     }, 250);
   }, 3200);
+}
+
+// -------------------------------------------------------------
+// Theme Management Engine (High Contrast Light Mode & Sleek Dark Mode)
+// -------------------------------------------------------------
+function initTheme() {
+  const savedTheme = localStorage.getItem('quazlink_pos_theme') || 'dark';
+  applyTheme(savedTheme, false);
+}
+
+function applyTheme(theme, notify = true) {
+  const isLight = theme === 'light';
+  if (isLight) {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.body.classList.add('theme-light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.body.classList.remove('theme-light');
+  }
+
+  localStorage.setItem('quazlink_pos_theme', theme);
+
+  // Sync Header Button Icon & Label
+  const btnHeader = document.getElementById('btnHeaderThemeToggle');
+  if (btnHeader) {
+    btnHeader.textContent = isLight ? '☀️' : '🌙';
+    btnHeader.title = isLight ? 'الوضع النهاري الفاتح (انقر للتبديل إلى الليلي)' : 'الوضع الليلي (انقر للتبديل إلى النهاري)';
+  }
+
+  // Sync Settings Switch Checkbox
+  const settingCheck = document.getElementById('setting_theme_light');
+  if (settingCheck) {
+    settingCheck.checked = isLight;
+  }
+
+  if (notify) {
+    showToast(isLight ? 'تم تفعيل الوضع النهاري الفاتح ☀️' : 'تم تفعيل الوضع الليلي 🌙', 'info');
+  }
+}
+
+function toggleTheme() {
+  const current = localStorage.getItem('quazlink_pos_theme') || 'dark';
+  const newTheme = current === 'light' ? 'dark' : 'light';
+  applyTheme(newTheme, true);
+  saveThemeSetting(newTheme);
+}
+
+function onThemeToggleChanged() {
+  const isLight = document.getElementById('setting_theme_light')?.checked;
+  const newTheme = isLight ? 'light' : 'dark';
+  applyTheme(newTheme, true);
+  saveThemeSetting(newTheme);
+}
+
+async function saveThemeSetting(theme) {
+  try {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme }),
+    });
+  } catch (e) {}
 }
 
 // Live Clock Ticker
@@ -1109,8 +1172,9 @@ function renderInventoryTable(products) {
       <td>${p.hasSerial ? '<span class="serial-badge">سيريال / IMEI</span>' : '<span style="color:var(--text-dim)">عادي</span>'}</td>
       <td>
         <div class="table-actions-group">
+          <button class="btn-action btn-action-blue" onclick="openEditProductModal('${p.id}')">✏️ تعديل</button>
           <button class="btn-action btn-action-cyan" onclick="openMovementsModal('${p.id}', '${escapeQuotes(p.name)}')">📜 الحركة</button>
-          <button class="btn-action btn-action-amber" onclick="openAiAdModal('${p.id}', '${escapeQuotes(p.name)}')">✨ إعلان AI</button>
+          ${appSettingsCache.enable_ai_ad === 'true' ? `<button class="btn-action btn-action-amber" onclick="openAiAdModal('${p.id}', '${escapeQuotes(p.name)}')">✨ إعلان AI</button>` : ''}
           ${p.hasSerial ? `<button class="btn-action btn-action-emerald" onclick="openBulkSerialModal('${p.id}', '${escapeQuotes(p.name)}')">+ سيريالات</button>` : ''}
         </div>
       </td>
@@ -1149,6 +1213,90 @@ function openNewProductModal() {
 
 function closeNewProductModal() {
   document.getElementById('newProductModal').classList.remove('active');
+}
+
+// -------------------------------------------------------------
+// Edit Product Modal Engine (تعديل كارت الصنف)
+// -------------------------------------------------------------
+function openEditProductModal(productId) {
+  const p = cachedProducts.find((item) => String(item.id) === String(productId));
+  if (!p) {
+    showToast('تعذر العثور على بيانات الصنف المحدد', 'error');
+    return;
+  }
+
+  document.getElementById('epId').value = p.id;
+  document.getElementById('epName').value = p.name || '';
+  document.getElementById('epBarcode').value = p.barcode || p.sku || '';
+  document.getElementById('epBuyPrice').value = p.buyPrice ?? 0;
+  document.getElementById('epSellRetail').value = p.sellPriceRetail ?? 0;
+  document.getElementById('epSellWholesale').value = p.sellPriceWholesale ?? p.sellPriceRetail ?? 0;
+  document.getElementById('epStock').value = p.stockQuantity ?? 0;
+  document.getElementById('epMinAlert').value = p.minStockAlert ?? 3;
+  document.getElementById('epUnit').value = p.unit || 'قطعة';
+  document.getElementById('epHasSerial').checked = Boolean(p.hasSerial);
+
+  const modal = document.getElementById('editProductModal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeEditProductModal() {
+  const modal = document.getElementById('editProductModal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function submitEditProduct() {
+  const id = document.getElementById('epId')?.value;
+  const name = document.getElementById('epName')?.value.trim();
+  const barcode = document.getElementById('epBarcode')?.value.trim();
+  const buyPrice = parseFloat(document.getElementById('epBuyPrice')?.value) || 0;
+  const sellPriceRetail = parseFloat(document.getElementById('epSellRetail')?.value) || 0;
+  const sellPriceWholesale = parseFloat(document.getElementById('epSellWholesale')?.value) || sellPriceRetail;
+  const stockQuantity = parseInt(document.getElementById('epStock')?.value, 10) || 0;
+  const minStockAlert = parseInt(document.getElementById('epMinAlert')?.value, 10) || 3;
+  const unit = document.getElementById('epUnit')?.value.trim() || 'قطعة';
+  const hasSerial = document.getElementById('epHasSerial')?.checked || false;
+
+  if (!id) return;
+  if (!name || !barcode) {
+    showToast('برجاء إدخال اسم المنتج والباركود بشكل صحيح', 'warning');
+    return;
+  }
+  if (sellPriceRetail < 0) {
+    showToast('سعر القطاعي لا يمكن أن يكون سالباً', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        barcode,
+        sku: barcode,
+        buyPrice,
+        sellPriceRetail,
+        sellPriceWholesale,
+        stockQuantity,
+        minStockAlert,
+        unit,
+        hasSerial,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('تم تعديل كارت الصنف بنجاح! 💾', 'success');
+      closeEditProductModal();
+      await loadInventory();
+      loadQuickProducts();
+      refreshLowStockCount();
+    } else {
+      showToast('خطأ أثناء تعديل الصنف: ' + (data.error || 'خطأ غير معروف'), 'error');
+    }
+  } catch (err) {
+    showToast('فشل الاتصال بسيرفر نقاط البيع أثناء تعديل الصنف', 'error');
+  }
 }
 
 function toggleSerialTextarea() {
@@ -2238,9 +2386,10 @@ function shareAiAdWhatsapp() {
 let appSettingsCache = {
   enable_shifts: 'false',
   enable_serials: 'true',
-  enable_ai_ad: 'true',
+  enable_ai_ad: 'false',
   enable_whatsapp: 'true',
   enable_credit_ledgers: 'true',
+  theme: 'dark',
   store_name: 'كويزلينك ستور للإلكترونيات والكمبيوتر',
   store_phone: '01000000000',
   store_address: 'القاهرة، مصر',
@@ -2360,7 +2509,7 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.0';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.1';
       const headerVer = document.getElementById('headerAppVersionBadge');
       if (headerVer && data.currentVersion) headerVer.textContent = 'v' + data.currentVersion;
 
@@ -2526,12 +2675,14 @@ function applyAppSettingsUI() {
   const toggleAi = document.getElementById('setting_enable_ai_ad');
   const toggleWa = document.getElementById('setting_enable_whatsapp');
   const toggleLedgers = document.getElementById('setting_enable_credit_ledgers');
+  const toggleTheme = document.getElementById('setting_theme_light');
 
   if (toggleShifts) toggleShifts.checked = shiftsEnabled;
   if (toggleSerials) toggleSerials.checked = appSettingsCache.enable_serials !== 'false';
-  if (toggleAi) toggleAi.checked = appSettingsCache.enable_ai_ad !== 'false';
+  if (toggleAi) toggleAi.checked = appSettingsCache.enable_ai_ad === 'true';
   if (toggleWa) toggleWa.checked = appSettingsCache.enable_whatsapp !== 'false';
   if (toggleLedgers) toggleLedgers.checked = appSettingsCache.enable_credit_ledgers !== 'false';
+  if (toggleTheme) toggleTheme.checked = (localStorage.getItem('quazlink_pos_theme') === 'light' || appSettingsCache.theme === 'light');
 
   // Update Store fields
   const sName = document.getElementById('setting_store_name');
@@ -2671,12 +2822,31 @@ function onShiftToggleChanged() {
   }
 }
 
+async function onAiAdToggleChanged() {
+  const isEnabled = document.getElementById('setting_enable_ai_ad')?.checked ? 'true' : 'false';
+  appSettingsCache.enable_ai_ad = isEnabled;
+  try {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enable_ai_ad: isEnabled }),
+    });
+    showToast(isEnabled === 'true' ? 'تم تفعيل زر إعلانات الذكاء الاصطناعي في المخزن ✨' : 'تم إخفاء زر إعلانات الذكاء الاصطناعي بنجاح', 'info');
+    if (cachedProducts && cachedProducts.length > 0) {
+      renderInventoryTable(cachedProducts);
+    }
+  } catch (e) {
+    showToast('تعذر حفظ إعداد إعلانات الذكاء الاصطناعي', 'error');
+  }
+}
+
 async function saveModuleSettings() {
   const enableShifts = document.getElementById('setting_enable_shifts')?.checked ? 'true' : 'false';
   const enableSerials = document.getElementById('setting_enable_serials')?.checked ? 'true' : 'false';
   const enableAi = document.getElementById('setting_enable_ai_ad')?.checked ? 'true' : 'false';
   const enableWa = document.getElementById('setting_enable_whatsapp')?.checked ? 'true' : 'false';
   const enableLedgers = document.getElementById('setting_enable_credit_ledgers')?.checked ? 'true' : 'false';
+  const themeVal = document.getElementById('setting_theme_light')?.checked ? 'light' : 'dark';
 
   const payload = {
     enable_shifts: enableShifts,
@@ -2684,6 +2854,7 @@ async function saveModuleSettings() {
     enable_ai_ad: enableAi,
     enable_whatsapp: enableWa,
     enable_credit_ledgers: enableLedgers,
+    theme: themeVal,
   };
 
   try {
@@ -2696,6 +2867,9 @@ async function saveModuleSettings() {
     if (data.success) {
       appSettingsCache = { ...appSettingsCache, ...data.settings };
       applyAppSettingsUI();
+      if (cachedProducts && cachedProducts.length > 0) {
+        renderInventoryTable(cachedProducts);
+      }
       showToast('تم حفظ وتطبيق تخصيص الموديولات بنجاح!', 'success');
       refreshShiftStatus();
     }
