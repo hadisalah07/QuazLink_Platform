@@ -433,6 +433,8 @@ export class PosUpdaterService {
         {
           headers: {
             'User-Agent': 'QuazLink-POS-Client-Updater',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
             Accept: '*/*',
           },
         },

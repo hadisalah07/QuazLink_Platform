@@ -47,7 +47,9 @@ export async function GET(
           "Content-Length": chunkSize.toString(),
           "Content-Type": "application/octet-stream",
           "Content-Disposition": `attachment; filename="${safeFilename}"`,
-          "Cache-Control": "public, max-age=86400, s-maxage=604800",
+          "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0",
+          "Pragma": "no-cache",
+          "Expires": "0",
           "X-Content-Type-Options": "nosniff",
         },
       });
@@ -63,7 +65,9 @@ export async function GET(
         "Content-Type": "application/octet-stream",
         "Content-Disposition": `attachment; filename="${safeFilename}"`,
         "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=86400, s-maxage=604800",
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
       },
     });
   }
