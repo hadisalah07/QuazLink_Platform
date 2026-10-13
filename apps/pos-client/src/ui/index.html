@@ -42,7 +42,7 @@
       <div class="brand">
         <span class="brand-logo">⚡</span>
         <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
-        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.3</span>
+        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.4</span>
       </div>
       <!-- View Switcher Navigation Tabs -->
       <nav class="nav-tabs">
@@ -451,43 +451,42 @@
     <!-- PANE 1: License & Machine Lock -->
     <div id="paneSettingsLicense" class="settings-pane" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
       <!-- Hardware ID Machine Lock Card -->
-      <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(15, 23, 42, 0.95)); border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 14px 18px; box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);">
+      <div class="settings-card license-hw-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-size: 0.82rem; color: var(--text-muted); font-weight: 700;">بصمة هذا الجهاز المشفرة (Hardware ID Machine Lock):</span>
+          <span class="settings-label-title">بصمة هذا الجهاز المشفرة (Hardware ID Machine Lock):</span>
           <button type="button" class="btn-sm btn-cyan" onclick="copyHardwareId()">📋 نسخ البصمة</button>
         </div>
-        <div id="licenseHwDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; font-weight: 800; color: var(--accent-cyan); letter-spacing: 1px;">QL-HW-XXXX-XXXX-XXXX-XXXX</div>
-        <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 6px; margin-bottom: 0; line-height: 1.4;">
+        <div id="licenseHwDisplay" class="hw-key-box">QL-HW-XXXX-XXXX-XXXX-XXXX</div>
+        <p class="settings-hint-text">
           💡 <b>ربط منصة QuazLink السحابية:</b> انسخ بصمة هذا الجهاز وضعها في حسابك على منصة <b>QuazLink Portal</b> في قسم <b>ERP & POS Systems</b> لاختيار ميزات وباقة محلك وتوليد كود التفعيل المخصص لهذا الجهاز.
         </p>
       </div>
 
       <!-- Current License Status Banner -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-        <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">حالة الترخيص:</span>
-          <span id="licStatusBadge" style="display: inline-block; font-size: 0.85rem; font-weight: 800; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 5px; padding: 2px 8px; margin-top: 3px;">✅ مفعل</span>
+      <div class="settings-card license-status-grid">
+        <div class="lic-status-item">
+          <span class="lic-stat-label">حالة الترخيص:</span>
+          <span id="licStatusBadge" class="lic-status-badge badge-active">✅ مفعل</span>
         </div>
-        <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">نوع الباقة (Tier):</span>
-          <span id="licTierName" style="font-weight: 700; color: #fff; font-size: 0.9rem; margin-top: 3px; display: block;">نسخة تجريبية كاملة (Enterprise Trial)</span>
+        <div class="lic-status-item">
+          <span class="lic-stat-label">نوع الباقة (Tier):</span>
+          <span id="licTierName" class="lic-stat-val lic-tier-val">نسخة تجريبية كاملة (Enterprise Trial)</span>
         </div>
-        <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">تاريخ انتهاء الصلاحية:</span>
-          <span id="licExpiryDate" style="font-family: 'JetBrains Mono', monospace; color: var(--accent-amber); font-weight: 700; font-size: 0.88rem; margin-top: 3px; display: block;">-</span>
+        <div class="lic-status-item">
+          <span class="lic-stat-label">تاريخ انتهاء الصلاحية:</span>
+          <span id="licExpiryDate" class="lic-stat-val lic-expiry-val">-</span>
         </div>
-        <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">الأيام المتبقية:</span>
-          <span id="licDaysRemaining" style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 800; font-size: 1rem; margin-top: 3px; display: block;">-</span>
+        <div class="lic-status-item">
+          <span class="lic-stat-label">الأيام المتبقية:</span>
+          <span id="licDaysRemaining" class="lic-stat-val lic-days-val">-</span>
         </div>
       </div>
 
       <!-- License Activation Form -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px 18px;">
-        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 8px;">تفعيل أو تجديد مفتاح الترخيص:</h4>
+      <div class="settings-card license-activate-card">
+        <h4 class="settings-card-title">تفعيل أو تجديد مفتاح الترخيص:</h4>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <input type="text" id="licenseKeyInput" placeholder="أدخل مفتاح الترخيص (مثال: QLPOS-LIFE-... أو QLPOS-TRIAL-...)" autocomplete="off"
-            style="flex: 1; min-width: 280px; background: #0f172a; border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 12px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; outline: none;">
+          <input type="text" id="licenseKeyInput" class="settings-input hw-key-input" placeholder="أدخل مفتاح الترخيص (مثال: QLPOS-LIFE-... أو QLPOS-TRIAL-...)" autocomplete="off">
           <button type="button" class="btn-primary" onclick="submitActivateLicense()">تفعيل الترخيص ⚡</button>
           <button type="button" class="btn-sub" onclick="generateDemoTrialLicense()">تجديد ترخيص تجريبي مفتوح 🔄</button>
         </div>
@@ -496,8 +495,8 @@
 
     <!-- PANE 2: Credit Wallet & Cloud Vouchers -->
     <div id="paneSettingsCredits" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px;">
-        <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
+      <div class="settings-card settings-info-banner">
+        <p style="margin: 0; font-size: 0.8rem; line-height: 1.5;">
           💳 <b>محفظة رصيد الكريديت للخدمات السحابية:</b> يتم خصم التوكنز ورسائل الواتساب تلقائياً عند استخدام خدمات الذكاء الاصطناعي والإيصالات الرقمية لحماية هوامش الربح. يمكنك شحن الرصيد بأكواد الكوبونات الرقمية المعتمدة.
         </p>
       </div>
@@ -505,59 +504,58 @@
       <!-- Balances Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
         <!-- AI Card -->
-        <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 10px; padding: 16px;">
+        <div class="settings-card credits-card credits-card-ai">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.4rem;">🤖</span>
               <div>
-                <h4 style="color: #fff; font-size: 0.95rem; margin: 0;">رصيد الذكاء الاصطناعي السحابي</h4>
-                <span style="font-size: 0.72rem; color: #a5b4fc;">Cloud AI Marketing Tokens</span>
+                <h4 class="credits-card-title">رصيد الذكاء الاصطناعي السحابي</h4>
+                <span class="credits-subtext credits-subtext-ai">Cloud AI Marketing Tokens</span>
               </div>
             </div>
-            <span class="badge-terminal" style="border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;">مفعل</span>
+            <span class="badge-terminal badge-ai">مفعل</span>
           </div>
           <div style="display: flex; align-items: baseline; gap: 8px; margin: 12px 0 6px 0;">
-            <span id="creditsAiTokens" style="font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 800; color: #818cf8;">100</span>
-            <span style="color: var(--text-muted); font-size: 0.85rem;">توكن متبقي</span>
+            <span id="creditsAiTokens" class="credits-stat-val credits-val-ai">100</span>
+            <span class="credits-unit-label">توكن متبقي</span>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-dim); border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 8px;">
+          <div class="credits-footer-row">
             <span>إجمالي المستهلك:</span>
-            <span id="creditsAiConsumed" style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 700;">0 توكن</span>
+            <span id="creditsAiConsumed" class="credits-consumed-val">0 توكن</span>
           </div>
         </div>
 
         <!-- WhatsApp Card -->
-        <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.9)); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 10px; padding: 16px;">
+        <div class="settings-card credits-card credits-card-wa">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.4rem;">💬</span>
               <div>
-                <h4 style="color: #fff; font-size: 0.95rem; margin: 0;">رصيد رسائل الواتساب المباشرة</h4>
-                <span style="font-size: 0.72rem; color: #6ee7b7;">WhatsApp Digital Invoices</span>
+                <h4 class="credits-card-title">رصيد رسائل الواتساب المباشرة</h4>
+                <span class="credits-subtext credits-subtext-wa">WhatsApp Digital Invoices</span>
               </div>
             </div>
-            <span class="badge-terminal" style="border-color: rgba(16, 185, 129, 0.4); color: #6ee7b7;">مفعل</span>
+            <span class="badge-terminal badge-wa">مفعل</span>
           </div>
           <div style="display: flex; align-items: baseline; gap: 8px; margin: 12px 0 6px 0;">
-            <span id="creditsWaMessages" style="font-family: 'JetBrains Mono', monospace; font-size: 2rem; font-weight: 800; color: #34d399;">250</span>
-            <span style="color: var(--text-muted); font-size: 0.85rem;">رسالة متبقية</span>
+            <span id="creditsWaMessages" class="credits-stat-val credits-val-wa">250</span>
+            <span class="credits-unit-label">رسالة متبقية</span>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-dim); border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 8px;">
+          <div class="credits-footer-row">
             <span>إجمالي المستهلك:</span>
-            <span id="creditsWaConsumed" style="font-family: 'JetBrains Mono', monospace; color: #fff; font-weight: 700;">0 رسالة</span>
+            <span id="creditsWaConsumed" class="credits-consumed-val">0 رسالة</span>
           </div>
         </div>
       </div>
 
       <!-- Voucher Redemption Card -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
-        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 6px;">شحن الرصيد بكود كوبون رقمي (Cryptographic Voucher):</h4>
-        <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0; margin-bottom: 12px;">
+      <div class="settings-card voucher-card">
+        <h4 class="settings-card-title">شحن الرصيد بكود كوبون رقمي (Cryptographic Voucher):</h4>
+        <p class="settings-hint-text" style="margin-top: 0; margin-bottom: 12px;">
           اشترِ كود الشحن من منصة QuazLink أو موزع الخدمة وأدخله هنا لزيادة رصيد التوكنز أو الرسائل على الفور.
         </p>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <input type="text" id="voucherCodeInput" placeholder="أدخل كود الكوبون (مثال: QLV-AI-50-XXXX أو QLV-WA-100-XXXX)" autocomplete="off"
-            style="flex: 1; min-width: 280px; background: #0f172a; border: 1px solid var(--border-glass); border-radius: 7px; padding: 9px 12px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; outline: none;">
+          <input type="text" id="voucherCodeInput" class="settings-input" placeholder="أدخل كود الكوبون (مثال: QLV-AI-50-XXXX أو QLV-WA-100-XXXX)" autocomplete="off">
           <button type="button" class="btn-primary" onclick="submitRedeemVoucher()">شحن الكوبون الآن ⚡</button>
           <button type="button" class="btn-sub" onclick="generateDemoVoucher('ai')">+ كوبون ذكاء اصطناعي تجريبي</button>
           <button type="button" class="btn-sub" onclick="generateDemoVoucher('wa')">+ كوبون واتساب تجريبي</button>
@@ -568,20 +566,20 @@
     <!-- PANE 3: Cloud Sync & Offline-First Connectivity -->
     <div id="paneSettingsSync" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
       <!-- Sync Status Overview Banner -->
-      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+      <div class="settings-card sync-status-banner">
         <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">حالة الاتصال السحابي:</span>
+          <span class="sync-banner-label">حالة الاتصال السحابي:</span>
           <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
-            <span id="syncCloudStatusBadge" style="display: inline-block; font-size: 0.85rem; font-weight: 800; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 5px; padding: 2px 8px;">🟢 جاهز للمزامنة</span>
+            <span id="syncCloudStatusBadge" class="sync-status-badge badge-online">🟢 جاهز للمزامنة</span>
           </div>
         </div>
         <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">المعاملات المعلقة (قيد الانتظار):</span>
-          <span id="syncPendingCountBadge" style="font-family: 'JetBrains Mono', monospace; color: var(--accent-amber); font-weight: 800; font-size: 1.1rem; margin-top: 2px; display: block;">0 فواتير</span>
+          <span class="sync-banner-label">المعاملات المعلقة (قيد الانتظار):</span>
+          <span id="syncPendingCountBadge" class="sync-pending-val">0 فواتير</span>
         </div>
         <div>
-          <span style="font-size: 0.72rem; color: var(--text-muted); display: block;">آخر مزامنة ناجحة:</span>
-          <span id="syncLastTimeDisplay" style="font-size: 0.82rem; color: #fff; font-weight: 600; margin-top: 4px; display: block;">-</span>
+          <span class="sync-banner-label">آخر مزامنة ناجحة:</span>
+          <span id="syncLastTimeDisplay" class="sync-time-val">-</span>
         </div>
         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
           <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 18px;" onclick="triggerManualSync()">🔄 مزامنة الآن (Sync)</button>
@@ -590,8 +588,8 @@
       </div>
 
       <!-- Sync Settings Card -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
-        <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 12px;">إعدادات خادم المزامنة التلقائية (Cloud API Sync):</h4>
+      <div class="settings-card sync-settings-card">
+        <h4 class="settings-card-title">إعدادات خادم المزامنة التلقائية (Cloud API Sync):</h4>
         <div class="form-grid-2">
           <div class="input-group">
             <label>عنوان خادم المنصة السحابية (API Endpoint):</label>
@@ -603,10 +601,12 @@
           </div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-          <label class="switch-toggle" style="display: flex; align-items: center; gap: 10px; width: auto;">
-            <input type="checkbox" id="setting_cloud_sync_enabled" checked>
-            <span class="switch-slider"></span>
-            <span style="margin-right: 50px; font-size: 0.82rem; color: #fff; font-weight: 600;">تفعيل المزامنة التلقائية في الخلفية</span>
+          <label style="display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+            <span class="switch-toggle">
+              <input type="checkbox" id="setting_cloud_sync_enabled" checked>
+              <span class="switch-slider"></span>
+            </span>
+            <span class="toggle-text-label">تفعيل المزامنة التلقائية في الخلفية</span>
           </label>
           <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 20px;" onclick="saveSyncSettings()">💾 حفظ إعدادات السحابة</button>
         </div>
@@ -614,7 +614,7 @@
 
       <!-- Cloud Sync Audit Log Table -->
       <div class="mgmt-table-card" style="max-height: 250px;">
-        <div style="padding: 8px 12px; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border-glass);">
+        <div class="table-card-header">
           سجل عمليات المزامنة السحابية الأخيرة (Sync Audit Trail):
         </div>
         <table class="pos-table">
@@ -639,14 +639,14 @@
     <!-- PANE 4: Atomic Backups & Disaster Recovery -->
     <div id="paneSettingsBackups" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
       <!-- Backup Actions Header -->
-      <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div class="settings-card backup-header-card">
         <div>
-          <h4 style="color: #fff; font-size: 0.95rem; margin: 0 0 4px 0;">نظام النسخ الاحتياطي الذري واستعادة الكوارث (.qzbk):</h4>
-          <span style="font-size: 0.74rem; color: var(--text-dim);">توليد ملفات تفريغ مشفرة ومحمية ببصمة SHA-256 لحماية المنتجات والفواتير والمخزن من التلف أو الضياع.</span>
+          <h4 class="settings-card-title">نظام النسخ الاحتياطي الذري واستعادة الكوارث (.qzbk):</h4>
+          <span class="settings-hint-text">توليد ملفات تفريغ مشفرة ومحمية ببصمة SHA-256 لحماية المنتجات والفواتير والمخزن من التلف أو الضياع.</span>
         </div>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
           <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 16px;" onclick="createBackupSubmit('local')">💾 إنشاء نسخة احتياطية محلية</button>
-          <button type="button" class="btn-sub" style="border-color: var(--accent-cyan); color: var(--accent-cyan);" onclick="createBackupSubmit('cloud')">☁️ نسخة احتياطية سحابية</button>
+          <button type="button" class="btn-action-cyan" style="padding: 8px 16px; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="createBackupSubmit('cloud')">☁️ نسخة احتياطية سحابية</button>
           <input type="file" id="backupRestoreFileInput" accept=".qzbk,.json" style="display:none;" onchange="handleRestoreFromFile(event)">
           <button type="button" class="btn-sub" onclick="document.getElementById('backupRestoreFileInput').click()">📂 استيراد واستعادة من ملف</button>
         </div>
@@ -654,7 +654,7 @@
 
       <!-- Backups Table -->
       <div class="mgmt-table-card" style="max-height: 380px;">
-        <div style="padding: 8px 12px; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border-glass); display: flex; justify-content: space-between; align-items: center;">
+        <div class="table-card-header" style="display: flex; justify-content: space-between; align-items: center;">
           <span>النسخ الاحتياطية المتوفرة على القرص:</span>
           <button type="button" class="btn-sm btn-sub" onclick="loadBackupsList()">🔄 تحديث القائمة</button>
         </div>
@@ -679,8 +679,8 @@
 
     <!-- PANE 5: Modular Feature Flags (Feature Store) -->
     <div id="paneSettingsModules" class="settings-pane" style="display: none; flex-direction: column; gap: 10px; overflow-y: auto; padding: 4px;">
-      <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; margin-bottom: 2px;">
-        <p style="margin: 0; font-size: 0.78rem; color: var(--text-muted);">
+      <div class="settings-card settings-info-banner">
+        <p style="margin: 0; font-size: 0.8rem; line-height: 1.5;">
           🧩 <b>تخصيص النظام حسب رغبة العميل:</b> يمكنك تفعيل أو تعطيل أي ميزة تناسب طبيعة المحل. الميزات المعطلة ستختفي تلقائياً من واجهة الكاشير لتبسيط الاستخدام.
         </p>
       </div>
@@ -691,10 +691,10 @@
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">⏱️</span>
-              <strong style="color: #fff; font-size: 0.9rem;">إدارة الورديات وتقفيل الخزينة (Z-Report)</strong>
+              <strong class="module-title">إدارة الورديات وتقفيل الخزينة (Z-Report)</strong>
               <span class="badge-terminal" style="font-size: 0.65rem;">اختياري</span>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               إلزام الكاشير بفتح وردية وإدخال العهدة النقدية وحصر المصروفات وطباعة تقرير إغلاق الخزينة Z-Report.
             </p>
           </div>
@@ -709,9 +709,9 @@
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">🏷️</span>
-              <strong style="color: #fff; font-size: 0.9rem;">أرقام السيريال للأجهزة وتتبع الضمان</strong>
+              <strong class="module-title">أرقام السيريال للأجهزة وتتبع الضمان</strong>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               تفعيل حقول السيريال (Serial / IMEI) لأجهزة الكمبيوتر واللابتوبات ومنع بيعها بدون تحديد السيريال.
             </p>
           </div>
@@ -726,10 +726,10 @@
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">☀️</span>
-              <strong style="color: #fff; font-size: 0.9rem;">الوضع النهاري الفاتح (Light Mode)</strong>
+              <strong class="module-title">الوضع النهاري الفاتح (Light Mode)</strong>
               <span class="badge-terminal" style="font-size: 0.65rem;">مظهر اختياري</span>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               تحويل واجهة النظام بالكامل للوضع الأبيض عالي التباين لسهولة القراءة في الإضاءة النهارية الساطعة.
             </p>
           </div>
@@ -744,10 +744,10 @@
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">✨</span>
-              <strong style="color: #fff; font-size: 0.9rem;">توليد الإعلانات بالذكاء الاصطناعي (AI Ad Generator)</strong>
-              <span class="badge-terminal" style="font-size: 0.65rem; color: var(--accent-amber); border-color: rgba(245, 158, 11, 0.4);">معطل افتراضياً</span>
+              <strong class="module-title">توليد الإعلانات بالذكاء الاصطناعي (AI Ad Generator)</strong>
+              <span class="badge-terminal badge-amber" style="font-size: 0.65rem;">معطل افتراضياً</span>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               إظهار زر ✨ إعلان AI في كروت المخزن لتوليد بوستات تسويقية تلقائية (يمكن تفعيله للعملاء المؤهلين فقط).
             </p>
           </div>
@@ -762,9 +762,9 @@
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">💬</span>
-              <strong style="color: #fff; font-size: 0.9rem;">إرسال الإيصالات والفواتير عبر واتساب</strong>
+              <strong class="module-title">إرسال الإيصالات والفواتير عبر واتساب</strong>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               إرسال الفاتورة الحرارية بنص معتمد ورابط مباشر لرقم واتساب العميل فور إتمام العملية.
             </p>
           </div>
@@ -779,9 +779,9 @@
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">👥</span>
-              <strong style="color: #fff; font-size: 0.9rem;">حسابات العملاء والموردين والآجل</strong>
+              <strong class="module-title">حسابات العملاء والموردين والآجل</strong>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               متابعة ديون العملاء ومستحقات الموردين وسندات القبض والصرف لتسوية الحسابات.
             </p>
           </div>
@@ -797,16 +797,16 @@
       </div>
     </div>
 
-    <!-- PANE 3: Shift Management & Cash Drawer (Z-Report) -->
+    <!-- PANE 6: Shift Management & Cash Drawer (Z-Report) -->
     <div id="paneSettingsShifts" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
       <!-- Shift Status Card -->
-      <div id="shiftCurrentWidget" style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-glass); border-radius: 10px; padding: 14px 18px;">
+      <div id="shiftCurrentWidget" class="settings-card shift-widget-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 1.3rem;">⏱️</span>
             <div>
-              <h3 id="shiftCurrentTitle" style="color: #fff; font-size: 1.05rem; margin: 0;">جاري تحميل حالة الوردية...</h3>
-              <span id="shiftCurrentSubtitle" style="font-size: 0.74rem; color: var(--text-dim);"></span>
+              <h3 id="shiftCurrentTitle" class="shift-widget-title">جاري تحميل حالة الوردية...</h3>
+              <span id="shiftCurrentSubtitle" class="shift-widget-sub"></span>
             </div>
           </div>
           <div id="shiftActionsBtnGroup" style="display: flex; gap: 8px;">
@@ -815,37 +815,37 @@
         </div>
 
         <!-- Live Cash Drawer Matrix -->
-        <div id="shiftDrawerMatrix" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
-            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">العهدة الافتتاحية:</span>
-            <span id="sdOpeningCash" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff;">0.00 EGP</span>
+        <div id="shiftDrawerMatrix" class="drawer-matrix-grid">
+          <div class="drawer-matrix-card">
+            <span class="drawer-matrix-label">العهدة الافتتاحية:</span>
+            <span id="sdOpeningCash" class="drawer-matrix-val val-neutral">0.00 EGP</span>
           </div>
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
-            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">مبيعات الكاش:</span>
-            <span id="sdSalesCash" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-emerald);">+0.00 EGP</span>
+          <div class="drawer-matrix-card">
+            <span class="drawer-matrix-label">مبيعات الكاش:</span>
+            <span id="sdSalesCash" class="drawer-matrix-val val-emerald">+0.00 EGP</span>
           </div>
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
-            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">تحصيل ديون كاش:</span>
-            <span id="sdPaymentsIn" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #a5b4fc;">+0.00 EGP</span>
+          <div class="drawer-matrix-card">
+            <span class="drawer-matrix-label">تحصيل ديون كاش:</span>
+            <span id="sdPaymentsIn" class="drawer-matrix-val val-indigo">+0.00 EGP</span>
           </div>
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
-            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">مرتجعات نقدية:</span>
-            <span id="sdReturnsOut" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-red);">-0.00 EGP</span>
+          <div class="drawer-matrix-card">
+            <span class="drawer-matrix-label">مرتجعات نقدية:</span>
+            <span id="sdReturnsOut" class="drawer-matrix-val val-red">-0.00 EGP</span>
           </div>
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 7px; padding: 8px 10px;">
-            <span style="font-size: 0.68rem; color: var(--text-muted); display: block;">مصروفات نثرية:</span>
-            <span id="sdExpensesOut" style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-amber);">-0.00 EGP</span>
+          <div class="drawer-matrix-card">
+            <span class="drawer-matrix-label">مصروفات نثرية:</span>
+            <span id="sdExpensesOut" class="drawer-matrix-val val-amber">-0.00 EGP</span>
           </div>
-          <div style="background: linear-gradient(135deg, rgba(6,182,212,0.15), rgba(16,185,129,0.15)); border: 1px solid var(--accent-cyan); border-radius: 7px; padding: 8px 10px;">
-            <span style="font-size: 0.68rem; color: var(--accent-cyan); display: block; font-weight: 700;">الرصيد الدفتري المتوقع:</span>
-            <span id="sdExpectedDrawer" style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 1.05rem; color: #fff;">0.00 EGP</span>
+          <div class="drawer-matrix-card drawer-matrix-card-expected">
+            <span class="drawer-matrix-label label-expected">الرصيد الدفتري المتوقع:</span>
+            <span id="sdExpectedDrawer" class="drawer-matrix-val val-expected">0.00 EGP</span>
           </div>
         </div>
       </div>
 
       <!-- Shifts History Table -->
       <div class="mgmt-table-card" style="max-height: 280px;">
-        <div style="padding: 8px 12px; font-weight: 700; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid var(--border-glass);">
+        <div class="table-card-header">
           سجل الورديات السابقة وتقارير Z-Report:
         </div>
         <table class="pos-table">
@@ -872,13 +872,13 @@
 
     <!-- PANE 7: Store & ETA Tax Authority Profile -->
     <div id="paneSettingsStore" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-glass); border-radius: 10px; padding: 16px;">
+      <div class="settings-card store-profile-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px;">
           <div>
-            <h4 style="color: #fff; font-size: 0.95rem; margin: 0;">بيانات المنشأة والملف الضريبي المصري (ETA E-Receipt):</h4>
-            <span style="font-size: 0.74rem; color: var(--text-dim);">بيانات الترويسة ومصلحة الضرائب المصرية لتوليد الباركود الذكي TLV QR ومطابقة الإيصال الإلكتروني.</span>
+            <h4 class="settings-card-title">بيانات المنشأة والملف الضريبي المصري (ETA E-Receipt):</h4>
+            <span class="settings-hint-text">بيانات الترويسة ومصلحة الضرائب المصرية لتوليد الباركود الذكي TLV QR ومطابقة الإيصال الإلكتروني.</span>
           </div>
-          <span class="badge-terminal" style="color: var(--accent-cyan); border-color: rgba(6,182,212,0.4);">منظومة الضرائب المصرية ETA</span>
+          <span class="badge-terminal badge-eta">منظومة الضرائب المصرية ETA</span>
         </div>
 
         <div class="form-grid-2">
@@ -929,13 +929,13 @@
         </div>
 
         <!-- ETA E-Receipt Toggle -->
-        <div class="module-card" style="margin-top: 10px; background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.3);">
+        <div class="module-card eta-card" style="margin-top: 10px;">
           <div>
             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
               <span style="font-size: 1.1rem;">🏛️</span>
-              <strong style="color: #fff; font-size: 0.9rem;">تفعيل منظومة الإيصال الإلكتروني ورمز ETA TLV QR</strong>
+              <strong class="module-title">تفعيل منظومة الإيصال الإلكتروني ورمز ETA TLV QR</strong>
             </div>
-            <p style="font-size: 0.74rem; color: var(--text-dim); margin: 0; line-height: 1.4;">
+            <p class="module-desc">
               طباعة رمز الاستجابة السريع المعتمد المكون من 5 حقول مشفرة (اسم البائع، الرقم الضريبي، التوقيت، الإجمالي، وقيمة الضريبة) على الإيصالات الحرارية 80mm/58mm.
             </p>
           </div>
@@ -945,8 +945,99 @@
           </label>
         </div>
 
+        <!-- Print Formats & Paper Sizes Configuration Card -->
+        <div class="settings-card print-formats-card" style="margin-top: 14px; border: 1px solid rgba(6, 182, 212, 0.35); background: rgba(6, 182, 212, 0.04); border-radius: 10px; padding: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h4 class="settings-card-title" style="display: flex; align-items: center; gap: 8px; margin: 0; color: #fff; font-size: 1rem;">
+                <span style="font-size: 1.25rem;">🖨️</span> نماذج وخيارات طباعة الفواتير (Print Layouts & Paper Sizes)
+              </h4>
+              <span class="settings-hint-text" style="font-size: 0.76rem; color: var(--text-muted);">
+                تخصيص نماذج الطباعة المتاحة في الكاشير (حراري • A4 • A5)، وإخفاء النماذج غير المستخدمة لتلائم طبيعة نشاطك.
+              </span>
+            </div>
+            <span class="badge-terminal" style="color: var(--accent-cyan); border-color: rgba(6, 182, 212, 0.4); font-size: 0.72rem; padding: 3px 8px;">
+              A4 • A5 • Thermal
+            </span>
+          </div>
+
+          <!-- Default Format Selector -->
+          <div class="form-grid-2" style="margin-bottom: 14px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; border: 1px solid rgba(255,255,255,0.05);">
+            <div class="input-group">
+              <label style="font-weight: 700; color: #fff; font-size: 0.82rem;">النموذج الافتراضي للطباعة السريعة (Default Print Format):</label>
+              <select id="setting_default_print_format" onchange="onDefaultPrintFormatChanged()" style="font-weight: 700;">
+                <option value="thermal">🧾 إيصال كاشير حراري (Thermal Receipt 80mm/58mm)</option>
+                <option value="a4">📄 فاتورة ضريبية رسمية A4 (Corporate Invoice)</option>
+                <option value="a5">📑 فاتورة تجارية مدمجة A5 (Compact Trade Invoice)</option>
+              </select>
+            </div>
+            <div class="input-group" style="justify-content: center;">
+              <span class="settings-hint-text" style="line-height: 1.6; font-size: 0.76rem; color: var(--text-dim);">
+                💡 <b>الطباعة السريعة:</b> يتم استخدام هذا النموذج الافتراضي تلقائياً عند الضغط على مفتاح F12 لإنهاء وطباعة الفاتورة في واجهة الكاشير.
+              </span>
+            </div>
+          </div>
+
+          <!-- Format Toggles Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+            <!-- 1. Thermal Toggle -->
+            <div class="module-card" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(16, 185, 129, 0.25);">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                  <span style="font-size: 1.2rem;">🧾</span>
+                  <strong class="module-title">الطباعة الحرارية (Thermal POS)</strong>
+                  <span class="badge-terminal badge-emerald" style="font-size: 0.65rem;">80mm / 58mm</span>
+                </div>
+                <p class="module-desc">
+                  إيصال الكاشير الحراري فائق السرعة، متوافق مع طابعات USB والبلوتوث ورمز الضرائب ETA TLV QR.
+                </p>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="setting_print_thermal" checked onchange="onPrintFormatToggleChanged('thermal')">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+
+            <!-- 2. A4 Toggle -->
+            <div class="module-card" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(37, 99, 235, 0.25);">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                  <span style="font-size: 1.2rem;">📄</span>
+                  <strong class="module-title">فاتورة قياس A4 (Corporate Invoice)</strong>
+                  <span class="badge-terminal" style="font-size: 0.65rem; color: #60a5fa; border-color: rgba(96, 165, 250, 0.4);">صفحة كاملة</span>
+                </div>
+                <p class="module-desc">
+                  فاتورة ضريبية رسمية للشركات والمؤسسات تشمل جدول تفصيلي بالأصناف، السيريالات، والتفقيط، والتوقيع والختم.
+                </p>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="setting_print_a4" checked onchange="onPrintFormatToggleChanged('a4')">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+
+            <!-- 3. A5 Toggle -->
+            <div class="module-card" style="background: rgba(0,0,0,0.3); border: 1px solid rgba(139, 92, 246, 0.25);">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                  <span style="font-size: 1.2rem;">📑</span>
+                  <strong class="module-title">فاتورة قياس A5 (Compact Invoice)</strong>
+                  <span class="badge-terminal" style="font-size: 0.65rem; color: #c084fc; border-color: rgba(192, 132, 252, 0.4);">نصف صفحة</span>
+                </div>
+                <p class="module-desc">
+                  فاتورة نصف صفحة موفرة للورق والتكاليف، مثالية لتجار الجملة ومراكز الصيانة والمحلات التجارية.
+                </p>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="setting_print_a5" checked onchange="onPrintFormatToggleChanged('a5')">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
-          <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 24px;" onclick="saveStoreSettings()">💾 حفظ بيانات المحل والملف الضريبي</button>
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 24px;" onclick="saveStoreSettings()">💾 حفظ بيانات المحل وخيارات الطباعة</button>
         </div>
       </div>
     </div>
@@ -962,7 +1053,7 @@
               <span style="font-size: 1.4rem;">🔄</span>
               <h3 class="update-card-title">تحديثات برنامج QuazLink POS & ERP</h3>
               <span class="update-version-badge">
-                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.3</span>
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.4</span>
               </span>
             </div>
             <p class="update-desc-text">
@@ -1385,10 +1476,22 @@
   <div class="pos-modal-backdrop" id="receiptModal">
     <div class="pos-modal receipt-modal-box">
       <div class="modal-header">
-        <h3>✅ تمت العملية وطباعة الإيصال الحراري</h3>
+        <h3 id="receiptModalTitle">✅ تمت عملية البيع بنجاح</h3>
         <button class="modal-close" onclick="closeReceiptModal()">✕</button>
       </div>
       <div class="modal-body text-center">
+        <!-- Print Action Bar (Thermal, A4, A5) -->
+        <div id="receiptPrintActionsBar" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap;">
+          <button type="button" class="btn-checkout primary" id="btnReceiptPrintThermal" onclick="printCompletedInvoice('thermal')" style="width: auto; padding: 6px 14px; font-size: 0.82rem;">
+            <span>🧾</span> طباعة حرارية (Thermal)
+          </button>
+          <button type="button" class="btn-checkout" id="btnReceiptPrintA4" onclick="printCompletedInvoice('a4')" style="background: #2563eb; color: #fff; width: auto; padding: 6px 14px; font-size: 0.82rem;">
+            <span>📄</span> طباعة A4 رسمية
+          </button>
+          <button type="button" class="btn-checkout" id="btnReceiptPrintA5" onclick="printCompletedInvoice('a5')" style="background: #7c3aed; color: #fff; width: auto; padding: 6px 14px; font-size: 0.82rem;">
+            <span>📑</span> طباعة A5 مدمجة
+          </button>
+        </div>
         <div class="receipt-paper" id="receiptPaper"></div>
       </div>
       <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -1503,8 +1606,7 @@
         <div class="input-group">
           <label id="discountInputLabel" style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; display: block;">أدخل قيمة الخصم بالجنيه:</label>
           <div style="position: relative; display: flex; align-items: center;">
-            <input type="number" id="discountValueInput" placeholder="0.00" min="0" step="any" autocomplete="off"
-              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-amber); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-amber); outline: none; box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);"
+            <input type="number" id="discountValueInput" class="settings-input big-num-input input-amber" placeholder="0.00" min="0" step="any" autocomplete="off"
               oninput="previewDiscountCalculation()"
               onkeydown="handleDiscountInputKeydown(event)">
             <span id="discountUnitBadge" style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted); font-size: 0.88rem;">EGP</span>
@@ -1638,14 +1740,20 @@
         </div>
       </div>
       <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn-checkout primary" style="width: auto; padding: 6px 14px; font-size: 0.82rem;" onclick="reprintCurrentModalInvoice()">
-            <span>🖨️</span> إعادة طباعة الإيصال
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+          <button type="button" class="btn-checkout primary" id="btnDetailsPrintThermal" style="width: auto; padding: 6px 12px; font-size: 0.82rem;" onclick="reprintCurrentModalInvoice('thermal')" title="طباعة إيصال حراري 80mm/58mm">
+            <span>🧾</span> حراري
           </button>
-          <button type="button" class="btn-checkout" style="background:#25D366; color:#fff; width: auto; padding: 6px 14px; font-size: 0.82rem;" onclick="whatsappCurrentModalInvoice()">
+          <button type="button" class="btn-checkout" id="btnDetailsPrintA4" style="background:#2563eb; color:#fff; width: auto; padding: 6px 12px; font-size: 0.82rem;" onclick="reprintCurrentModalInvoice('a4')" title="طباعة فاتورة ضريبية رسمية A4">
+            <span>📄</span> فاتورة A4
+          </button>
+          <button type="button" class="btn-checkout" id="btnDetailsPrintA5" style="background:#7c3aed; color:#fff; width: auto; padding: 6px 12px; font-size: 0.82rem;" onclick="reprintCurrentModalInvoice('a5')" title="طباعة فاتورة تجارية نصف صفحة A5">
+            <span>📑</span> فاتورة A5
+          </button>
+          <button type="button" class="btn-checkout" style="background:#25D366; color:#fff; width: auto; padding: 6px 12px; font-size: 0.82rem;" onclick="whatsappCurrentModalInvoice()">
             <span>💬</span> واتساب
           </button>
-          <button type="button" class="btn-sub" style="border-color:var(--accent-amber); color:var(--accent-amber);" onclick="startReturnForCurrentModalInvoice()">
+          <button type="button" class="btn-sub" style="border-color:var(--accent-amber); color:var(--accent-amber); padding: 6px 12px; font-size: 0.82rem;" onclick="startReturnForCurrentModalInvoice()">
             <span>↩️</span> عمل مرتجع
           </button>
         </div>
@@ -1719,8 +1827,7 @@
         <div class="input-group">
           <label>العهدة النقدية الافتتاحية في الدرج (Opening Float):</label>
           <div style="position: relative; display: flex; align-items: center;">
-            <input type="number" id="openShiftFloatInput" placeholder="0.00" min="0" step="any" autocomplete="off"
-              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-emerald); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-emerald); outline: none;">
+            <input type="number" id="openShiftFloatInput" class="settings-input big-num-input input-emerald" placeholder="0.00" min="0" step="any" autocomplete="off">
             <span style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted);">EGP</span>
           </div>
           <span style="font-size: 0.72rem; color: var(--text-dim); margin-top: 4px; display: block;">المبلغ النقدي (الفكة / الصرافة) المتواجد بالدرج قبل بدء البيع.</span>
@@ -1753,8 +1860,7 @@
         <div class="input-group">
           <label>مبلغ المصروف (EGP):*</label>
           <div style="position: relative; display: flex; align-items: center;">
-            <input type="number" id="pettyExpenseAmountInput" placeholder="0.00" min="0.5" step="any" autocomplete="off"
-              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-amber); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 800; color: var(--accent-amber); outline: none;">
+            <input type="number" id="pettyExpenseAmountInput" class="settings-input big-num-input input-amber" placeholder="0.00" min="0.5" step="any" autocomplete="off">
             <span style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted);">EGP</span>
           </div>
         </div>
@@ -1804,10 +1910,9 @@
         </div>
 
         <div class="input-group">
-          <label style="font-size: 0.82rem; font-weight: 700; color: #fff;">المبلغ النقدي الفعلي المحسوب في الدرج (Actual Cash):*</label>
+          <label style="font-size: 0.82rem; font-weight: 700;">المبلغ النقدي الفعلي المحسوب في الدرج (Actual Cash):*</label>
           <div style="position: relative; display: flex; align-items: center;">
-            <input type="number" id="closeShiftActualInput" placeholder="0.00" min="0" step="any" autocomplete="off"
-              style="width: 100%; background: #0f172a; border: 1px solid var(--accent-emerald); border-radius: 8px; padding: 10px 14px; font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: #fff; outline: none;"
+            <input type="number" id="closeShiftActualInput" class="settings-input big-num-input input-emerald" placeholder="0.00" min="0" step="any" autocomplete="off"
               oninput="calcCloseShiftDifference()">
             <span style="position: absolute; left: 14px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--text-muted);">EGP</span>
           </div>
@@ -1855,8 +1960,42 @@
     </div>
   </div>
 
-  <!-- Floating Toast Notifications (Zero blocking browser alerts) -->
+  <!-- 17. Dedicated Native Print Hidden Iframe -->
+  <iframe id="posInvoicePrintFrame" title="Invoice Print Frame" style="position:fixed; right:-9999px; bottom:-9999px; width:0; height:0; border:0; visibility:hidden;"></iframe>
 
+  <!-- 18. Invoice Print Preview & Format Switcher Modal -->
+  <div class="pos-modal-backdrop" id="invoicePrintPreviewModal">
+    <div class="pos-modal" style="width: 860px; max-width: 96vw; max-height: 94vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="flex-shrink: 0; padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.25rem;">🖨️</span>
+          <div>
+            <h3 id="invoicePreviewModalTitle" style="color: #fff; font-size: 1.05rem; margin: 0;">معاينة وطباعة الفاتورة</h3>
+            <span id="invoicePreviewModalSubtitle" class="text-dim" style="font-size: 0.76rem;"></span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="view-subtabs" style="padding: 2px; margin: 0;">
+            <button type="button" class="subtab active" id="btnPreviewTabThermal" onclick="switchPreviewFormat('thermal')">🧾 حراري</button>
+            <button type="button" class="subtab" id="btnPreviewTabA4" onclick="switchPreviewFormat('a4')">📄 A4 رسمية</button>
+            <button type="button" class="subtab" id="btnPreviewTabA5" onclick="switchPreviewFormat('a5')">📑 A5 مدمجة</button>
+          </div>
+          <button type="button" class="modal-close" onclick="closeInvoicePreviewModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" style="flex: 1; overflow-y: auto; background: #0f172a; padding: 14px; display: flex; justify-content: center; align-items: flex-start; border-radius: 8px; margin: 0 4px;">
+        <div id="invoicePreviewContainer" style="width: 100%; display: flex; justify-content: center;"></div>
+      </div>
+      <div class="modal-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding-top: 10px;">
+        <button type="button" class="btn-sub" onclick="closeInvoicePreviewModal()">إلغاء (ESC)</button>
+        <button type="button" class="btn-checkout primary" id="btnExecuteInvoicePrint" onclick="executeCurrentPreviewPrint()" style="width: auto; padding: 8px 24px; font-weight: 800;">
+          <span>🖨️</span> تنفيذ أمر الطباعة الآن
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Toast Notifications (Zero blocking browser alerts) -->
   <div id="toastContainer" class="toast-container"></div>
 
   <script src="app.js"></script>

@@ -25,6 +25,10 @@ export class SettingsService {
     cloud_sync_interval_mins: '15',
     cloud_api_endpoint: 'https://api.quazlink.com/v1/pos',
     cloud_auto_backup: 'true',
+    print_format_thermal: 'true',
+    print_format_a4: 'true',
+    print_format_a5: 'true',
+    default_print_format: 'thermal',
   };
 
   constructor(db: PosDatabase) {

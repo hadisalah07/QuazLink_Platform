@@ -17,6 +17,25 @@ const state = {
 
 let lastCompletedInvoiceId = null;
 let lastCustomerPhone = '';
+let appSettingsCache = {
+  enable_shifts: 'false',
+  enable_serials: 'true',
+  enable_ai_ad: 'false',
+  enable_whatsapp: 'true',
+  enable_credit_ledgers: 'true',
+  theme: 'dark',
+  store_name: 'كويزلينك ستور للإلكترونيات والكمبيوتر',
+  store_phone: '01000000000',
+  store_address: 'القاهرة، مصر',
+  receipt_footer: 'البضاعة المباعة ترد وتستبدل خلال 14 يوماً وفقاً لقانون حماية المستهلك',
+  printer_width: '80mm',
+  print_format_thermal: 'true',
+  print_format_a4: 'true',
+  print_format_a5: 'true',
+  default_print_format: 'thermal',
+};
+let currentPreviewInvoiceData = null;
+let currentPreviewFormat = 'thermal';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -704,9 +723,14 @@ async function handleCheckout(printThermal = true) {
 
 function displayReceiptPreview(invoice, items, paid, finalAmount) {
   const paper = document.getElementById('receiptPaper');
+  const storeName = appSettingsCache.store_name || 'AL-ASHOR COMPUTER & ELECTRONICS';
+  const storePhone = appSettingsCache.store_phone || '01009876543';
+  const receiptFooter = appSettingsCache.receipt_footer || 'البضاعة المباعة ترد وتستبدل خلال 14 يوماً';
+
   let itemsTxt = '';
   items.forEach((item) => {
-    itemsTxt += `${item.product.name.padEnd(20)} x${item.quantity}   ${(item.quantity * item.unitPrice).toFixed(0)} EGP\n`;
+    const pName = item.product?.name || item.productName || 'صنف';
+    itemsTxt += `${pName.padEnd(20)} x${item.quantity}   ${(item.quantity * item.unitPrice).toFixed(0)} EGP\n`;
     if (item.serialNumber) {
       itemsTxt += `  [S/N: ${item.serialNumber}]\n`;
     }
@@ -714,8 +738,8 @@ function displayReceiptPreview(invoice, items, paid, finalAmount) {
 
   paper.textContent = `
 ========================================
-    AL-ASHOR COMPUTER & ELECTRONICS
-          Tel: 01009876543
+    ${storeName.toUpperCase()}
+          Tel: ${storePhone}
 ========================================
 Invoice: ${invoice.invoiceNumber}
 Date:    ${new Date(invoice.createdAt).toLocaleString('ar-EG')}
@@ -733,7 +757,7 @@ NET TOTAL:               ${invoice.finalAmount.toFixed(2)} EGP
 Paid:                    ${paid.toFixed(2)} EGP
 Change:                  ${Math.max(0, paid - finalAmount).toFixed(2)} EGP
 ----------------------------------------
-البضاعة المباعة ترد وتستبدل خلال 14 يوماً
+${receiptFooter}
 Powered by QuazLink Retail OS
 ========================================
 `;
@@ -743,6 +767,7 @@ Powered by QuazLink Retail OS
     phoneInput.value = lastCustomerPhone || '';
   }
 
+  applyPrintFormatVisibility();
   document.getElementById('receiptModal').classList.add('active');
 }
 
@@ -1592,7 +1617,7 @@ function renderSalesInvoicesTable(invoices) {
       <td>
         <div class="table-actions-group">
           <button class="btn-action btn-action-cyan" onclick="openSaleInvoiceDetails('${inv.id}')" title="عرض تفاصيل الفاتورة">👁️ تفاصيل</button>
-          <button class="btn-action btn-action-emerald" onclick="reprintThermalInvoice('${inv.id}')" title="طباعة الإيصال الحراري">🖨️ طباعة</button>
+          <button class="btn-action btn-action-emerald" onclick="openInvoicePreviewModal('${inv.id}')" title="معاينة وطباعة الفاتورة (A4 • A5 • حراري)">🖨️ طباعة</button>
           <button class="btn-action btn-action-whatsapp" onclick="sendWhatsappForInvoice('${inv.id}')" title="إرسال عبر واتساب">💬</button>
           ${!isReturn ? `<button class="btn-action btn-action-amber" onclick="openSalesReturnModal('${inv.id}')" title="عمل مرتجع للفاتورة">↩️ مرتجع</button>` : ''}
         </div>
@@ -1675,9 +1700,10 @@ function closeSaleInvoiceDetails() {
   if (modal) modal.classList.remove('active');
 }
 
-function reprintCurrentModalInvoice() {
+function reprintCurrentModalInvoice(format) {
   if (!currentViewingInvoiceData?.invoice) return;
-  reprintThermalInvoice(currentViewingInvoiceData.invoice.id);
+  const targetFormat = format || appSettingsCache.default_print_format || 'thermal';
+  printInvoiceDocument(currentViewingInvoiceData.invoice.id, targetFormat);
 }
 
 function whatsappCurrentModalInvoice() {
@@ -1692,30 +1718,683 @@ function startReturnForCurrentModalInvoice() {
   openSalesReturnModal(id);
 }
 
-async function reprintThermalInvoice(invoiceId) {
+async function reprintThermalInvoice(invoiceId, format) {
+  const targetFormat = format || appSettingsCache.default_print_format || 'thermal';
+  await printInvoiceDocument(invoiceId, targetFormat);
+}
+
+async function printCompletedInvoice(format) {
+  if (!lastCompletedInvoiceId) {
+    showToast('لا توجد فاتورة مكتملة للطباعة', 'warning');
+    return;
+  }
+  const targetFormat = format || appSettingsCache.default_print_format || 'thermal';
+  await printInvoiceDocument(lastCompletedInvoiceId, targetFormat);
+}
+
+// -------------------------------------------------------------
+// Professional Invoice Printing Engine (A4, A5, and Thermal)
+// -------------------------------------------------------------
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function tafqeetArabic(num) {
+  num = Number(num) || 0;
+  const ones = ['', 'واحد', 'اثنان', 'ثلاثة', 'أربعة', 'خمسة', 'ستة', 'سبعة', 'ثمانية', 'تسعة', 'عشرة',
+    'أحد عشر', 'اثنا عشر', 'ثلاثة عشر', 'أربعة عشر', 'خمسة عشر', 'ستة عشر', 'سبعة عشر', 'ثمانية عشر', 'تسعة عشر'];
+  const tens = ['', '', 'عشرون', 'ثلاثون', 'أربعون', 'خمسون', 'ستون', 'سبعون', 'ثمانون', 'تسعون'];
+  const hundreds = ['', 'مائة', 'مائتان', 'ثلاثمائة', 'أربعمائة', 'خمسمائة', 'ستمائة', 'سبعمائة', 'ثمانمائة', 'تسعمائة'];
+
+  function convertGroup(n) {
+    if (n === 0) return '';
+    let res = '';
+    const h = Math.floor(n / 100);
+    const rem = n % 100;
+    if (h > 0) res += hundreds[h];
+    if (rem > 0) {
+      if (res) res += ' و';
+      if (rem < 20) {
+        res += ones[rem];
+      } else {
+        const o = rem % 10;
+        const t = Math.floor(rem / 10);
+        if (o > 0) res += ones[o] + ' و';
+        res += tens[t];
+      }
+    }
+    return res;
+  }
+
+  const intPart = Math.floor(num);
+  const fracPart = Math.round((num - intPart) * 100);
+
+  if (intPart === 0 && fracPart === 0) return 'فقط صفر جنيه مصري لا غير';
+
+  let result = '';
+  const millions = Math.floor(intPart / 1000000);
+  const thousands = Math.floor((intPart % 1000000) / 1000);
+  const remainder = intPart % 1000;
+
+  if (millions > 0) {
+    if (millions === 1) result += 'مليون';
+    else if (millions === 2) result += 'مليونان';
+    else if (millions >= 3 && millions <= 10) result += convertGroup(millions) + ' ملايين';
+    else result += convertGroup(millions) + ' مليون';
+  }
+
+  if (thousands > 0) {
+    if (result) result += ' و';
+    if (thousands === 1) result += 'ألف';
+    else if (thousands === 2) result += 'ألفان';
+    else if (thousands >= 3 && thousands <= 10) result += convertGroup(thousands) + ' آلاف';
+    else result += convertGroup(thousands) + ' ألف';
+  }
+
+  if (remainder > 0) {
+    if (result) result += ' و';
+    result += convertGroup(remainder);
+  }
+
+  let finalStr = 'فقط ' + result + ' جنيه مصري';
+  if (fracPart > 0) {
+    finalStr += ' و' + convertGroup(fracPart) + ' قرشاً';
+  }
+  return finalStr + ' لا غير';
+}
+
+function generateSvgQr(text, size = 110) {
+  const matrixSize = 29;
+  const matrix = Array.from({ length: matrixSize }, () => Array(matrixSize).fill(false));
+
+  const drawFinder = (startRow, startCol) => {
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
+          matrix[startRow + r][startCol + c] = true;
+        }
+      }
+    }
+  };
+
+  drawFinder(0, 0);
+  drawFinder(0, matrixSize - 7);
+  drawFinder(matrixSize - 7, 0);
+
+  for (let i = 8; i < matrixSize - 8; i++) {
+    if (i % 2 === 0) {
+      matrix[6][i] = true;
+      matrix[i][6] = true;
+    }
+  }
+
+  const alignR = matrixSize - 7;
+  const alignC = matrixSize - 7;
+  for (let r = -2; r <= 2; r++) {
+    for (let c = -2; c <= 2; c++) {
+      if (Math.abs(r) === 2 || Math.abs(c) === 2 || (r === 0 && c === 0)) {
+        matrix[alignR + r][alignC + c] = true;
+      }
+    }
+  }
+
+  let hashVal = 0;
+  for (let i = 0; i < text.length; i++) {
+    hashVal = ((hashVal << 5) - hashVal + text.charCodeAt(i)) & 0xffffffff;
+  }
+  let seed = Math.abs(hashVal);
+
+  for (let r = 9; r < matrixSize - 8; r++) {
+    for (let c = 9; c < matrixSize - 8; c++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      matrix[r][c] = (seed % 3) === 0;
+    }
+  }
+
+  let paths = '';
+  const cell = (size / matrixSize).toFixed(2);
+  for (let r = 0; r < matrixSize; r++) {
+    for (let c = 0; c < matrixSize; c++) {
+      if (matrix[r][c]) {
+        paths += `<rect x="${(c * cell).toFixed(1)}" y="${(r * cell).toFixed(1)}" width="${cell}" height="${cell}" fill="#0f172a"/>`;
+      }
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" shape-rendering="crispEdges" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:4px; padding:2px;">${paths}</svg>`;
+}
+
+function generateInvoiceHtml(invoice, items, contact, format = 'a4') {
+  const storeName = escapeHtml(appSettingsCache.store_name || 'كويزلينك ستور للتجارة');
+  const storePhone = escapeHtml(appSettingsCache.store_phone || '01009876543');
+  const storeAddress = escapeHtml(appSettingsCache.store_address || 'القاهرة، جمهورية مصر العربية');
+  const taxNumber = escapeHtml(appSettingsCache.tax_number || '000-000-000');
+  const receiptFooter = escapeHtml(appSettingsCache.receipt_footer || 'البضاعة المباعة ترد وتستبدل خلال 14 يوماً وفق قانون حماية المستهلك');
+
+  const custName = escapeHtml(contact?.name || invoice.contactName || 'عميل نقدي');
+  const custPhone = escapeHtml(contact?.phone || invoice.contactPhone || '-');
+  const custAddress = escapeHtml(contact?.address || '-');
+  const custTaxId = escapeHtml(contact?.taxId || '-');
+
+  const invNumber = escapeHtml(invoice.invoiceNumber || 'INV-0000');
+  const invDate = new Date(invoice.createdAt || Date.now()).toLocaleString('ar-EG');
+  const methodStr = invoice.paymentMethod === 'cash' ? 'نقداً (كاش)' : invoice.paymentMethod === 'credit' ? 'آجل (دين)' : invoice.paymentMethod === 'vodafone_cash' ? 'محفظة إلكترونية' : 'دفع إلكتروني';
+
+  const subtotal = Number(invoice.subtotal || 0).toFixed(2);
+  const discount = Number(invoice.discountAmount || 0).toFixed(2);
+  const vat = Number(invoice.taxVat14 || 0).toFixed(2);
+  const finalAmount = Number(invoice.finalAmount || 0).toFixed(2);
+  const paidAmount = Number(invoice.paidAmount !== undefined ? invoice.paidAmount : invoice.finalAmount || 0).toFixed(2);
+  const remaining = Number(invoice.remainingAmount || 0).toFixed(2);
+  const tafqeetText = tafqeetArabic(invoice.finalAmount || 0);
+
+  const qrPayload = `Seller:${storeName}|Tax:${taxNumber}|Inv:${invNumber}|Date:${invDate}|Total:${finalAmount}|VAT:${vat}`;
+  const qrSvg = generateSvgQr(qrPayload, format === 'a4' ? 115 : format === 'a5' ? 90 : 100);
+
+  // Generate table rows safely
+  let itemsHtml = '';
+  (items || []).forEach((item, index) => {
+    const pName = escapeHtml(item.productName || item.product?.name || 'صنف غير محدد');
+    const pBarcode = escapeHtml(item.productBarcode || item.product?.barcode || '');
+    const sn = escapeHtml(item.serialNumber || '');
+    const qty = item.quantity || 1;
+    const price = Number(item.unitPrice || 0).toFixed(2);
+    const lineTotal = Number(item.totalPrice !== undefined ? item.totalPrice : qty * item.unitPrice).toFixed(2);
+
+    itemsHtml += `
+      <tr>
+        <td style="text-align: center; font-weight: 700;">${index + 1}</td>
+        <td>
+          <div style="font-weight: 800; font-size: ${format === 'a5' ? '11px' : '12.5px'}; color: #0f172a;">${pName}</div>
+          ${pBarcode ? `<span style="font-size: 10px; color: #64748b; font-family: monospace;">[${pBarcode}]</span>` : ''}
+          ${sn ? `<div style="margin-top: 2px;"><span style="background: #e2e8f0; color: #1e293b; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-family: monospace; font-weight: 700;">S/N: ${sn}</span></div>` : ''}
+        </td>
+        <td style="text-align: center; font-weight: 800; font-family: monospace;">${qty}</td>
+        <td style="text-align: left; font-family: monospace; font-weight: 700;">${price}</td>
+        <td style="text-align: left; font-family: monospace; font-weight: 800; color: #047857;">${lineTotal}</td>
+      </tr>
+    `;
+  });
+
+  if (format === 'thermal') {
+    // 80mm / 58mm POS Receipt Layout
+    return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>${invNumber}</title>
+  <style>
+    @page { size: ${appSettingsCache.printer_width || '80mm'} auto; margin: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Courier New', Courier, monospace; }
+    body { background: #fff; color: #000; direction: rtl; text-align: center; padding: 8px 6px; font-size: 12px; line-height: 1.35; }
+    .store-name { font-size: 16px; font-weight: 900; margin-bottom: 2px; }
+    .meta-line { font-size: 11px; margin-bottom: 2px; }
+    .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
+    .table-thermal { width: 100%; border-collapse: collapse; font-size: 11px; text-align: right; }
+    .table-thermal th { border-bottom: 1px solid #000; padding: 3px 0; font-weight: 900; }
+    .table-thermal td { padding: 4px 0; vertical-align: top; }
+    .total-row { display: flex; justify-content: space-between; font-size: 12px; margin: 3px 0; }
+    .final-row { font-size: 15px; font-weight: 900; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 0; margin: 5px 0; }
+    .qr-box { display: flex; justify-content: center; margin: 8px 0; }
+    .footer-note { font-size: 10px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="store-name">${storeName}</div>
+  <div class="meta-line">${storeAddress}</div>
+  <div class="meta-line">هاتف: ${storePhone}</div>
+  ${taxNumber ? `<div class="meta-line">رقم ضريبي: ${taxNumber}</div>` : ''}
+  <div class="divider"></div>
+  <div class="total-row"><span>رقم الفاتورة:</span><b>${invNumber}</b></div>
+  <div class="total-row"><span>التاريخ:</span><span>${invDate}</span></div>
+  <div class="total-row"><span>العميل:</span><span>${custName}</span></div>
+  <div class="total-row"><span>طريقة الدفع:</span><span>${methodStr}</span></div>
+  <div class="divider"></div>
+  <table class="table-thermal">
+    <thead>
+      <tr>
+        <th style="width:50%;">الصنف</th>
+        <th style="text-align:center; width:15%;">الكمية</th>
+        <th style="text-align:left; width:35%;">الإجمالي</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${(items || []).map(i => `
+        <tr>
+          <td>
+            <b>${escapeHtml(i.productName || i.product?.name || '')}</b>
+            ${i.serialNumber ? `<br><small style="font-size:9px;">[S/N: ${escapeHtml(i.serialNumber)}]</small>` : ''}
+          </td>
+          <td style="text-align:center;">${i.quantity || 1}</td>
+          <td style="text-align:left; font-weight:bold;">${Number(i.totalPrice || (i.quantity || 1) * (i.unitPrice || 0)).toFixed(2)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  <div class="divider"></div>
+  <div class="total-row"><span>المجموع الفرعي:</span><span>${subtotal} EGP</span></div>
+  ${Number(discount) > 0 ? `<div class="total-row"><span>الخصم:</span><span>-${discount} EGP</span></div>` : ''}
+  ${Number(vat) > 0 ? `<div class="total-row"><span>ضريبة القيمة المضافة (14%):</span><span>+${vat} EGP</span></div>` : ''}
+  <div class="total-row final-row"><span>الصافي المطلوب:</span><span>${finalAmount} EGP</span></div>
+  <div class="total-row"><span>المدفوع:</span><span>${paidAmount} EGP</span></div>
+  <div class="total-row"><span>الباقي / المتبقي:</span><span>${remaining} EGP</span></div>
+  <div class="divider"></div>
+  <div class="qr-box">${qrSvg}</div>
+  <div class="footer-note">${receiptFooter}</div>
+  <div style="font-size:9px; color:#444; margin-top:4px;">Powered by QuazLink POS & ERP</div>
+</body>
+</html>`;
+  }
+
+  // A4 and A5 Professional Vector ERP Templates
+  const isA4 = format === 'a4';
+  const pageMargin = isA4 ? '10mm' : '6mm';
+  const pageSize = isA4 ? 'A4 portrait' : 'A5 portrait';
+  const baseFontSize = isA4 ? '12px' : '10.5px';
+  const titleSize = isA4 ? '20px' : '15px';
+  const headerPadding = isA4 ? '16px' : '10px';
+
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>${invNumber} - ${storeName}</title>
+  <style>
+    @page { size: ${pageSize}; margin: ${pageMargin}; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; }
+    body { background: #ffffff; color: #0f172a; direction: rtl; text-align: right; font-size: ${baseFontSize}; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .inv-wrapper { width: 100%; border: 1.5px solid #0f172a; border-radius: 6px; padding: ${headerPadding}; background: #fff; }
+    
+    /* Header Section */
+    .inv-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 12px; }
+    .store-title { font-size: ${titleSize}; font-weight: 900; color: #0f172a; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+    .store-sub { font-size: ${isA4 ? '11px' : '9.5px'}; color: #475569; }
+    .doc-badge-box { text-align: left; }
+    .doc-badge-title { background: #0f172a; color: #ffffff; padding: 4px 14px; border-radius: 4px; font-weight: 900; font-size: ${isA4 ? '14px' : '12px'}; display: inline-block; }
+    .doc-badge-en { font-size: 9px; font-weight: 700; color: #94a3b8; display: block; margin-top: 2px; }
+
+    /* Metadata Cards Grid */
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .meta-card { border: 1px solid #cbd5e1; border-radius: 5px; padding: 8px 10px; background: #f8fafc; font-size: ${isA4 ? '11.5px' : '10px'}; }
+    .meta-card-title { font-weight: 900; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; font-size: ${isA4 ? '12px' : '10.5px'}; }
+    .meta-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .meta-label { color: #64748b; font-weight: 600; }
+    .meta-val { font-weight: 700; color: #0f172a; }
+
+    /* Items Table */
+    .items-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: ${isA4 ? '11.5px' : '10px'}; }
+    .items-table th { background: #0f172a; color: #ffffff; padding: 6px 8px; font-weight: 800; border: 1px solid #0f172a; }
+    .items-table td { padding: 5px 8px; border: 1px solid #cbd5e1; vertical-align: middle; }
+    .items-table tr:nth-child(even) { background: #f8fafc; }
+
+    /* Summary & QR Section */
+    .summary-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 12px; margin-bottom: 14px; align-items: start; }
+    .tafqeet-box { border: 1px solid #cbd5e1; border-radius: 5px; padding: 8px 10px; background: #f8fafc; margin-bottom: 8px; }
+    .tafqeet-label { font-size: 10px; font-weight: 800; color: #475569; display: block; margin-bottom: 2px; }
+    .tafqeet-val { font-weight: 900; color: #047857; font-size: ${isA4 ? '12px' : '10.5px'}; }
+    
+    .financial-table { width: 100%; border-collapse: collapse; font-size: ${isA4 ? '11.5px' : '10px'}; }
+    .financial-table td { padding: 4px 8px; border: 1px solid #cbd5e1; }
+    .financial-table td.val { text-align: left; font-family: monospace; font-weight: 800; }
+    .financial-table tr.highlight td { background: #0f172a; color: #ffffff; font-size: ${isA4 ? '13px' : '11.5px'}; font-weight: 900; }
+    .financial-table tr.highlight td.val { color: #34d399; }
+
+    /* Footer & Signatures */
+    .legal-note { font-size: ${isA4 ? '10px' : '8.5px'}; color: #475569; line-height: 1.5; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-bottom: 12px; }
+    .signatures-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; text-align: center; font-size: ${isA4 ? '11px' : '9.5px'}; }
+    .sig-box { border: 1px dashed #94a3b8; border-radius: 4px; padding: 8px; min-height: ${isA4 ? '65px' : '48px'}; display: flex; flex-direction: column; justify-content: space-between; }
+    .sig-title { font-weight: 800; color: #334155; }
+    .sig-line { border-bottom: 1px dotted #94a3b8; width: 70%; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="inv-wrapper">
+    <!-- Header -->
+    <div class="inv-header">
+      <div>
+        <div class="store-title">
+          <span>⚡</span> ${storeName}
+        </div>
+        <div class="store-sub">${storeAddress} • هاتف: <b>${storePhone}</b></div>
+        <div class="store-sub">سجل تجاري / ملف ضريبي: <b>${taxNumber}</b></div>
+      </div>
+      <div class="doc-badge-box">
+        <div class="doc-badge-title">${isA4 ? 'فاتورة ضريبية رسمية' : 'فاتورة مبيعات معتمدة'}</div>
+        <span class="doc-badge-en">${isA4 ? 'OFFICIAL TAX INVOICE' : 'SALES INVOICE (A5)'}</span>
+      </div>
+    </div>
+
+    <!-- Metadata Grid -->
+    <div class="meta-grid">
+      <!-- Invoice Details Card -->
+      <div class="meta-card">
+        <div class="meta-card-title">بيانات الفاتورة (Invoice Details):</div>
+        <div class="meta-row"><span class="meta-label">رقم الفاتورة:</span><span class="meta-val" style="font-family:monospace; color:#2563eb;">${invNumber}</span></div>
+        <div class="meta-row"><span class="meta-label">تاريخ الإصدار:</span><span class="meta-val">${invDate}</span></div>
+        <div class="meta-row"><span class="meta-label">طريقة السداد:</span><span class="meta-val">${methodStr}</span></div>
+        <div class="meta-row"><span class="meta-label">نقطة البيع:</span><span class="meta-val">كاشير رئيسي (POS01)</span></div>
+      </div>
+
+      <!-- Customer Details Card -->
+      <div class="meta-card">
+        <div class="meta-card-title">بيانات العميل / المنشأة (Customer):</div>
+        <div class="meta-row"><span class="meta-label">الاسم:</span><span class="meta-val">${custName}</span></div>
+        <div class="meta-row"><span class="meta-label">رقم الهاتف:</span><span class="meta-val" style="font-family:monospace;">${custPhone}</span></div>
+        <div class="meta-row"><span class="meta-label">العنوان:</span><span class="meta-val">${custAddress}</span></div>
+        ${custTaxId && custTaxId !== '-' ? `<div class="meta-row"><span class="meta-label">رقم التسجيل الضريبي:</span><span class="meta-val">${custTaxId}</span></div>` : ''}
+      </div>
+    </div>
+
+    <!-- Items Table -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th style="width: 35px; text-align: center;">م</th>
+          <th>بيان الصنف والوصف (Description & Serials)</th>
+          <th style="width: 50px; text-align: center;">الكمية</th>
+          <th style="width: 85px; text-align: left;">سعر الوحدة</th>
+          <th style="width: 95px; text-align: left;">الإجمالي (EGP)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${itemsHtml}
+      </tbody>
+    </table>
+
+    <!-- Financial Breakdown & Verification -->
+    <div class="summary-grid">
+      <div>
+        <div class="tafqeet-box">
+          <span class="tafqeet-label">المبلغ الإجمالي كتابةً (Tafqeet):</span>
+          <span class="tafqeet-val">${tafqeetText}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
+          <div>${qrSvg}</div>
+          <div style="font-size: ${isA4 ? '10px' : '8.5px'}; color: #64748b; line-height: 1.4;">
+            <b>رمز التحقق الإلكتروني المعتمد ETA TLV QR:</b><br>
+            معتمد طبقاً لمنظومة الإيصال والفاتورة الإلكترونية لمصلحة الضرائب المصرية.<br>
+            مسجل بالنظام المحلي برقم: <b style="font-family:monospace; color:#0f172a;">${invNumber}</b>
+          </div>
+        </div>
+      </div>
+
+      <!-- Totals Table -->
+      <div>
+        <table class="financial-table">
+          <tr>
+            <td>المجموع قبل الخصم:</td>
+            <td class="val">${subtotal} EGP</td>
+          </tr>
+          ${Number(discount) > 0 ? `
+          <tr>
+            <td>الخصم التجاري الممنوح:</td>
+            <td class="val" style="color:#d97706;">-${discount} EGP</td>
+          </tr>` : ''}
+          ${Number(vat) > 0 ? `
+          <tr>
+            <td>ضريبة القيمة المضافة (14% VAT):</td>
+            <td class="val">+${vat} EGP</td>
+          </tr>` : ''}
+          <tr class="highlight">
+            <td>الصافي النهائي المستحق:</td>
+            <td class="val">${finalAmount} EGP</td>
+          </tr>
+          <tr>
+            <td>المبلغ المدفوع:</td>
+            <td class="val">${paidAmount} EGP</td>
+          </tr>
+          <tr>
+            <td>المتبقي / الرصيد:</td>
+            <td class="val">${remaining} EGP</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Legal & Terms Footer -->
+    <div class="legal-note">
+      💡 <b>شروط وسياسة الاستبدال والاسترجاع:</b> ${receiptFooter}
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures-row">
+      <div class="sig-box">
+        <span class="sig-title">توقيع المستلم (العميل)</span>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-box">
+        <span class="sig-title">توقيع المحاسب / الكاشير</span>
+        <div class="sig-line"></div>
+      </div>
+      <div class="sig-box">
+        <span class="sig-title">ختم واعتماد المنشأة الرسمي</span>
+        <div class="sig-line"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+async function printInvoiceDocument(invoiceId, format = null) {
+  const chosenFormat = format || appSettingsCache.default_print_format || 'thermal';
+  showToast(`جاري تجهيز وطباعة الفاتورة بصيغة (${chosenFormat.toUpperCase()})...`, 'info');
+
   try {
     const res = await fetch(`/api/invoices/${invoiceId}`);
     const data = await res.json();
     if (!data.success || !data.invoice) {
-      showToast('تعذر العثور على الفاتورة لإعادة الطباعة', 'error');
+      showToast('تعذر جلب بيانات الفاتورة لإتمام الطباعة', 'error');
       return;
     }
 
-    lastCompletedInvoiceId = data.invoice.id;
-    lastCustomerPhone = data.contact?.phone || '';
+    const invoice = data.invoice;
+    const items = data.items || [];
+    const contact = data.contact;
 
-    // Convert items for displayReceiptPreview
-    const cartItems = (data.items || []).map((i) => ({
-      product: { name: i.productName, barcode: i.productBarcode },
-      quantity: i.quantity,
-      unitPrice: i.unitPrice,
-      serialNumber: i.serialNumber,
-    }));
+    const html = generateInvoiceHtml(invoice, items, contact, chosenFormat);
 
-    displayReceiptPreview(data.invoice, cartItems, data.invoice.paidAmount, data.invoice.finalAmount);
-    showToast(`تم تجهيز الإيصال الحراري للفاتورة ${data.invoice.invoiceNumber}`, 'info');
+    // Write to hidden printing iframe
+    const printFrame = document.getElementById('posInvoicePrintFrame');
+    if (!printFrame) {
+      showToast('خطأ: تعذر العثور على إطار الطباعة في النظام', 'error');
+      return;
+    }
+
+    const doc = printFrame.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    // Trigger native browser printing dialog
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+        showToast(`✅ تم إرسال أمر الطباعة (${chosenFormat.toUpperCase()}) بنجاح!`, 'success');
+      } catch (printErr) {
+        console.error('Print dialog error:', printErr);
+      }
+    }, 280);
+
+  } catch (err) {
+    console.error('Print execution error:', err);
+    showToast('خطأ أثناء تشغيل أمر الطباعة', 'error');
+  }
+}
+
+// -------------------------------------------------------------
+// Interactive Invoice Preview Modal (A4, A5, and Thermal)
+// -------------------------------------------------------------
+
+async function openInvoicePreviewModal(invoiceId, initialFormat = null) {
+  try {
+    const res = await fetch(`/api/invoices/${invoiceId}`);
+    const data = await res.json();
+    if (!data.success || !data.invoice) {
+      showToast('تعذر العثور على الفاتورة للمعاينة', 'error');
+      return;
+    }
+
+    currentPreviewInvoiceData = data;
+    currentPreviewFormat = initialFormat || appSettingsCache.default_print_format || 'thermal';
+
+    const titleEl = document.getElementById('invoicePreviewModalTitle');
+    const subEl = document.getElementById('invoicePreviewModalSubtitle');
+    if (titleEl) titleEl.textContent = `معاينة الفاتورة: ${data.invoice.invoiceNumber}`;
+    if (subEl) subEl.textContent = `التاريخ: ${new Date(data.invoice.createdAt).toLocaleString('ar-EG')} • العميل: ${data.contact?.name || 'عميل نقدي'}`;
+
+    renderCurrentPreviewSheet();
+    applyPrintFormatVisibility();
+
+    const modal = document.getElementById('invoicePrintPreviewModal');
+    if (modal) modal.classList.add('active');
   } catch (e) {
-    showToast('تعذر فتح معاينة الإيصال الحراري', 'error');
+    showToast('تعذر فتح معاينة الفاتورة', 'error');
+  }
+}
+
+function closeInvoicePreviewModal() {
+  const modal = document.getElementById('invoicePrintPreviewModal');
+  if (modal) modal.classList.remove('active');
+  currentPreviewInvoiceData = null;
+}
+
+function switchPreviewFormat(format) {
+  currentPreviewFormat = format;
+  renderCurrentPreviewSheet();
+}
+
+function renderCurrentPreviewSheet() {
+  if (!currentPreviewInvoiceData?.invoice) return;
+
+  const btnThermal = document.getElementById('btnPreviewTabThermal');
+  const btnA4 = document.getElementById('btnPreviewTabA4');
+  const btnA5 = document.getElementById('btnPreviewTabA5');
+
+  if (btnThermal) btnThermal.classList.toggle('active', currentPreviewFormat === 'thermal');
+  if (btnA4) btnA4.classList.toggle('active', currentPreviewFormat === 'a4');
+  if (btnA5) btnA5.classList.toggle('active', currentPreviewFormat === 'a5');
+
+  const container = document.getElementById('invoicePreviewContainer');
+  if (!container) return;
+
+  const invoice = currentPreviewInvoiceData.invoice;
+  const items = currentPreviewInvoiceData.items || [];
+  const contact = currentPreviewInvoiceData.contact;
+
+  const html = generateInvoiceHtml(invoice, items, contact, currentPreviewFormat);
+
+  // Render inside clean responsive container
+  container.innerHTML = `
+    <div class="invoice-preview-sheet sheet-${currentPreviewFormat}">
+      <iframe srcdoc="${html.replace(/"/g, '&quot;')}" style="width:100%; height:${currentPreviewFormat === 'a4' ? '1080px' : currentPreviewFormat === 'a5' ? '760px' : '520px'}; border:none;" scrolling="no"></iframe>
+    </div>
+  `;
+}
+
+function executeCurrentPreviewPrint() {
+  if (!currentPreviewInvoiceData?.invoice) return;
+  const id = currentPreviewInvoiceData.invoice.id;
+  const format = currentPreviewFormat;
+  closeInvoicePreviewModal();
+  printInvoiceDocument(id, format);
+}
+
+// -------------------------------------------------------------
+// Format Visibility & Safety Synchronization
+// -------------------------------------------------------------
+
+function applyPrintFormatVisibility() {
+  const thermalEnabled = appSettingsCache.print_format_thermal !== 'false';
+  const a4Enabled = appSettingsCache.print_format_a4 !== 'false';
+  const a5Enabled = appSettingsCache.print_format_a5 !== 'false';
+
+  // Receipt Modal Buttons
+  const btnReceiptThermal = document.getElementById('btnReceiptPrintThermal');
+  const btnReceiptA4 = document.getElementById('btnReceiptPrintA4');
+  const btnReceiptA5 = document.getElementById('btnReceiptPrintA5');
+
+  if (btnReceiptThermal) btnReceiptThermal.style.display = thermalEnabled ? 'inline-flex' : 'none';
+  if (btnReceiptA4) btnReceiptA4.style.display = a4Enabled ? 'inline-flex' : 'none';
+  if (btnReceiptA5) btnReceiptA5.style.display = a5Enabled ? 'inline-flex' : 'none';
+
+  // Details Modal Buttons
+  const btnDetailsThermal = document.getElementById('btnDetailsPrintThermal');
+  const btnDetailsA4 = document.getElementById('btnDetailsPrintA4');
+  const btnDetailsA5 = document.getElementById('btnDetailsPrintA5');
+
+  if (btnDetailsThermal) btnDetailsThermal.style.display = thermalEnabled ? 'inline-flex' : 'none';
+  if (btnDetailsA4) btnDetailsA4.style.display = a4Enabled ? 'inline-flex' : 'none';
+  if (btnDetailsA5) btnDetailsA5.style.display = a5Enabled ? 'inline-flex' : 'none';
+
+  // Preview Modal Tabs
+  const tabThermal = document.getElementById('btnPreviewTabThermal');
+  const tabA4 = document.getElementById('btnPreviewTabA4');
+  const tabA5 = document.getElementById('btnPreviewTabA5');
+
+  if (tabThermal) tabThermal.style.display = thermalEnabled ? 'inline-block' : 'none';
+  if (tabA4) tabA4.style.display = a4Enabled ? 'inline-block' : 'none';
+  if (tabA5) tabA5.style.display = a5Enabled ? 'inline-block' : 'none';
+}
+
+function onPrintFormatToggleChanged(format) {
+  const thermalChecked = document.getElementById('setting_print_thermal')?.checked;
+  const a4Checked = document.getElementById('setting_print_a4')?.checked;
+  const a5Checked = document.getElementById('setting_print_a5')?.checked;
+
+  // SAFETY GUARD: Prevent user from accidentally disabling all 3 formats!
+  if (!thermalChecked && !a4Checked && !a5Checked) {
+    const input = document.getElementById(`setting_print_${format}`);
+    if (input) input.checked = true;
+    showToast('⚠️ تحذير: يجب الإبقاء على نوع طباعة واحد مفعل على الأقل في النظام!', 'warning');
+    return;
+  }
+
+  syncDefaultFormatDropdown();
+}
+
+function syncDefaultFormatDropdown() {
+  const thermalChecked = document.getElementById('setting_print_thermal')?.checked;
+  const a4Checked = document.getElementById('setting_print_a4')?.checked;
+  const a5Checked = document.getElementById('setting_print_a5')?.checked;
+  const select = document.getElementById('setting_default_print_format');
+
+  if (!select) return;
+
+  const optThermal = select.querySelector('option[value="thermal"]');
+  const optA4 = select.querySelector('option[value="a4"]');
+  const optA5 = select.querySelector('option[value="a5"]');
+
+  if (optThermal) optThermal.disabled = !thermalChecked;
+  if (optA4) optA4.disabled = !a4Checked;
+  if (optA5) optA5.disabled = !a5Checked;
+
+  // If currently selected format is disabled, automatically fallback to first available
+  if (select.value === 'thermal' && !thermalChecked) {
+    select.value = a4Checked ? 'a4' : 'a5';
+  } else if (select.value === 'a4' && !a4Checked) {
+    select.value = thermalChecked ? 'thermal' : 'a5';
+  } else if (select.value === 'a5' && !a5Checked) {
+    select.value = thermalChecked ? 'thermal' : 'a4';
+  }
+}
+
+function onDefaultPrintFormatChanged() {
+  const select = document.getElementById('setting_default_print_format');
+  if (!select) return;
+  const chosen = select.value;
+  const targetCheck = document.getElementById(`setting_print_${chosen}`);
+  if (targetCheck && !targetCheck.checked) {
+    targetCheck.checked = true;
+    showToast(`تم تفعيل خيار طباعة (${chosen.toUpperCase()}) تلقائياً لأنه تم تحديده كافتراضي.`, 'info');
   }
 }
 
@@ -2383,19 +3062,7 @@ function shareAiAdWhatsapp() {
 // PHASE 5: Modular Settings, Machine Lock Licensing & Z-Report
 // =============================================================
 
-let appSettingsCache = {
-  enable_shifts: 'false',
-  enable_serials: 'true',
-  enable_ai_ad: 'false',
-  enable_whatsapp: 'true',
-  enable_credit_ledgers: 'true',
-  theme: 'dark',
-  store_name: 'كويزلينك ستور للإلكترونيات والكمبيوتر',
-  store_phone: '01000000000',
-  store_address: 'القاهرة، مصر',
-  receipt_footer: 'البضاعة المباعة ترد وتستبدل خلال 14 يوماً وفقاً لقانون حماية المستهلك',
-  printer_width: '80mm',
-};
+// appSettingsCache initialized at top of module
 
 let currentLicenseCache = null;
 let currentActiveShift = null;
@@ -2509,7 +3176,7 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.3';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.4';
       const headerVer = document.getElementById('headerAppVersionBadge');
       if (headerVer && data.currentVersion) headerVer.textContent = 'v' + data.currentVersion;
 
@@ -2696,6 +3363,19 @@ function applyAppSettingsUI() {
   if (sAddr) sAddr.value = appSettingsCache.store_address || '';
   if (sFooter) sFooter.value = appSettingsCache.receipt_footer || '';
   if (sWidth) sWidth.value = appSettingsCache.printer_width || '80mm';
+
+  // Update Print Formats switches in settings
+  const togglePrintThermal = document.getElementById('setting_print_thermal');
+  const togglePrintA4 = document.getElementById('setting_print_a4');
+  const togglePrintA5 = document.getElementById('setting_print_a5');
+  const selectDefaultPrint = document.getElementById('setting_default_print_format');
+
+  if (togglePrintThermal) togglePrintThermal.checked = appSettingsCache.print_format_thermal !== 'false';
+  if (togglePrintA4) togglePrintA4.checked = appSettingsCache.print_format_a4 !== 'false';
+  if (togglePrintA5) togglePrintA5.checked = appSettingsCache.print_format_a5 !== 'false';
+  if (selectDefaultPrint) selectDefaultPrint.value = appSettingsCache.default_print_format || 'thermal';
+
+  applyPrintFormatVisibility();
 }
 
 async function loadSettingsAndLicense() {
@@ -2733,18 +3413,17 @@ function renderLicenseUI(lic) {
   if (hwDisplay) hwDisplay.textContent = lic.hardwareId;
 
   if (statusBadge) {
+    statusBadge.style.color = '';
+    statusBadge.style.background = '';
     if (lic.status === 'active') {
       statusBadge.textContent = '✅ مفعل رسمياً';
-      statusBadge.style.color = 'var(--accent-emerald)';
-      statusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+      statusBadge.className = 'lic-status-badge badge-active';
     } else if (lic.status === 'trial') {
       statusBadge.textContent = '⚡ تجريبي مفتوح (Trial)';
-      statusBadge.style.color = 'var(--accent-cyan)';
-      statusBadge.style.background = 'rgba(6, 182, 212, 0.15)';
+      statusBadge.className = 'lic-status-badge badge-trial';
     } else {
       statusBadge.textContent = '⚠️ يحتاج تفعيل';
-      statusBadge.style.color = 'var(--accent-amber)';
-      statusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+      statusBadge.className = 'lic-status-badge badge-warning';
     }
   }
 
@@ -2910,6 +3589,18 @@ async function loadStoreAndTaxSettings() {
     if (sFooter) sFooter.value = p?.receipt_footer || s?.receipt_footer || '';
     if (sWidth) sWidth.value = s?.printer_width || '80mm';
     if (sEta) sEta.checked = s?.enable_eta_receipts !== 'false';
+
+    const togglePrintThermal = document.getElementById('setting_print_thermal');
+    const togglePrintA4 = document.getElementById('setting_print_a4');
+    const togglePrintA5 = document.getElementById('setting_print_a5');
+    const selectDefaultPrint = document.getElementById('setting_default_print_format');
+
+    if (togglePrintThermal) togglePrintThermal.checked = s?.print_format_thermal !== 'false';
+    if (togglePrintA4) togglePrintA4.checked = s?.print_format_a4 !== 'false';
+    if (togglePrintA5) togglePrintA5.checked = s?.print_format_a5 !== 'false';
+    if (selectDefaultPrint) selectDefaultPrint.value = s?.default_print_format || 'thermal';
+    syncDefaultFormatDropdown();
+    applyPrintFormatVisibility();
   } catch (e) {
     console.error('Error loading store & tax settings:', e);
   }
@@ -2926,6 +3617,26 @@ async function saveStoreSettings() {
   const sWidth = document.getElementById('setting_printer_width')?.value;
   const enableEta = document.getElementById('setting_enable_eta_receipts')?.checked ? 'true' : 'false';
 
+  const printThermal = document.getElementById('setting_print_thermal')?.checked ? 'true' : 'false';
+  const printA4 = document.getElementById('setting_print_a4')?.checked ? 'true' : 'false';
+  const printA5 = document.getElementById('setting_print_a5')?.checked ? 'true' : 'false';
+  let defaultFormat = document.getElementById('setting_default_print_format')?.value || 'thermal';
+
+  // Safety guard: ensure at least one format is enabled
+  if (printThermal === 'false' && printA4 === 'false' && printA5 === 'false') {
+    showToast('⚠️ لا يمكن حفظ الإعدادات: يجب الإبقاء على نوع طباعة واحد مفعل على الأقل!', 'warning');
+    return;
+  }
+
+  // Ensure default format is an enabled format
+  if (defaultFormat === 'thermal' && printThermal === 'false') {
+    defaultFormat = printA4 === 'true' ? 'a4' : 'a5';
+  } else if (defaultFormat === 'a4' && printA4 === 'false') {
+    defaultFormat = printThermal === 'true' ? 'thermal' : 'a5';
+  } else if (defaultFormat === 'a5' && printA5 === 'false') {
+    defaultFormat = printThermal === 'true' ? 'thermal' : 'a4';
+  }
+
   const settingsPayload = {
     store_name: sName || appSettingsCache.store_name,
     tax_number: sTax || '',
@@ -2934,6 +3645,10 @@ async function saveStoreSettings() {
     receipt_footer: sFooter || appSettingsCache.receipt_footer,
     printer_width: sWidth || '80mm',
     enable_eta_receipts: enableEta,
+    print_format_thermal: printThermal,
+    print_format_a4: printA4,
+    print_format_a5: printA5,
+    default_print_format: defaultFormat,
   };
 
   const profilePayload = {
@@ -2963,7 +3678,8 @@ async function saveStoreSettings() {
     const dataSet = await resSet.json();
     if (dataSet.success) {
       appSettingsCache = { ...appSettingsCache, ...dataSet.settings };
-      showToast('✅ تم حفظ بيانات المنشأة والملف الضريبي ETA بنجاح!', 'success');
+      applyPrintFormatVisibility();
+      showToast('✅ تم حفظ بيانات المنشأة وخيارات الطباعة بنجاح!', 'success');
     }
   } catch (e) {
     showToast('تعذر حفظ بيانات المحل والملف الضريبي', 'error');
@@ -3049,14 +3765,14 @@ async function loadSyncStatus() {
       const enabledToggle = document.getElementById('setting_cloud_sync_enabled');
 
       if (statusBadge) {
+        statusBadge.style.color = '';
+        statusBadge.style.background = '';
         if (data.online) {
           statusBadge.textContent = `🟢 متصل بالسحابة (${data.latencyMs}ms)`;
-          statusBadge.style.color = 'var(--accent-emerald)';
-          statusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+          statusBadge.className = 'sync-status-badge badge-online';
         } else {
           statusBadge.textContent = '🔴 وضع عدم الاتصال (Offline-First)';
-          statusBadge.style.color = 'var(--accent-amber)';
-          statusBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+          statusBadge.className = 'sync-status-badge badge-offline';
         }
       }
 
@@ -3199,7 +3915,7 @@ async function loadBackupsList() {
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong style="color:#fff; font-family:'JetBrains Mono'; font-size:0.8rem;">${b.id}</strong></td>
+        <td><strong class="table-bold-id" style="font-family:'JetBrains Mono'; font-size:0.8rem;">${b.id}</strong></td>
         <td><span class="badge-terminal" style="color:${isCloud ? 'var(--accent-cyan)' : 'var(--accent-emerald)'}">${isCloud ? '☁️ سحابية' : '💾 محلية'}</span></td>
         <td style="font-family:'JetBrains Mono'; font-size:0.8rem;">${sizeKb} KB</td>
         <td>
@@ -3629,7 +4345,7 @@ async function loadShiftsHistory() {
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><strong style="color:#fff;">#${shift.shift_number}</strong></td>
+        <td><strong class="table-bold-id">#${shift.shift_number}</strong></td>
         <td>${shift.cashier_name}</td>
         <td style="font-size:0.75rem; color:var(--text-muted);">${openTime}</td>
         <td style="font-size:0.75rem;">${closeTime}</td>

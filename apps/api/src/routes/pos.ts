@@ -4,11 +4,12 @@ import { extractClientIp, resolveGeoLocation } from '../lib/geoip';
 
 const router = Router();
 
-export const POS_LATEST_VERSION = '1.2.2';
-export const POS_RELEASE_DATE = '2026-10-12';
-export const POS_RELEASE_NOTES = `• تحسين شامل للوضع النهاري (Light Mode): إعادة ضبط التباين بالكامل والقضاء على النصوص الباهتة وتوفير بيئة عمل مريحة للعين في الإضاءة الساطعة.
-• وضوح أزرار الكيبورد السريعة (F1 إلى F12): أزرار كيبورد حقيقية بألوان عالية التباين وخطوط داكنة واضحة.
-• لوحة الحساب والكاشير: فئات النقدية السريعة (+50, +100, +200, +500) أصبحت بارزة وواضحة جداً مع ضبط كارت الصافي المستحق والباقي للزبون.`;
+export const POS_LATEST_VERSION = '1.2.4';
+export const POS_RELEASE_DATE = '2026-10-13';
+export const POS_RELEASE_NOTES = `• دعم طباعة الفواتير بقياسات A4 و A5 الاحترافية بالإضافة للطباعة الحرارية المعتادة (Thermal 80mm).
+• خيارات متقدمة في إعدادات النظام للتحكم بإظهار أو إخفاء أي نوع من أنواع الطباعة الثلاثة وتحديد القياس الافتراضي بما يلائم نشاط عملك.
+• نافذة معاينة تفاعلية متطورة قبل الطباعة مع إمكانية التبديل اللحظي بين المقاسات والطباعة المباشرة.
+• تفقيط المبالغ تلقائياً باللغة العربية (دينار / فلس، جنيه / قرش، ريال / هللة) وتوليد باركود ZATCA/ETA المعتمد وحساب ضريبة القيمة المضافة بدقة متناهية.`;
 
 /**
  * POST /api/pos/telemetry
@@ -149,7 +150,7 @@ router.get('/updates', async (req: Request, res: Response) => {
       currentVersion: cleanCurrent,
       latestVersion: POS_LATEST_VERSION,
       minRequiredVersion: '1.0.0',
-      releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار التكبير ودعم Windows 7 الكامل)`,
+      releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`,
       releaseNotes: POS_RELEASE_NOTES,
       downloadUrl: '/downloads/QuazLink-POS-Setup.exe',
       portableUrl: '/downloads/QuazLink-POS-Portable.zip',

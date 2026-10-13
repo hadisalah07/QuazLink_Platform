@@ -4,12 +4,13 @@ import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.2.3";
+export const POS_LATEST_VERSION = "1.2.4";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
-export const POS_RELEASE_DATE = "2026-10-12";
-export const POS_RELEASE_NOTES = `• تصميم فاخر وهوية متطورة لبرنامج التثبيت (NSIS Setup Theme): واجهة تثبيت داكنة متناسقة ومخصصة لـ QuazLink مع شريط تقدم نيون وبيانات واضحة.
-• إتقان الوضع النهاري (Light Mode) لصفحة الإعدادات والتحديثات: تباين فائق لنسبة التنزيل وشريط التقدم وبطاقات النظام، والقضاء التام على أي نصوص بيضاء على خلفية فاتحة.
-• أزرار التنقل الفرعية: تبويبات إعدادات النظام واضحة ومتباينة مع تمييز التبويب النشط باللون الأزرق الملكي الفاخر.`;
+export const POS_RELEASE_DATE = "2026-10-13";
+export const POS_RELEASE_NOTES = `• دعم طباعة الفواتير بقياسات A4 و A5 الاحترافية بالإضافة للطباعة الحرارية المعتادة (Thermal 80mm).
+• خيارات متقدمة في إعدادات النظام للتحكم بإظهار أو إخفاء أي نوع من أنواع الطباعة الثلاثة وتحديد القياس الافتراضي بما يلائم نشاط عملك.
+• نافذة معاينة تفاعلية متطورة قبل الطباعة مع إمكانية التبديل اللحظي بين المقاسات والطباعة المباشرة.
+• تفقيط المبالغ تلقائياً باللغة العربية (دينار / فلس، جنيه / قرش، ريال / هللة) وتوليد باركود ZATCA/ETA المعتمد وحساب ضريبة القيمة المضافة بدقة متناهية.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -55,7 +56,7 @@ export async function GET(request: Request) {
     currentVersion: clientVersion,
     latestVersion: POS_LATEST_VERSION,
     minRequiredVersion: POS_MIN_REQUIRED_VERSION,
-    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (تطوير تصميم مثبت البرنامج وإتقان تباين التحديثات)`,
+    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`,
     releaseNotes: POS_RELEASE_NOTES,
     downloadUrl: `/downloads/QuazLink-POS-Setup.exe?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
     portableUrl: `/downloads/QuazLink-POS-Portable.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
