@@ -378,13 +378,29 @@ export class PosUpdaterService {
             } catch {}
           }
 
-          console.log(`🚀 [PosUpdater] Spawning update installer: ${installerPath}`);
-          // Run installer with /S (Silent Mode) for seamless instant 1-click in-app update
-          const child = spawn(installerPath, ['/S'], {
+          console.log(`🚀 [PosUpdater] Spawning update installer with auto-relaunch: ${installerPath}`);
+          // Run installer with /S (Silent Mode) and --force-run for automatic post-install relaunch
+          const child = spawn(installerPath, ['/S', '--force-run'], {
             detached: true,
             stdio: 'ignore',
           });
           child.unref();
+
+          // Dual-layer watchdog: Guarantees the application relaunches even if Windows session policies suppress NSIS ExecShell
+          try {
+            const currentExe = process.execPath;
+            if (currentExe && fs.existsSync(currentExe)) {
+              const setupBase = path.basename(installerPath, path.extname(installerPath));
+              const fallbackCmd = `Start-Sleep -Seconds 5; Wait-Process -Name "${setupBase}" -Timeout 60 -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; if (-not (Get-Process -Name "QuazLink POS*" -ErrorAction SilentlyContinue)) { Start-Process -FilePath "${currentExe}" }`;
+              const watchdog = spawn('powershell.exe', ['-WindowStyle', 'Hidden', '-NoProfile', '-Command', fallbackCmd], {
+                detached: true,
+                stdio: 'ignore',
+              });
+              watchdog.unref();
+            }
+          } catch (e) {
+            console.warn('[PosUpdater] Watchdog setup skipped:', e);
+          }
 
           // Exit current POS process so the installer can replace files cleanly
           setTimeout(() => process.exit(0), 1000);

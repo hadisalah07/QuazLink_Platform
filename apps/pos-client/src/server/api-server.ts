@@ -16,7 +16,7 @@ import { LicensingService } from '../services/licensing-service.js';
 import { ShiftService } from '../services/shift-service.js';
 import { SyncService } from '../services/sync-service.js';
 import { EtaService } from '../services/eta-service.js';
-import { PosUpdaterService } from '../services/updater-service.js';
+import { PosUpdaterService, CURRENT_VERSION } from '../services/updater-service.js';
 
 export interface PosServerOptions {
   port?: number;
@@ -58,7 +58,7 @@ export class PosServer {
     this.syncService = new SyncService(this.db, this.settingsService, this.licensingService);
     this.etaService = new EtaService(this.db);
     const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
-    this.updaterService = new PosUpdaterService('1.2.1', platformUrl);
+    this.updaterService = new PosUpdaterService(CURRENT_VERSION, platformUrl);
 
     this.uiDir = options.uiDir || path.join(__dirname, '..', 'ui');
     if (!fs.existsSync(this.uiDir)) {
