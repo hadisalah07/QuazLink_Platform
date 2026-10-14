@@ -15,21 +15,39 @@ export const POS_RELEASE_NOTES = `• دعم طباعة الفواتير بقي�
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const clientVersion = (searchParams.get("currentVersion") || "1.0.0").replace(/^v/i, "").trim();
+  const osRelease = (searchParams.get("osRelease") || "").toLowerCase();
+  const isLegacyWin =
+    osRelease.includes("6.1") ||
+    osRelease.includes("6.2") ||
+    osRelease.includes("6.3") ||
+    osRelease.includes("windows 7") ||
+    osRelease.includes("windows 8") ||
+    osRelease.includes("posready");
 
-  // Determine file sizes from public/downloads if present
-  let setupFileSize = 74112728; // Fallback default
-  let portableFileSize = 221663438;
+  const setupFilename = isLegacyWin ? "QuazLink-POS-Legacy-Win7-Setup.exe" : "QuazLink-POS-Setup.exe";
+  const portableFilename = isLegacyWin ? "QuazLink-POS-Legacy-Win7-Portable.exe" : "QuazLink-POS-Portable.zip";
+
+  // Determine file sizes from public/downloads or /data/downloads if present
+  let setupFileSize = isLegacyWin ? 73974272 : 74212111;
+  let portableFileSize = isLegacyWin ? 73640804 : 73878193;
 
   try {
-    const publicDownloadsDir = path.join(process.cwd(), "public", "downloads");
-    const setupPath = path.join(publicDownloadsDir, "QuazLink-POS-Setup.exe");
-    const portablePath = path.join(publicDownloadsDir, "QuazLink-POS-Portable.zip");
+    const candidateDirs = [
+      path.join("/data/downloads"),
+      path.join(process.cwd(), "public", "downloads"),
+      path.join(process.cwd(), "apps", "web", "public", "downloads"),
+    ];
 
-    if (fs.existsSync(setupPath)) {
-      setupFileSize = fs.statSync(setupPath).size;
-    }
-    if (fs.existsSync(portablePath)) {
-      portableFileSize = fs.statSync(portablePath).size;
+    for (const dir of candidateDirs) {
+      const sPath = path.join(dir, setupFilename);
+      const pPath = path.join(dir, portableFilename);
+      if (fs.existsSync(sPath)) {
+        setupFileSize = fs.statSync(sPath).size;
+        break;
+      }
+      if (fs.existsSync(pPath)) {
+        portableFileSize = fs.statSync(pPath).size;
+      }
     }
   } catch {}
 
@@ -50,20 +68,25 @@ export async function GET(request: Request) {
     fetch(internalUrl, { headers: fwdHeaders }).catch(() => {});
   }
 
+  const releaseTitle = isLegacyWin
+    ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق 100% مع Windows 7 / 8 / POSReady)`
+    : `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`;
+
   return NextResponse.json({
     success: true,
     hasUpdate: isNewer,
     currentVersion: clientVersion,
     latestVersion: POS_LATEST_VERSION,
     minRequiredVersion: POS_MIN_REQUIRED_VERSION,
-    releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`,
+    releaseName: releaseTitle,
     releaseNotes: POS_RELEASE_NOTES,
-    downloadUrl: `/downloads/QuazLink-POS-Setup.exe?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
-    portableUrl: `/downloads/QuazLink-POS-Portable.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
+    downloadUrl: `/downloads/${setupFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
+    portableUrl: `/downloads/${portableFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
     assetSize: setupFileSize,
     portableSize: portableFileSize,
     publishedAt: new Date(POS_RELEASE_DATE).toISOString(),
     mandatory: false,
+    isLegacyWin7: isLegacyWin,
   });
 }
 

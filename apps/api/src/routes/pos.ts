@@ -144,20 +144,37 @@ router.get('/updates', async (req: Request, res: Response) => {
 
     const isNewer = compareVersions(POS_LATEST_VERSION, cleanCurrent) > 0;
 
+    const lowerOs = (osRelease || '').toLowerCase();
+    const isLegacyWin =
+      lowerOs.includes('6.1') ||
+      lowerOs.includes('6.2') ||
+      lowerOs.includes('6.3') ||
+      lowerOs.includes('windows 7') ||
+      lowerOs.includes('windows 8') ||
+      lowerOs.includes('posready');
+
+    const setupFilename = isLegacyWin ? 'QuazLink-POS-Legacy-Win7-Setup.exe' : 'QuazLink-POS-Setup.exe';
+    const portableFilename = isLegacyWin ? 'QuazLink-POS-Legacy-Win7-Portable.exe' : 'QuazLink-POS-Portable.zip';
+
+    const releaseTitle = isLegacyWin
+      ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق 100% مع Windows 7 / 8 / POSReady)`
+      : `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`;
+
     res.json({
       success: true,
       hasUpdate: isNewer,
       currentVersion: cleanCurrent,
       latestVersion: POS_LATEST_VERSION,
       minRequiredVersion: '1.0.0',
-      releaseName: `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`,
+      releaseName: releaseTitle,
       releaseNotes: POS_RELEASE_NOTES,
-      downloadUrl: '/downloads/QuazLink-POS-Setup.exe',
-      portableUrl: '/downloads/QuazLink-POS-Portable.zip',
-      assetSize: 74112728,
-      portableSize: 221663438,
+      downloadUrl: `/downloads/${setupFilename}`,
+      portableUrl: `/downloads/${portableFilename}`,
+      assetSize: isLegacyWin ? 73974272 : 74212111,
+      portableSize: isLegacyWin ? 73640804 : 73878193,
       publishedAt: new Date(POS_RELEASE_DATE).toISOString(),
       mandatory: false,
+      isLegacyWin7: isLegacyWin,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
