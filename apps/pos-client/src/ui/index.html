@@ -42,7 +42,7 @@
       <div class="brand">
         <span class="brand-logo">⚡</span>
         <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
-        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.4</span>
+        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.5</span>
       </div>
       <!-- View Switcher Navigation Tabs -->
       <nav class="nav-tabs">
@@ -91,7 +91,16 @@
             <button type="button" class="shortcut-pill" onclick="openCustomerModal()"><kbd>F3</kbd> <span id="customerNameBadge">عميل نقدي</span></button>
             <button type="button" class="shortcut-pill" id="posShiftShortcutBtn" style="display:none;" onclick="openShiftControlModal()"><kbd>F8</kbd> <span>الخزينة والوردية</span></button>
             <button type="button" class="shortcut-pill" onclick="openDiscountModal()"><kbd>F9</kbd> <span>خصم فوري</span></button>
-            <button type="button" class="shortcut-pill primary" onclick="handleCheckout(true)"><kbd>F12</kbd> <span>دفع وطباعة حرارية</span></button>
+            <button type="button" class="shortcut-pill primary" id="posPrintCheckoutShortcutBtn" onclick="handleCheckout(true)"><kbd>F12</kbd> <span id="posPrintShortcutLabel">دفع وطباعة حرارية</span></button>
+            <div class="shortcut-pill print-type-pill" id="posPrintTypeSelectorPill" title="النموذج الافتراضي للطباعة (اضغط للتغيير السريع)">
+              <span class="print-pill-icon" id="posActivePrintIcon">🧾</span>
+              <span class="print-pill-label">الطباعة:</span>
+              <select id="posActivePrintFormatSelect" class="pos-print-select" onchange="onCashierPrintFormatChange(this.value)">
+                <option value="thermal">حراري (Thermal)</option>
+                <option value="a4">رسمية (A4)</option>
+                <option value="a5">مدمجة (A5)</option>
+              </select>
+            </div>
           </div>
 
           <div class="scanner-status">
@@ -99,11 +108,26 @@
           </div>
         </div>
 
-        <div class="scanner-bar">
+        <div class="scanner-bar" id="scannerBarContainer">
           <div class="input-wrapper">
             <span class="scanner-icon">📟</span>
-            <input type="text" id="barcodeInput" placeholder="امسح الباركود بمسدس الليزر أو اكتب اسم الصنف / الكود ثم اضغط Enter..." autocomplete="off">
+            <input type="text" id="barcodeInput" placeholder="امسح الباركود بمسدس الليزر أو اكتب اسم الصنف / الكود / السيريال..." autocomplete="off">
             <button type="button" class="btn-clear" onclick="clearSearch()" title="مسح النص">✕</button>
+          </div>
+          <!-- Smart Live Autocomplete Dropdown -->
+          <div id="searchSuggestionsDropdown" class="search-suggestions-dropdown" style="display: none;">
+            <div class="suggestions-header">
+              <div class="suggestions-header-title">
+                <span class="icon">🔍</span>
+                <span id="suggestionsCount">نتائج البحث (0)</span>
+              </div>
+              <div class="suggestions-hints">
+                <span><kbd>⬆</kbd><kbd>⬇</kbd> للتنقل</span>
+                <span><kbd>Enter</kbd> للإضافة</span>
+                <span><kbd>Esc</kbd> للإغلاق</span>
+              </div>
+            </div>
+            <div id="suggestionsList" class="suggestions-list"></div>
           </div>
         </div>
       </div>
@@ -143,6 +167,25 @@
 
     <aside class="checkout-aside">
       <div class="summary-card">
+        <!-- Invoice Quick Meta Card (Type, Customer, Phone) -->
+        <div class="invoice-meta-card" id="invoiceMetaCard">
+          <div class="meta-row">
+            <span class="meta-left"><span>📋</span> <span>نوع الفاتورة:</span></span>
+            <span class="meta-badge-type retail" id="invoiceMetaTypeBadge" onclick="togglePriceType()" title="اضغط لتبديل قطاعي / جملة (F2)">فاتورة بيع (قطاعي)</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-left"><span>👤</span> <span>العميل:</span></span>
+            <div style="display:flex; align-items:center; gap:4px; max-width: 65%;">
+              <span class="meta-val customer-name" id="invoiceMetaCustomerName" onclick="openCustomerModal()" title="تغيير العميل (F3)">عميل نقدي</span>
+              <button type="button" class="btn-meta-quick-edit" onclick="openCustomerModal()" title="تعديل العميل (F3)">✏️</button>
+            </div>
+          </div>
+          <div class="meta-row">
+            <span class="meta-left"><span>📞</span> <span>رقم الهاتف:</span></span>
+            <span class="meta-val customer-phone" id="invoiceMetaCustomerPhone">—</span>
+          </div>
+        </div>
+
         <h2 class="summary-title">ملخص الحساب</h2>
 
         <div class="summary-row">
@@ -195,9 +238,9 @@
         </div>
 
         <div class="actions-stack">
-          <button type="button" class="btn-checkout primary" onclick="handleCheckout(true)">
-            <span class="btn-icon">🖨️</span>
-            <span>دفع وطباعة حرارية (F12)</span>
+          <button type="button" class="btn-checkout primary" id="btnCheckout" onclick="handleCheckout(true)">
+            <span class="btn-icon" id="btnCheckoutIcon">🖨️</span>
+            <span id="btnCheckoutLabel">دفع وطباعة حرارية (F12)</span>
           </button>
           <div class="sub-actions">
             <button type="button" class="btn-sub" onclick="handleCheckout(false)">دفع بدون طباعة</button>
@@ -1053,7 +1096,7 @@
               <span style="font-size: 1.4rem;">🔄</span>
               <h3 class="update-card-title">تحديثات برنامج QuazLink POS & ERP</h3>
               <span class="update-version-badge">
-                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.4</span>
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.5</span>
               </span>
             </div>
             <p class="update-desc-text">
@@ -1465,9 +1508,12 @@
           <input type="text" id="customerNameInput" placeholder="اسم العميل">
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-sub" onclick="closeCustomerModal()">إلغاء</button>
-        <button class="btn-checkout primary" onclick="saveCustomer()">حفظ واختيار</button>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <button class="btn-sub warning" type="button" onclick="resetToCashCustomer()">إلغاء العميل (عميل نقدي)</button>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sub" onclick="closeCustomerModal()">إلغاء</button>
+          <button class="btn-checkout primary" onclick="saveCustomer()">حفظ واختيار</button>
+        </div>
       </div>
     </div>
   </div>

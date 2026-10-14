@@ -44,9 +44,13 @@ document.addEventListener('DOMContentLoaded', () => {
   initZoomControls();
   initGlobalBarcodeListener();
   initKeyboardShortcuts();
+  initSearchAutocomplete();
+  loadPosProductsCache();
   loadQuickProducts();
   refreshLowStockCount();
   initAppSettings();
+  updateCashierPrintFormatUI();
+  renderInvoiceMetaHeader();
   focusSearch();
   setTimeout(autoCheckForUpdatesOnStartup, 1500);
   // Periodic background check every 15 minutes for live update notifications
@@ -174,6 +178,7 @@ function initGlobalBarcodeListener() {
         e.preventDefault();
         const scannedCode = barcodeBuffer.trim();
         barcodeBuffer = '';
+        closeSearchSuggestions();
         handleBarcodeScanned(scannedCode);
         return;
       }
@@ -188,15 +193,7 @@ function initGlobalBarcodeListener() {
     }
   });
 
-  // Regular input enter listener
-  const inputEl = document.getElementById('barcodeInput');
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && inputEl.value.trim()) {
-      e.preventDefault();
-      handleBarcodeScanned(inputEl.value.trim());
-      inputEl.value = '';
-    }
-  });
+  // Note: Input enter, typing, and arrow navigation are handled in initSearchAutocomplete()
 }
 
 // -------------------------------------------------------------
@@ -372,11 +369,288 @@ function playBeep(freq = 1200, duration = 0.08) {
 }
 
 // -------------------------------------------------------------
-// 4. Products & Scanning Engine
 // -------------------------------------------------------------
-async function handleBarcodeScanned(query) {
+// 4. Smart Arabic Normalization & Autocomplete Search Engine
+// -------------------------------------------------------------
+let activeSuggestionIndex = 0;
+let currentSuggestions = [];
+let searchDebounceTimer = null;
+
+function normalizeSearchText(str) {
+  if (!str) return '';
+  return str
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '') // remove Arabic diacritics / tashkeel
+    .replace(/[أإآٱ]/g, 'ا') // unifies alef
+    .replace(/ة/g, 'ه') // teh marbuta to heh
+    .replace(/ى/g, 'ي') // alef maksura to yeh
+    .replace(/ؤ/g, 'و') // waw with hamza
+    .replace(/ئ/g, 'ي') // yeh with hamza
+    .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)) // arabic numerals
+    .replace(/\s+/g, ' ');
+}
+
+async function loadPosProductsCache() {
   try {
-    // 1. Try fetching by exact barcode
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    if (data.success && data.products) {
+      cachedProducts = data.products;
+    }
+  } catch (err) {
+    console.error('Failed to load products cache:', err);
+  }
+}
+
+function initSearchAutocomplete() {
+  const inputEl = document.getElementById('barcodeInput');
+  if (!inputEl) return;
+
+  // Real-time typing autocomplete listener
+  inputEl.addEventListener('input', () => {
+    const query = inputEl.value.trim();
+    if (!query) {
+      closeSearchSuggestions();
+      return;
+    }
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      performLiveSearch(query);
+    }, 70);
+  });
+
+  // Arrow navigation & Enter key selection
+  inputEl.addEventListener('keydown', (e) => {
+    const isOpen = isSearchSuggestionsOpen();
+
+    if (e.key === 'ArrowDown') {
+      if (isOpen && currentSuggestions.length > 0) {
+        e.preventDefault();
+        activeSuggestionIndex = (activeSuggestionIndex + 1) % currentSuggestions.length;
+        updateSuggestionsHighlight();
+      }
+    } else if (e.key === 'ArrowUp') {
+      if (isOpen && currentSuggestions.length > 0) {
+        e.preventDefault();
+        activeSuggestionIndex = (activeSuggestionIndex - 1 + currentSuggestions.length) % currentSuggestions.length;
+        updateSuggestionsHighlight();
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (isOpen && currentSuggestions.length > 0) {
+        const chosen = currentSuggestions[activeSuggestionIndex];
+        if (chosen) {
+          addProductToCartOrPromptSerial(chosen);
+          playBeep(1400);
+          closeSearchSuggestions();
+          inputEl.value = '';
+          return;
+        }
+      }
+
+      // If dropdown is closed or empty, trigger full barcode / code scan
+      const q = inputEl.value.trim();
+      if (q) {
+        closeSearchSuggestions();
+        handleBarcodeScanned(q);
+        inputEl.value = '';
+      }
+    } else if (e.key === 'Escape') {
+      if (isOpen) {
+        e.preventDefault();
+        closeSearchSuggestions();
+      }
+    }
+  });
+
+  // Global click-away to dismiss suggestions
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('scannerBarContainer');
+    if (container && !container.contains(e.target)) {
+      closeSearchSuggestions();
+    }
+  });
+}
+
+function performLiveSearch(rawQuery) {
+  if (!rawQuery) {
+    closeSearchSuggestions();
+    return;
+  }
+
+  const normQuery = normalizeSearchText(rawQuery);
+  const tokens = normQuery.split(' ').filter((t) => t.length > 0);
+
+  if (tokens.length === 0) {
+    closeSearchSuggestions();
+    return;
+  }
+
+  const matches = [];
+
+  for (const p of cachedProducts) {
+    const normName = normalizeSearchText(p.name);
+    const normBarcode = normalizeSearchText(p.barcode || '');
+    const normSku = normalizeSearchText(p.sku || '');
+    const normCat = normalizeSearchText(p.category || '');
+    const normDesc = normalizeSearchText(p.description || '');
+
+    // 1. Exact match on barcode or SKU gets highest priority
+    if (normBarcode === normQuery || normSku === normQuery) {
+      matches.unshift({ product: p, score: 2000 });
+      continue;
+    }
+
+    // 2. Barcode starts with query
+    if (normBarcode && normBarcode.startsWith(normQuery)) {
+      matches.unshift({ product: p, score: 1500 });
+      continue;
+    }
+
+    // 3. Multi-token match across all fields
+    const allTokensMatch = tokens.every(
+      (token) =>
+        normName.includes(token) ||
+        normBarcode.includes(token) ||
+        normSku.includes(token) ||
+        normCat.includes(token) ||
+        normDesc.includes(token)
+    );
+
+    if (allTokensMatch) {
+      let score = 100;
+      if (normName.startsWith(tokens[0])) score += 60;
+      if (normName.includes(normQuery)) score += 40;
+      if (p.stockQuantity > 0) score += 20;
+      matches.push({ product: p, score });
+    }
+  }
+
+  matches.sort((a, b) => b.score - a.score);
+  currentSuggestions = matches.slice(0, 8).map((m) => m.product);
+  renderSearchSuggestions(currentSuggestions, rawQuery);
+}
+
+function renderSearchSuggestions(products, rawQuery) {
+  const dropdown = document.getElementById('searchSuggestionsDropdown');
+  const list = document.getElementById('suggestionsList');
+  const countEl = document.getElementById('suggestionsCount');
+  if (!dropdown || !list) return;
+
+  if (products.length === 0) {
+    if (countEl) countEl.textContent = 'نتائج البحث (0)';
+    list.innerHTML = `
+      <div class="suggestion-empty">
+        <span class="suggestion-empty-icon">🔎</span>
+        <span>لم يتم العثور على أي صنف يطابق "<b>${escapeHtml(rawQuery)}</b>"</span>
+        <span style="font-size:0.75rem; color:#64748b;">تأكد من كتابة الاسم أو الكود أو الباركود بشكل صحيح</span>
+      </div>
+    `;
+    dropdown.style.display = 'flex';
+    return;
+  }
+
+  if (countEl) countEl.textContent = `نتائج البحث (${products.length})`;
+  activeSuggestionIndex = 0;
+
+  let html = '';
+  products.forEach((p, index) => {
+    const isWholesale = state.priceType === 'wholesale';
+    const price = isWholesale && p.sellPriceWholesale ? p.sellPriceWholesale : p.sellPriceRetail;
+
+    let stockBadge = '';
+    if (p.stockQuantity <= 0) {
+      stockBadge = '<span class="suggestion-stock out-of-stock">نفد المخزون (0)</span>';
+    } else if (p.stockQuantity <= 5) {
+      stockBadge = `<span class="suggestion-stock low-stock">منخفض (${p.stockQuantity})</span>`;
+    } else {
+      stockBadge = `<span class="suggestion-stock in-stock">متوفر (${p.stockQuantity})</span>`;
+    }
+
+    const serialBadge = p.hasSerial ? '<span class="badge-serial">سيريال / IMEI</span>' : '';
+    const catBadge = p.category ? `<span class="suggestion-cat">📂 ${escapeHtml(p.category)}</span>` : '';
+    const codeBadge = `<span class="suggestion-code">🏷️ ${escapeHtml(p.barcode || p.sku || 'بدون كود')}</span>`;
+
+    html += `
+      <div class="suggestion-item ${index === 0 ? 'active' : ''}" data-index="${index}" onclick="selectSuggestionProduct(${p.id})">
+        <div class="suggestion-col-main">
+          <div class="suggestion-name-row">
+            <span class="suggestion-name">${escapeHtml(p.name)}</span>
+            ${serialBadge}
+          </div>
+          <div class="suggestion-sub-info">
+            ${codeBadge}
+            ${catBadge}
+          </div>
+        </div>
+        <div class="suggestion-col-meta">
+          <div class="suggestion-price">${Number(price).toFixed(2)} EGP</div>
+          ${stockBadge}
+        </div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+  dropdown.style.display = 'flex';
+}
+
+function updateSuggestionsHighlight() {
+  const items = document.querySelectorAll('.suggestion-item');
+  items.forEach((item, idx) => {
+    if (idx === activeSuggestionIndex) {
+      item.classList.add('active');
+      item.scrollIntoView({ block: 'nearest' });
+    } else {
+      item.classList.remove('active');
+    }
+  });
+}
+
+function closeSearchSuggestions() {
+  const dropdown = document.getElementById('searchSuggestionsDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+  currentSuggestions = [];
+  activeSuggestionIndex = 0;
+}
+
+function isSearchSuggestionsOpen() {
+  const dropdown = document.getElementById('searchSuggestionsDropdown');
+  return dropdown && dropdown.style.display !== 'none';
+}
+
+function selectSuggestionProduct(productId) {
+  const p = cachedProducts.find((item) => Number(item.id) === Number(productId));
+  if (p) {
+    addProductToCartOrPromptSerial(p);
+    playBeep(1400);
+  }
+  closeSearchSuggestions();
+  const inputEl = document.getElementById('barcodeInput');
+  if (inputEl) inputEl.value = '';
+  focusSearch();
+}
+
+async function handleBarcodeScanned(query) {
+  closeSearchSuggestions();
+  const inputEl = document.getElementById('barcodeInput');
+  if (inputEl) inputEl.value = '';
+
+  try {
+    // Instant in-memory cache lookup for 0ms response
+    const normQ = normalizeSearchText(query);
+    const cachedItem = cachedProducts.find(
+      (p) => normalizeSearchText(p.barcode) === normQ || normalizeSearchText(p.sku) === normQ
+    );
+    if (cachedItem) {
+      addProductToCartOrPromptSerial(cachedItem);
+      playBeep(1400);
+      return;
+    }
+
+    // 1. Try fetching by exact barcode from API
     let res = await fetch(`/api/products/barcode/${encodeURIComponent(query)}`);
     let data = await res.json();
 
@@ -400,6 +674,107 @@ async function handleBarcodeScanned(query) {
   } catch (err) {
     console.error('Scan error:', err);
   }
+}
+
+// -------------------------------------------------------------
+// Cashier Print Format Synchronizer & Quick Switcher
+// -------------------------------------------------------------
+function updateCashierPrintFormatUI(format = null) {
+  const targetFormat = format || appSettingsCache.default_print_format || 'thermal';
+  appSettingsCache.default_print_format = targetFormat;
+
+  const formatMeta = {
+    thermal: {
+      label: 'دفع وطباعة حرارية',
+      btnLabel: 'دفع وطباعة حرارية (F12)',
+      icon: '🧾',
+    },
+    a4: {
+      label: 'دفع وطباعة A4 رسمية',
+      btnLabel: 'دفع وطباعة A4 رسمية (F12)',
+      icon: '📄',
+    },
+    a5: {
+      label: 'دفع وطباعة A5 مدمجة',
+      btnLabel: 'دفع وطباعة A5 مدمجة (F12)',
+      icon: '📑',
+    },
+  };
+
+  const meta = formatMeta[targetFormat] || formatMeta.thermal;
+
+  const shortcutLabel = document.getElementById('posPrintShortcutLabel');
+  if (shortcutLabel) shortcutLabel.textContent = meta.label;
+
+  const btnCheckoutLabel = document.getElementById('btnCheckoutLabel');
+  if (btnCheckoutLabel) btnCheckoutLabel.textContent = meta.btnLabel;
+
+  const pillIcon = document.getElementById('posActivePrintIcon');
+  if (pillIcon) pillIcon.textContent = meta.icon;
+
+  const cashierSelect = document.getElementById('posActivePrintFormatSelect');
+  if (cashierSelect) cashierSelect.value = targetFormat;
+
+  const settingsSelect = document.getElementById('setting_default_print_format');
+  if (settingsSelect) settingsSelect.value = targetFormat;
+}
+
+async function onCashierPrintFormatChange(newFormat) {
+  if (!newFormat) return;
+  appSettingsCache.default_print_format = newFormat;
+  updateCashierPrintFormatUI(newFormat);
+
+  // Persist default format to backend settings in background
+  try {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: 'default_print_format', value: newFormat }),
+    });
+    showToast(`تم تغيير نموذج الطباعة السريعة إلى (${newFormat.toUpperCase()}) بنجاح`, 'info');
+  } catch (err) {
+    console.error('Failed to persist default print format:', err);
+  }
+}
+
+// -------------------------------------------------------------
+// Invoice Quick Meta Header (Type, Customer Name, Phone)
+// -------------------------------------------------------------
+function renderInvoiceMetaHeader() {
+  const typeBadge = document.getElementById('invoiceMetaTypeBadge');
+  const customerNameEl = document.getElementById('invoiceMetaCustomerName');
+  const customerPhoneEl = document.getElementById('invoiceMetaCustomerPhone');
+
+  if (typeBadge) {
+    if (state.priceType === 'wholesale') {
+      typeBadge.textContent = 'فاتورة بيع (جملة)';
+      typeBadge.className = 'meta-badge-type wholesale';
+    } else {
+      typeBadge.textContent = 'فاتورة بيع (قطاعي)';
+      typeBadge.className = 'meta-badge-type retail';
+    }
+  }
+
+  if (customerNameEl) {
+    customerNameEl.textContent = state.customer ? state.customer.name : 'عميل نقدي';
+  }
+
+  if (customerPhoneEl) {
+    customerPhoneEl.textContent = state.customer && state.customer.phone ? state.customer.phone : '—';
+  }
+}
+
+function resetToCashCustomer() {
+  state.customer = null;
+  const badge = document.getElementById('customerNameBadge');
+  if (badge) badge.textContent = 'عميل نقدي';
+  const pInput = document.getElementById('customerPhoneInput');
+  const nInput = document.getElementById('customerNameInput');
+  if (pInput) pInput.value = '';
+  if (nInput) nInput.value = '';
+  renderInvoiceMetaHeader();
+  closeCustomerModal();
+  showToast('تم تعيين العميل كـ "عميل نقدي"', 'info');
 }
 
 // Check if product requires serial or can be added directly
@@ -642,8 +1017,10 @@ function setPaymentMethod(method) {
 function togglePriceType() {
   state.priceType = state.priceType === 'retail' ? 'wholesale' : 'retail';
   const badge = document.getElementById('priceTypeBadge');
-  badge.textContent = state.priceType === 'retail' ? 'قطاعي' : 'جملة';
-  badge.style.color = state.priceType === 'wholesale' ? 'var(--accent-cyan)' : '#fff';
+  if (badge) {
+    badge.textContent = state.priceType === 'retail' ? 'سعر قطاعي' : 'سعر جملة';
+    badge.style.color = state.priceType === 'wholesale' ? 'var(--accent-cyan)' : '#fff';
+  }
 
   // Update existing cart item prices
   state.cart.forEach((item) => {
@@ -652,6 +1029,7 @@ function togglePriceType() {
       : item.product.sellPriceRetail;
   });
   renderCart();
+  renderInvoiceMetaHeader();
 }
 
 // -------------------------------------------------------------
@@ -707,12 +1085,27 @@ async function handleCheckout(printThermal = true) {
     lastCompletedInvoiceId = data.invoice.id;
     lastCustomerPhone = state.customer ? state.customer.phone : '';
 
-    // Display Thermal Receipt Preview Modal
-    displayReceiptPreview(data.invoice, state.cart, paid, finalAmount);
+    // Print / Preview based on default format
+    const activeFormat = appSettingsCache.default_print_format || 'thermal';
+    if (printThermal) {
+      if (activeFormat === 'a4' || activeFormat === 'a5') {
+        openInvoicePreviewModal(data.invoice.id, activeFormat);
+        printInvoiceDocument(data.invoice.id, activeFormat);
+      } else {
+        displayReceiptPreview(data.invoice, state.cart, paid, finalAmount);
+        printInvoiceDocument(data.invoice.id, 'thermal');
+      }
+    } else {
+      showToast(`تم إتمام الفاتورة #${data.invoice.invoiceNumber} بنجاح بدون طباعة!`, 'success');
+    }
 
-    // Reset Cart
+    // Reset Cart & Customer
     state.cart = [];
     state.discountAmount = 0;
+    state.customer = null;
+    const custBadge = document.getElementById('customerNameBadge');
+    if (custBadge) custBadge.textContent = 'عميل نقدي';
+    renderInvoiceMetaHeader();
     paidInput.value = '';
     renderCart();
   } catch (err) {
@@ -854,6 +1247,7 @@ async function saveCustomer() {
     if (data.success) {
       state.customer = data.contact;
       document.getElementById('customerNameBadge').textContent = name;
+      renderInvoiceMetaHeader();
       closeCustomerModal();
     }
   } catch (err) {
@@ -1072,6 +1466,7 @@ function clearSearch() {
   const el = document.getElementById('barcodeInput');
   if (el) {
     el.value = '';
+    closeSearchSuggestions();
     el.focus();
   }
 }
@@ -3376,6 +3771,7 @@ function applyAppSettingsUI() {
   if (selectDefaultPrint) selectDefaultPrint.value = appSettingsCache.default_print_format || 'thermal';
 
   applyPrintFormatVisibility();
+  updateCashierPrintFormatUI();
 }
 
 async function loadSettingsAndLicense() {
@@ -3601,6 +3997,7 @@ async function loadStoreAndTaxSettings() {
     if (selectDefaultPrint) selectDefaultPrint.value = s?.default_print_format || 'thermal';
     syncDefaultFormatDropdown();
     applyPrintFormatVisibility();
+    updateCashierPrintFormatUI();
   } catch (e) {
     console.error('Error loading store & tax settings:', e);
   }
@@ -3679,6 +4076,7 @@ async function saveStoreSettings() {
     if (dataSet.success) {
       appSettingsCache = { ...appSettingsCache, ...dataSet.settings };
       applyPrintFormatVisibility();
+      updateCashierPrintFormatUI();
       showToast('✅ تم حفظ بيانات المنشأة وخيارات الطباعة بنجاح!', 'success');
     }
   } catch (e) {

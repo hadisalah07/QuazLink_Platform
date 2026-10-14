@@ -1,6 +1,6 @@
 {
   "name": "quazlink-pos-client",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "QuazLink Enterprise POS & Retail Engine (Offline-First)",
   "private": true,
   "main": "dist/electron/main.js",
