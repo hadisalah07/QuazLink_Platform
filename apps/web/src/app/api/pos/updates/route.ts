@@ -4,7 +4,7 @@ import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.2.6";
+export const POS_LATEST_VERSION = "1.2.7";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
 export const POS_RELEASE_DATE = "2026-10-15";
 export const POS_RELEASE_NOTES = `• إصلاح طبقات العرض والواجهة لقائمة البحث الذكي (Z-Index / Stacking Context Fix): حل مشكلة ظهور نتائج البحث الذكي خلف جدول الأصناف، لتطفو الآن بسلاسة تامة وبوضوح كامل فوق الجدول وكافة عناصر الفاتورة.

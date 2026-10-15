@@ -244,7 +244,7 @@ body {
 }
 
 .time-clock {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.9rem;
   color: var(--accent-cyan);
   font-weight: 700;
@@ -359,7 +359,7 @@ body {
   color: #38bdf8;
   padding: 1px 4px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.68rem;
   font-weight: 700;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
@@ -570,7 +570,7 @@ body {
 }
 
 .suggestion-code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 600;
   color: #cbd5e1;
 }
@@ -593,9 +593,29 @@ body {
 
 .suggestion-price {
   font-weight: 800;
-  font-size: 0.95rem;
-  color: #34d399;
-  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.05rem;
+  color: #38bdf8;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.suggestion-price .currency {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+body.theme-light .suggestion-price,
+[data-theme="light"] .suggestion-price {
+  color: #0369a1 !important; /* Calming, deep sapphire blue */
+}
+
+body.theme-light .suggestion-price .currency,
+[data-theme="light"] .suggestion-price .currency {
+  color: #64748b !important;
 }
 
 .suggestion-stock {
@@ -756,7 +776,7 @@ body {
 }
 
 .invoice-meta-card .meta-val.customer-phone {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.76rem;
   font-weight: 600;
   color: #a5b4fc;
@@ -884,7 +904,7 @@ body {
 }
 
 .pos-table code {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.77rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.09);
@@ -907,7 +927,7 @@ body {
   color: #a5b4fc;
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.7rem;
   font-weight: 600;
 }
@@ -940,7 +960,7 @@ body {
 }
 
 .qty-number {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 700;
   width: 22px;
   text-align: center;
@@ -948,7 +968,7 @@ body {
 }
 
 .price-text, .total-text {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 700;
   font-size: 0.82rem;
 }
@@ -1104,7 +1124,7 @@ body {
 }
 
 .summary-row .val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 700;
   color: #fff;
   font-size: 0.84rem;
@@ -1146,7 +1166,7 @@ body {
 }
 
 .total-amount {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 1.65rem;
   font-weight: 900;
   color: var(--accent-emerald);
@@ -1218,7 +1238,7 @@ body {
   padding: 5px 8px;
   border-radius: 6px;
   color: #fff;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.9rem;
   font-weight: 700;
   outline: none;
@@ -1242,7 +1262,7 @@ body {
   color: #e2e8f0;
   padding: 4px 0;
   border-radius: 5px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
@@ -1284,7 +1304,7 @@ body {
 }
 
 .change-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 700;
   color: #fff;
 }
@@ -1668,7 +1688,7 @@ main.pos-workspace.app-view.active {
 
 .input-group textarea {
   resize: vertical;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
 }
 
 /* Statement of Account Banner */
@@ -1688,7 +1708,7 @@ main.pos-workspace.app-view.active {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 0.7rem;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 700;
 }
 
@@ -1799,7 +1819,7 @@ main.pos-workspace.app-view.active {
   padding: 7px 10px;
   border-radius: 6px;
   color: #fff;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.95rem;
   outline: none;
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
@@ -1829,7 +1849,7 @@ main.pos-workspace.app-view.active {
   border: 1px solid var(--border-glass);
   padding: 3px 7px;
   border-radius: 5px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.72rem;
   cursor: pointer;
   transition: all 0.15s;
@@ -1860,7 +1880,7 @@ main.pos-workspace.app-view.active {
   color: #000;
   padding: 14px;
   border-radius: 7px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   max-height: 400px;
   overflow-y: auto;
@@ -2059,7 +2079,7 @@ main.pos-workspace.app-view.active {
 }
 
 .hw-key-box {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 1.35rem;
   font-weight: 800;
   color: var(--accent-cyan);
@@ -2113,12 +2133,12 @@ main.pos-workspace.app-view.active {
 }
 
 .lic-expiry-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   color: var(--accent-amber);
 }
 
 .lic-days-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   color: #fff;
   font-weight: 800;
   font-size: 1.05rem;
@@ -2205,7 +2225,7 @@ main.pos-workspace.app-view.active {
   color: #6ee7b7;
 }
 .credits-stat-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 2rem;
   font-weight: 800;
 }
@@ -2230,7 +2250,7 @@ main.pos-workspace.app-view.active {
   font-weight: 600;
 }
 .credits-consumed-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   color: #fff;
   font-weight: 700;
 }
@@ -2264,7 +2284,7 @@ main.pos-workspace.app-view.active {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 .sync-pending-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   color: var(--accent-amber);
   font-weight: 800;
   font-size: 1.15rem;
@@ -2331,7 +2351,7 @@ main.pos-workspace.app-view.active {
   margin-bottom: 3px;
 }
 .drawer-matrix-val {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 700;
   font-size: 0.95rem;
   display: block;
@@ -2351,7 +2371,7 @@ main.pos-workspace.app-view.active {
   font-weight: 800;
 }
 .val-expected {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-weight: 800;
   font-size: 1.15rem;
   color: #fff;
@@ -2362,7 +2382,7 @@ main.pos-workspace.app-view.active {
 }
 .big-num-input {
   width: 100%;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 1.35rem;
   font-weight: 800;
   padding: 10px 14px;
@@ -2399,7 +2419,7 @@ main.pos-workspace.app-view.active {
 .update-version-badge {
   background: rgba(16, 185, 129, 0.2);
   color: #34d399;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.75rem;
   font-weight: 700;
   padding: 3px 10px;
@@ -2454,7 +2474,7 @@ main.pos-workspace.app-view.active {
 }
 
 .update-progress-stats {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   color: var(--accent-cyan);
   font-weight: 700;
   font-size: 0.85rem;
@@ -4269,4 +4289,124 @@ body.theme-light .invoice-meta-card .meta-val.customer-name,
 body.theme-light .invoice-meta-card .meta-val.customer-phone,
 [data-theme="light"] .invoice-meta-card .meta-val.customer-phone {
   color: #4338ca;
+}
+
+
+/* ==========================================================================
+   Restful, Eye-Friendly Financial Typography (Light & Dark Themes)
+   ========================================================================== */
+
+.summary-row .val {
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: #f1f5f9;
+  font-size: 0.95rem;
+}
+
+body.theme-light .summary-row .val,
+[data-theme="light"] .summary-row .val {
+  color: #1e293b !important; /* Soft deep slate - zero eye strain */
+  font-weight: 700 !important;
+}
+
+.summary-row.discount .val {
+  color: #94a3b8;
+}
+.summary-row.discount.has-discount .val {
+  color: var(--accent-amber);
+}
+
+body.theme-light .summary-row.discount .val,
+[data-theme="light"] .summary-row.discount .val {
+  color: #64748b !important; /* Gentle neutral when 0.00 */
+}
+body.theme-light .summary-row.discount.has-discount .val,
+[data-theme="light"] .summary-row.discount.has-discount .val {
+  color: #e11d48 !important; /* Soft rose crimson when discount exists */
+}
+
+.summary-row.vat .val {
+  color: #94a3b8;
+}
+body.theme-light .summary-row.vat .val,
+[data-theme="light"] .summary-row.vat .val {
+  color: #475569 !important; /* Calm slate, not blinding cyan */
+}
+
+body.theme-light .total-banner,
+[data-theme="light"] .total-banner {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%) !important;
+  border: 1.5px solid #86efac !important;
+  border-radius: 8px;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.08) !important;
+}
+body.theme-light .total-label,
+[data-theme="light"] .total-label {
+  color: #047857 !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+}
+body.theme-light .total-amount,
+[data-theme="light"] .total-amount {
+  color: #065f46 !important; /* Rich deep forest emerald */
+  font-weight: 800 !important;
+  font-size: 1.8rem !important;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+  text-shadow: none !important;
+}
+body.theme-light .total-amount .currency,
+[data-theme="light"] .total-amount .currency {
+  color: #059669 !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+}
+
+body.theme-light .time-clock,
+[data-theme="light"] .time-clock {
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important; /* Calm deep charcoal */
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.change-val {
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+}
+.change-val.positive {
+  color: #10b981;
+}
+.change-val.debt {
+  color: #f59e0b;
+}
+
+body.theme-light .change-val.positive,
+[data-theme="light"] .change-val.positive {
+  color: #059669 !important; /* Restful emerald */
+}
+body.theme-light .change-val.debt,
+[data-theme="light"] .change-val.debt {
+  color: #d97706 !important; /* Warm amber */
+}
+
+body.theme-light .product-chip,
+[data-theme="light"] .product-chip {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif !important;
+  font-variant-numeric: tabular-nums !important;
+  font-weight: 600 !important;
+}
+body.theme-light .product-chip:hover,
+[data-theme="light"] .product-chip:hover {
+  background: #f1f5f9 !important;
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
 }

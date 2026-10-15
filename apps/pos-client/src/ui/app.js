@@ -3,6 +3,12 @@
  * Keyboard-First, Barcode HID Listener, Serial Prompt Guard & Real-Time Checkout
  */
 
+// Global Caches & Autocomplete State
+let cachedProducts = [];
+let currentSuggestions = [];
+let activeSuggestionIndex = 0;
+let searchDebounceTimer = null;
+
 // Application State
 const state = {
   cart: [], // { product, quantity, unitPrice, serialNumber }
@@ -406,6 +412,7 @@ async function loadPosProductsCache() {
 
 function initSearchAutocomplete() {
   const inputEl = document.getElementById('barcodeInput');
+  const suggestionsList = document.getElementById('suggestionsList');
   if (!inputEl) return;
 
   // Real-time typing autocomplete listener
@@ -418,8 +425,29 @@ function initSearchAutocomplete() {
     clearTimeout(searchDebounceTimer);
     searchDebounceTimer = setTimeout(() => {
       performLiveSearch(query);
-    }, 70);
+    }, 60);
   });
+
+  // Direct click / mousedown delegation on list (fires BEFORE input blur)
+  if (suggestionsList) {
+    suggestionsList.addEventListener('mousedown', (e) => {
+      const itemEl = e.target.closest('.suggestion-item');
+      if (itemEl && itemEl.dataset.index !== undefined) {
+        e.preventDefault();
+        e.stopPropagation();
+        selectSuggestionByIndex(itemEl.dataset.index);
+      }
+    });
+
+    suggestionsList.addEventListener('click', (e) => {
+      const itemEl = e.target.closest('.suggestion-item');
+      if (itemEl && itemEl.dataset.index !== undefined) {
+        e.preventDefault();
+        e.stopPropagation();
+        selectSuggestionByIndex(itemEl.dataset.index);
+      }
+    });
+  }
 
   // Arrow navigation & Enter key selection
   inputEl.addEventListener('keydown', (e) => {
@@ -440,14 +468,8 @@ function initSearchAutocomplete() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (isOpen && currentSuggestions.length > 0) {
-        const chosen = currentSuggestions[activeSuggestionIndex];
-        if (chosen) {
-          addProductToCartOrPromptSerial(chosen);
-          playBeep(1400);
-          closeSearchSuggestions();
-          inputEl.value = '';
-          return;
-        }
+        selectSuggestionByIndex(activeSuggestionIndex);
+        return;
       }
 
       // If dropdown is closed or empty, trigger full barcode / code scan
@@ -575,7 +597,7 @@ function renderSearchSuggestions(products, rawQuery) {
     const codeBadge = `<span class="suggestion-code">🏷️ ${escapeHtml(p.barcode || p.sku || 'بدون كود')}</span>`;
 
     html += `
-      <div class="suggestion-item ${index === 0 ? 'active' : ''}" data-index="${index}" onclick="selectSuggestionProduct(${p.id})">
+      <div class="suggestion-item ${index === 0 ? 'active' : ''}" data-index="${index}" onclick="selectSuggestionByIndex(${index})" onmouseenter="setActiveSuggestionIndex(${index})" role="button" tabindex="0">
         <div class="suggestion-col-main">
           <div class="suggestion-name-row">
             <span class="suggestion-name">${escapeHtml(p.name)}</span>
@@ -587,7 +609,7 @@ function renderSearchSuggestions(products, rawQuery) {
           </div>
         </div>
         <div class="suggestion-col-meta">
-          <div class="suggestion-price">${Number(price).toFixed(2)} EGP</div>
+          <div class="suggestion-price">${Number(price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="currency">EGP</span></div>
           ${stockBadge}
         </div>
       </div>
@@ -597,6 +619,45 @@ function renderSearchSuggestions(products, rawQuery) {
   list.innerHTML = html;
   dropdown.style.zIndex = '99999';
   dropdown.style.display = 'flex';
+}
+
+function setActiveSuggestionIndex(index) {
+  activeSuggestionIndex = Number(index);
+  updateSuggestionsHighlight();
+}
+
+function selectSuggestionByIndex(index) {
+  const idx = typeof index === 'number' ? index : parseInt(index, 10);
+  const p = currentSuggestions[idx] || (cachedProducts && cachedProducts[idx]);
+  if (!p) {
+    console.warn('Suggestion index out of bounds:', index);
+    return;
+  }
+
+  addProductToCartOrPromptSerial(p);
+  playBeep(1400);
+
+  closeSearchSuggestions();
+  const inputEl = document.getElementById('barcodeInput');
+  if (inputEl) {
+    inputEl.value = '';
+    focusSearch();
+  }
+}
+
+function selectSuggestionProduct(productId) {
+  const targetId = String(productId);
+  const p = cachedProducts.find((item) => String(item.id) === targetId || String(item.barcode) === targetId || String(item.sku) === targetId);
+  if (p) {
+    addProductToCartOrPromptSerial(p);
+    playBeep(1400);
+  }
+  closeSearchSuggestions();
+  const inputEl = document.getElementById('barcodeInput');
+  if (inputEl) {
+    inputEl.value = '';
+    focusSearch();
+  }
 }
 
 function updateSuggestionsHighlight() {
@@ -621,18 +682,6 @@ function closeSearchSuggestions() {
 function isSearchSuggestionsOpen() {
   const dropdown = document.getElementById('searchSuggestionsDropdown');
   return dropdown && dropdown.style.display !== 'none';
-}
-
-function selectSuggestionProduct(productId) {
-  const p = cachedProducts.find((item) => Number(item.id) === Number(productId));
-  if (p) {
-    addProductToCartOrPromptSerial(p);
-    playBeep(1400);
-  }
-  closeSearchSuggestions();
-  const inputEl = document.getElementById('barcodeInput');
-  if (inputEl) inputEl.value = '';
-  focusSearch();
 }
 
 async function handleBarcodeScanned(query) {
@@ -957,18 +1006,26 @@ function clearCart() {
 
 function recalculateTotals() {
   const subtotal = state.cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  document.getElementById('subtotalVal').textContent = `${subtotal.toFixed(2)} EGP`;
+  document.getElementById('subtotalVal').textContent = `${subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
 
   const discount = state.discountAmount || 0;
-  document.getElementById('discountVal').textContent = `-${discount.toFixed(2)} EGP`;
+  const discountRow = document.querySelector('.summary-row.discount');
+  const discountEl = document.getElementById('discountVal');
+  if (discount > 0) {
+    discountEl.textContent = `-${discount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
+    if (discountRow) discountRow.classList.add('has-discount');
+  } else {
+    discountEl.textContent = `0.00 EGP`;
+    if (discountRow) discountRow.classList.remove('has-discount');
+  }
 
   const taxable = Math.max(0, subtotal - discount);
   const vatCheckbox = document.getElementById('vat14Checkbox');
-  const vat14 = vatCheckbox.checked ? Number((taxable * 0.14).toFixed(2)) : 0;
-  document.getElementById('vat14Val').textContent = `+${vat14.toFixed(2)} EGP`;
+  const vat14 = vatCheckbox && vatCheckbox.checked ? Number((taxable * 0.14).toFixed(2)) : 0;
+  document.getElementById('vat14Val').textContent = `${vat14 > 0 ? '+' : ''}${vat14.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
 
   const finalAmount = Number((taxable + vat14).toFixed(2));
-  document.getElementById('finalAmountVal').innerHTML = `${finalAmount.toFixed(2)} <span class="currency">EGP</span>`;
+  document.getElementById('finalAmountVal').innerHTML = `${finalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="currency">EGP</span>`;
 
   // Paid & Change
   const paidInput = document.getElementById('paidAmountInput');
@@ -980,12 +1037,16 @@ function recalculateTotals() {
 
   if (change >= 0) {
     changeLabel.textContent = 'الباقي للزبون:';
-    changeVal.textContent = `${change.toFixed(2)} EGP`;
-    changeVal.style.color = 'var(--accent-emerald)';
+    changeVal.textContent = `${change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
+    changeVal.style.color = '';
+    changeVal.classList.remove('debt');
+    changeVal.classList.add('positive');
   } else {
     changeLabel.textContent = 'المتبقي (آجل/دين):';
-    changeVal.textContent = `${Math.abs(change).toFixed(2)} EGP`;
-    changeVal.style.color = 'var(--accent-amber)';
+    changeVal.textContent = `${Math.abs(change).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
+    changeVal.style.color = '';
+    changeVal.classList.remove('positive');
+    changeVal.classList.add('debt');
   }
 }
 
@@ -1500,7 +1561,6 @@ async function loadQuickProducts() {
 
 let currentView = 'posView';
 let currentCrmTab = 'customer';
-let cachedProducts = [];
 
 function switchView(viewId) {
   currentView = viewId;
@@ -3573,7 +3633,7 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.6';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.7';
       const headerVer = document.getElementById('headerAppVersionBadge');
       if (headerVer && data.currentVersion) headerVer.textContent = 'v' + data.currentVersion;
 

@@ -4,7 +4,7 @@ import { extractClientIp, resolveGeoLocation } from '../lib/geoip';
 
 const router = Router();
 
-export const POS_LATEST_VERSION = '1.2.6';
+export const POS_LATEST_VERSION = '1.2.7';
 export const POS_RELEASE_DATE = '2026-10-15';
 export const POS_RELEASE_NOTES = `• إصلاح طبقات العرض والواجهة لقائمة البحث الذكي (Z-Index / Stacking Context Fix): حل مشكلة ظهور نتائج البحث الذكي خلف جدول الأصناف، لتطفو الآن بسلاسة تامة وبوضوح كامل فوق الجدول وكافة عناصر الفاتورة.
 • محرك البحث الذكي والفوري (Live Autocomplete): شريط بحث فوري ومرن بالكامل للمنتجات، يدعم تطبيع الحروف العربية والإنجليزية والرموز، والبحث بأجزاء متعددة من الاسم أو الباركود، مع التنقل السلس بالأسهم وزر Enter للإضافة الفورية للفاتورة.
