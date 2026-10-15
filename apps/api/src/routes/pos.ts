@@ -4,12 +4,12 @@ import { extractClientIp, resolveGeoLocation } from '../lib/geoip';
 
 const router = Router();
 
-export const POS_LATEST_VERSION = '1.2.4';
-export const POS_RELEASE_DATE = '2026-10-13';
-export const POS_RELEASE_NOTES = `• دعم طباعة الفواتير بقياسات A4 و A5 الاحترافية بالإضافة للطباعة الحرارية المعتادة (Thermal 80mm).
-• خيارات متقدمة في إعدادات النظام للتحكم بإظهار أو إخفاء أي نوع من أنواع الطباعة الثلاثة وتحديد القياس الافتراضي بما يلائم نشاط عملك.
-• نافذة معاينة تفاعلية متطورة قبل الطباعة مع إمكانية التبديل اللحظي بين المقاسات والطباعة المباشرة.
-• تفقيط المبالغ تلقائياً باللغة العربية (دينار / فلس، جنيه / قرش، ريال / هللة) وتوليد باركود ZATCA/ETA المعتمد وحساب ضريبة القيمة المضافة بدقة متناهية.`;
+export const POS_LATEST_VERSION = '1.2.5';
+export const POS_RELEASE_DATE = '2026-10-15';
+export const POS_RELEASE_NOTES = `• محرك البحث الذكي والفوري (Live Autocomplete): شريط بحث فوري ومرن بالكامل للمنتجات، يدعم تطبيع الحروف العربية والإنجليزية والرموز، والبحث بأجزاء متعددة من الاسم أو الباركود، مع التنقل السلس بالأسهم وزر Enter للإضافة الفورية للفاتورة.
+• خيارات الطباعة المباشرة من شاشة الفاتورة والكاشير: إمكانية اختيار القياس الافتراضي للطباعة (حراري 80mm / A4 / A5) بضغطة واحدة من واجهة الكاشير ومزامنة أزرار الحفظ والطباعة والدفع فورياً.
+• بطاقة تفاصيل وملخص الفاتورة أعلى الحساب: بطاقة أنيقة تعرض نوع الفاتورة (مبيعات / مشتريات / قطاعي / جملة) مع إظهار اسم العميل ورقم الهاتف مباشرة وبشكل مريح قبل الدفع.
+• دعم كامل وموحد لكافة نسخ ويندوز الحديثة (Windows 11 / 10) والقديمة (Windows 7 / 8 / POSReady 32-bit & 64-bit).`;
 
 /**
  * POST /api/pos/telemetry
@@ -157,8 +157,8 @@ router.get('/updates', async (req: Request, res: Response) => {
     const portableFilename = isLegacyWin ? 'QuazLink-POS-Legacy-Win7-Portable.exe' : 'QuazLink-POS-Portable.zip';
 
     const releaseTitle = isLegacyWin
-      ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق 100% مع Windows 7 / 8 / POSReady)`
-      : `QuazLink POS & ERP v${POS_LATEST_VERSION} (طباعة الفواتير A4/A5 وخيارات الإعدادات المتقدمة)`;
+      ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق مع Windows 7 / 8 / POSReady - مع البحث الذكي الفوري والطباعة)`
+      : `QuazLink POS & ERP v${POS_LATEST_VERSION} (محرك البحث الذكي الفوري، واختيار قياس الطباعة A4/A5، وتفاصيل الفاتورة)`;
 
     res.json({
       success: true,
