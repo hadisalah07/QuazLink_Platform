@@ -548,6 +548,7 @@ function renderSearchSuggestions(products, rawQuery) {
         <span style="font-size:0.75rem; color:#64748b;">تأكد من كتابة الاسم أو الكود أو الباركود بشكل صحيح</span>
       </div>
     `;
+    dropdown.style.zIndex = '99999';
     dropdown.style.display = 'flex';
     return;
   }
@@ -594,6 +595,7 @@ function renderSearchSuggestions(products, rawQuery) {
   });
 
   list.innerHTML = html;
+  dropdown.style.zIndex = '99999';
   dropdown.style.display = 'flex';
 }
 
@@ -3571,7 +3573,7 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.5';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.6';
       const headerVer = document.getElementById('headerAppVersionBadge');
       if (headerVer && data.currentVersion) headerVer.textContent = 'v' + data.currentVersion;
 
