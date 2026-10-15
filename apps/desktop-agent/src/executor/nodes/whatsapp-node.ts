@@ -1029,13 +1029,27 @@ export class WhatsAppNode implements IPlatformNode {
    * Helper: Waits for WhatsApp Web to be authenticated and ready
    */
   private async waitForWhatsAppReady(page: Page, onProgress: (msg: string) => void): Promise<boolean> {
-    const MAX_WAIT = 25;
+    // Auto-dismiss any native browser dialogs (confirm, alert, beforeunload) so Playwright never hangs
+    page.on('dialog', async (d) => {
+      await d.dismiss().catch(() => {});
+    });
+
+    const MAX_WAIT = 20;
     for (let i = 0; i < MAX_WAIT; i++) {
       await this.dismissBlockingModals(page, onProgress);
 
       const status = await page.evaluate(() => {
-        const hasQr = !!document.querySelector('canvas[aria-label="Scan this QR code to link a device!"]') || !!document.querySelector('div[data-ref]');
-        const hasChatList = !!document.querySelector('#pane-side') || !!document.querySelector('div[aria-label="Chat list"]') || !!document.querySelector('header');
+        const hasQr =
+          !!document.querySelector('canvas[aria-label*="QR" i]') ||
+          !!document.querySelector('canvas[aria-label*="رمز" i]') ||
+          !!document.querySelector('div[data-ref]') ||
+          !!document.querySelector('[data-testid="qrcode"]') ||
+          (!!document.querySelector('canvas') && !document.querySelector('#pane-side'));
+        const hasChatList =
+          !!document.querySelector('#pane-side') ||
+          !!document.querySelector('div[aria-label="Chat list"]') ||
+          !!document.querySelector('div[aria-label="قائمة الدردشات"]') ||
+          !!document.querySelector('header');
         return { hasQr, hasChatList };
       }).catch(() => ({ hasQr: false, hasChatList: false }));
 
@@ -1051,7 +1065,8 @@ export class WhatsAppNode implements IPlatformNode {
       await page.waitForTimeout(1000);
     }
 
-    return true;
+    onProgress('[WhatsAppNode] WhatsApp Web failed to load chat list or session within 20s. Session is unauthenticated.');
+    return false;
   }
 
   /**

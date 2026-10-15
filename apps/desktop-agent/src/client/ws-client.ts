@@ -335,7 +335,15 @@ export class RunnerWSClient {
     }, 8000);
 
     try {
-      const result = await this.runner.executeTask(
+      const HARD_TASK_TIMEOUT_MS = 120_000; // 2 minutes hard limit per task
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise<ExecutionResult>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`Automation execution timed out after ${HARD_TASK_TIMEOUT_MS / 1000}s on local runner.`));
+        }, HARD_TASK_TIMEOUT_MS);
+      });
+
+      const executionPromise = this.runner.executeTask(
         jobData,
         this.otaSelectors,
         (progressMsg) => {
@@ -397,6 +405,10 @@ export class RunnerWSClient {
         }
       );
 
+      const result = await Promise.race([executionPromise, timeoutPromise]).finally(() => {
+        clearTimeout(timeoutId);
+      });
+
       if (result.success) {
         this.send({
           type: 'job:completed',
@@ -411,6 +423,13 @@ export class RunnerWSClient {
           error: result.error,
         });
       }
+    } catch (err: any) {
+      console.error(`❌ [WSClient] Task #${id} failed:`, err.message);
+      this.send({
+        type: 'job:failed',
+        jobId: id,
+        error: err.message,
+      });
     } finally {
       clearInterval(heartbeat);
     }

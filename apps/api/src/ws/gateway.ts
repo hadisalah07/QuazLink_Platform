@@ -50,6 +50,24 @@ export function setupWebSocketGateway(server: HttpServer) {
   // Periodic background watchdog to reconcile any stuck/dispatched jobs (runs every 15s)
   setInterval(async () => {
     try {
+      // 1. Hard Timeout Guard: Any job stuck in 'dispatched' for > 6 minutes is timed out
+      const hardTimeoutThreshold = new Date(Date.now() - 360_000);
+      const timedOutJobs = await prisma.job.updateMany({
+        where: {
+          status: 'dispatched',
+          createdAt: { lt: hardTimeoutThreshold },
+        },
+        data: {
+          status: 'failed',
+          completedAt: new Date(),
+          result: 'Automation timed out (> 6 min on runner without completion). Please check runner logs or reconnect WhatsApp session.',
+        },
+      });
+      if (timedOutJobs.count > 0) {
+        console.warn(`⚠️ Watchdog force-failed ${timedOutJobs.count} hung dispatched job(s) older than 6 minutes.`);
+      }
+
+      // 2. Reconcile pending jobs across active connected devices
       for (const [userId, devices] of activeDevices.entries()) {
         for (const [deviceId, socket] of devices.entries()) {
           if (socket.readyState === WebSocket.OPEN) {
