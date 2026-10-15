@@ -52,14 +52,12 @@ router.get('/info', (_req, res) => {
       recommended: true,
       installer: {
         filename: 'QuazLink-POS-Setup-v1.2.7.exe',
-    'QuazLink-POS-Setup-v1.2.6.exe',
         downloadUrl: '/downloads/QuazLink-POS-Setup-v1.2.7.exe',
         apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Setup-v1.2.7.exe',
         ...posInstallerInfo,
       },
       portable: {
         filename: 'QuazLink-POS-Portable-v1.2.7.zip',
-    'QuazLink-POS-Portable-v1.2.6.zip',
         downloadUrl: '/downloads/QuazLink-POS-Portable-v1.2.7.zip',
         apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Portable-v1.2.7.zip',
         ...posPortableInfo,
@@ -79,14 +77,12 @@ router.get('/info', (_req, res) => {
       isLegacy: true,
       installer: {
         filename: 'QuazLink-POS-Legacy-Win7-Setup-v1.2.7.exe',
-    'QuazLink-POS-Legacy-Win7-Setup-v1.2.6.exe',
         downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.2.7.exe',
         apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup-v1.2.7.exe',
         ...posLegacySetupInfo,
       },
       portable: {
         filename: 'QuazLink-POS-Legacy-Win7-Portable-v1.2.7.zip',
-    'QuazLink-POS-Legacy-Win7-Portable-v1.2.6.zip',
         downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.2.7.zip',
         apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable-v1.2.7.zip',
         ...posLegacyPortableInfo,
