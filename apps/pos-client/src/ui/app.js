@@ -375,12 +375,8 @@ function playBeep(freq = 1200, duration = 0.08) {
 }
 
 // -------------------------------------------------------------
-// -------------------------------------------------------------
 // 4. Smart Arabic Normalization & Autocomplete Search Engine
 // -------------------------------------------------------------
-let activeSuggestionIndex = 0;
-let currentSuggestions = [];
-let searchDebounceTimer = null;
 
 function normalizeSearchText(str) {
   if (!str) return '';
