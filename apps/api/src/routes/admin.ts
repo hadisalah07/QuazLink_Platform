@@ -49,10 +49,21 @@ router.get('/analytics', async (req: Request, res: Response) => {
       prisma.job.count({ where: { status: { in: ['active', 'dispatched', 'pending'] } } }),
       prisma.campaign.count(),
       prisma.socialAccount.count(),
-      prisma.posTerminal.count(),
+      prisma.posTerminal.count({
+        where: {
+          NOT: [
+            { hardwareId: 'QL-HW-TEST-VERIFY-123' },
+            { businessName: 'Supermarket Test' },
+          ],
+        },
+      }),
       prisma.posTerminal.count({
         where: {
           lastSeenAt: { gte: fifteenMinutesAgo },
+          NOT: [
+            { hardwareId: 'QL-HW-TEST-VERIFY-123' },
+            { businessName: 'Supermarket Test' },
+          ],
         },
       }),
       prisma.user.findMany({
@@ -82,6 +93,12 @@ router.get('/analytics', async (req: Request, res: Response) => {
         orderBy: { lastHeartbeat: 'desc' },
       }),
       prisma.posTerminal.findMany({
+        where: {
+          NOT: [
+            { hardwareId: 'QL-HW-TEST-VERIFY-123' },
+            { businessName: 'Supermarket Test' },
+          ],
+        },
         orderBy: { lastSeenAt: 'desc' },
       }),
     ]);
@@ -178,12 +195,25 @@ router.get('/analytics', async (req: Request, res: Response) => {
       .sort((a, b) => b.count - a.count);
 
     // 5. Build Standalone POS & ERP Terminals
+    const nowMs = Date.now();
+    const TRIAL_DAYS = 30;
+
     const posTerminals = posTerminalsRaw.map((t) => {
       const isOnline = t.lastSeenAt >= fifteenMinutesAgo;
       const countryCode = t.countryCode || 'EG';
       const country = t.country || 'Egypt';
       const city = t.city || 'Cairo';
       const flag = getCountryFlag(countryCode);
+
+      // Trial ground truth calculation
+      const firstSeen = new Date(t.firstSeenAt);
+      const expiresAt = new Date(firstSeen.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+      const diffMs = expiresAt.getTime() - nowMs;
+      const isLifetime = (t.licenseType || '').toLowerCase() === 'lifetime';
+      const isTrialExpired = !isLifetime && diffMs <= 0;
+      const daysRemaining = isLifetime ? null : Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      const daysElapsed = isLifetime ? 30 : Math.min(30, Math.max(0, 30 - (daysRemaining ?? 0)));
+      const trialProgressPercent = isLifetime ? 100 : Math.min(100, Math.max(0, Math.round((daysElapsed / 30) * 100)));
 
       // Also contribute to country geo intelligence
       const key = countryCode || 'UN';
@@ -211,7 +241,17 @@ router.get('/analytics', async (req: Request, res: Response) => {
         osRelease: t.osRelease || 'Windows',
         osArch: t.osArch || 'x64',
         cpuModel: t.cpuModel || 'Generic CPU',
+        cpuProcessorId: t.cpuProcessorId || null,
+        cpuCores: t.cpuCores || null,
         totalMemoryMB: t.totalMemoryMB || 4096,
+        freeMemoryMB: (t.rawHardware as any)?.freeMemoryMB || null,
+        motherboardUuid: t.motherboardUuid || t.hardwareId,
+        motherboardSerial: t.motherboardSerial || null,
+        motherboardMfr: t.motherboardMfr || null,
+        motherboardModel: t.motherboardModel || null,
+        diskModel: t.diskModel || null,
+        diskSizeGB: t.diskSizeGB || null,
+        biosVersion: t.biosVersion || null,
         appVersion: t.appVersion || 'v1.1.0',
         licenseType: t.licenseType || 'trial',
         licenseKey: t.licenseKey,
@@ -225,6 +265,13 @@ router.get('/analytics', async (req: Request, res: Response) => {
         launchCount: t.launchCount,
         firstSeenAt: t.firstSeenAt,
         lastSeenAt: t.lastSeenAt,
+        trialStartedAt: t.firstSeenAt,
+        expiresAt: expiresAt.toISOString(),
+        daysRemaining,
+        daysElapsed,
+        isTrialExpired,
+        trialProgressPercent,
+        rawHardware: t.rawHardware || null,
         isOnline,
       };
     });
@@ -312,6 +359,27 @@ router.patch('/users/:userId/role', async (req: Request, res: Response) => {
     });
 
     res.json({ success: true, user: updated });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/pos-terminals/:id
+ * Allows deleting a POS terminal (e.g. test devices or discontinued hardware)
+ */
+router.delete('/pos-terminals/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.posTerminal.deleteMany({
+      where: {
+        OR: [
+          { id },
+          { hardwareId: id },
+        ],
+      },
+    });
+    res.json({ success: true, message: 'Terminal deleted successfully.' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

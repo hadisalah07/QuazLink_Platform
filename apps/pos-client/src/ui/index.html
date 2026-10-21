@@ -24,6 +24,12 @@
   </script>
 </head>
 <body>
+  <!-- Dynamic Custom Background & Glass Layer -->
+  <div id="customBgContainer" class="custom-bg-container" aria-hidden="true">
+    <div id="customBgLayer" class="custom-bg-layer"></div>
+    <div id="customBgOverlay" class="custom-bg-overlay"></div>
+  </div>
+
   <!-- Floating Update Notification Banner -->
   <div id="updateAlertBanner" style="display: none; background: linear-gradient(90deg, #065f46, #047857); color: #fff; padding: 10px 20px; border-bottom: 2px solid #34d399; font-size: 0.85rem; font-weight: 600; justify-content: space-between; align-items: center; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.4);">
     <div style="display: flex; align-items: center; gap: 10px;">
@@ -42,7 +48,7 @@
       <div class="brand">
         <span class="brand-logo">⚡</span>
         <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
-        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'Cairo', system-ui, sans-serif; font-variant-numeric: tabular-nums; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.2.7</span>
+        <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'Cairo', system-ui, sans-serif; font-variant-numeric: tabular-nums; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.3.6</span>
       </div>
       <!-- View Switcher Navigation Tabs -->
       <nav class="nav-tabs">
@@ -64,12 +70,30 @@
           <span id="shiftStatusText">وردية #1</span>
         </span>
       </div>
-      <!-- On-Screen Zoom Controls (Ctrl + / -) -->
-      <div class="zoom-controls-header" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 2px 6px;">
-        <button type="button" class="btn-zoom" onclick="adjustZoom(-0.1)" title="تصغير الشاشة (Ctrl -)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 6px; border-radius:4px;">−</button>
+      <!-- On-Screen Zoom Controls (Ctrl + / -) with Zoom Lens Icon -->
+      <div class="zoom-controls-header" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 2px 7px;">
+        <span class="zoom-lens-indicator" onclick="resetZoom()" title="حجم الشاشة (Ctrl 0 لإعادة الضبط)" style="display: inline-flex; align-items: center; justify-content: center; color: #38bdf8; cursor: pointer; padding: 0 1px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="11" y1="8" x2="11" y2="14"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+        </span>
+        <button type="button" class="btn-zoom" onclick="adjustZoom(-0.1)" title="تصغير الشاشة (Ctrl -)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 5px; border-radius:4px;">−</button>
         <span id="headerZoomLevel" onclick="resetZoom()" title="إعادة الضبط 100% (Ctrl 0)" style="font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:#38bdf8; cursor:pointer; min-width:38px; text-align:center;">100%</span>
-        <button type="button" class="btn-zoom" onclick="adjustZoom(0.1)" title="تكبير الشاشة (Ctrl +)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 6px; border-radius:4px;">+</button>
+        <button type="button" class="btn-zoom" onclick="adjustZoom(0.1)" title="تكبير الشاشة (Ctrl +)" style="background:transparent; border:none; color:#cbd5e1; font-weight:800; font-size:14px; cursor:pointer; padding:2px 5px; border-radius:4px;">+</button>
       </div>
+
+      <!-- Fullscreen Toggle Button (ESC or Ctrl+Q to exit) -->
+      <button type="button" class="btn-fullscreen-toggle" id="btnHeaderFullscreenToggle" onclick="toggleAppFullscreen()" title="ملء الشاشة Fullscreen (اضغط ESC أو Ctrl+Q للخروج)">
+        <svg id="fullscreenIconExpand" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+        <svg id="fullscreenIconCompress" style="display: none;" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+        </svg>
+      </button>
 
       <!-- Quick Light / Dark Mode Toggle -->
       <button type="button" class="btn-theme-toggle" id="btnHeaderThemeToggle" onclick="toggleTheme()" title="تبديل الوضع النهاري / الليلي (Light / Dark Mode)">🌙</button>
@@ -86,9 +110,14 @@
       <div class="pos-control-center">
         <div class="pos-action-ribbon" id="posShortcutsBar">
           <div class="shortcuts-group">
+            <!-- Mode Switcher (Sale vs Purchase) -->
+            <div class="invoice-mode-switcher" id="invoiceModeSwitcher" title="تبديل نمط الفاتورة بين بيع وشراء (F2 / F4)">
+              <button type="button" class="invoice-mode-btn active sale" id="modeBtnSale" onclick="setInvoiceMode('sale')">🛒 فاتورة بيع</button>
+              <button type="button" class="invoice-mode-btn purchase" id="modeBtnPurchase" onclick="setInvoiceMode('purchase')">🚚 فاتورة شراء</button>
+            </div>
             <button type="button" class="shortcut-pill" onclick="focusSearch()"><kbd>F1</kbd> <span>بحث / باركود</span></button>
-            <button type="button" class="shortcut-pill" onclick="togglePriceType()"><kbd>F2</kbd> <span id="priceTypeBadge">سعر قطاعي</span></button>
-            <button type="button" class="shortcut-pill" onclick="openCustomerModal()"><kbd>F3</kbd> <span id="customerNameBadge">عميل نقدي</span></button>
+            <button type="button" class="shortcut-pill mode-switch-pill" id="posInvoiceTypeShortcutBtn" onclick="toggleInvoiceType()" title="تبديل الفاتورة بين بيع وشراء (F2 / F4)"><kbd>F2</kbd> <span id="posInvoiceTypeShortcutLabel">🛒 فاتورة بيع</span></button>
+            <button type="button" class="shortcut-pill" id="posContactShortcutBtn" onclick="openCustomerModal()"><kbd>F3</kbd> <span id="customerNameBadge">عميل نقدي</span></button>
             <button type="button" class="shortcut-pill" id="posShiftShortcutBtn" style="display:none;" onclick="openShiftControlModal()"><kbd>F8</kbd> <span>الخزينة والوردية</span></button>
             <button type="button" class="shortcut-pill" onclick="openDiscountModal()"><kbd>F9</kbd> <span>خصم فوري</span></button>
             <button type="button" class="shortcut-pill primary" id="posPrintCheckoutShortcutBtn" onclick="handleCheckout(true)"><kbd>F12</kbd> <span id="posPrintShortcutLabel">دفع وطباعة حرارية</span></button>
@@ -171,13 +200,16 @@
         <div class="invoice-meta-card" id="invoiceMetaCard">
           <div class="meta-row">
             <span class="meta-left"><span>📋</span> <span>نوع الفاتورة:</span></span>
-            <span class="meta-badge-type retail" id="invoiceMetaTypeBadge" onclick="togglePriceType()" title="اضغط لتبديل قطاعي / جملة (F2)">فاتورة بيع (قطاعي)</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="meta-badge-type retail" id="invoiceMetaTypeBadge" onclick="toggleInvoiceType()" title="اضغط لتبديل الفاتورة بين بيع وشراء (F2)" style="cursor: pointer; user-select: none;">🛒 فاتورة بيع</span>
+              <button type="button" class="btn-meta-quick-edit" onclick="toggleInvoiceType()" title="تبديل (بيع / شراء) (F2)" style="font-size: 11px; padding: 2px 7px; border-radius: 4px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; cursor: pointer;">🔄 تبديل</button>
+            </div>
           </div>
-          <div class="meta-row">
-            <span class="meta-left"><span>👤</span> <span>العميل:</span></span>
+          <div class="meta-row" id="invoiceMetaContactRow">
+            <span class="meta-left"><span id="invoiceMetaContactIcon">👤</span> <span id="invoiceMetaContactLabel">العميل:</span></span>
             <div style="display:flex; align-items:center; gap:4px; max-width: 65%;">
-              <span class="meta-val customer-name" id="invoiceMetaCustomerName" onclick="openCustomerModal()" title="تغيير العميل (F3)">عميل نقدي</span>
-              <button type="button" class="btn-meta-quick-edit" onclick="openCustomerModal()" title="تعديل العميل (F3)">✏️</button>
+              <span class="meta-val customer-name" id="invoiceMetaCustomerName" onclick="openCustomerModal()" title="تغيير الطرف الآخر (F3)">عميل نقدي</span>
+              <button type="button" class="btn-meta-quick-edit" onclick="openCustomerModal()" title="تعديل (F3)">✏️</button>
             </div>
           </div>
           <div class="meta-row">
@@ -472,27 +504,26 @@
 
   <!-- VIEW 6: Settings, Licensing & Modular Platform Engine -->
   <section class="mgmt-view app-view" id="settingsView">
-    <div class="mgmt-header">
+    <div class="mgmt-header settings-main-header">
       <div class="mgmt-title-group">
         <h2>⚙️ إعدادات النظام، التراخيص والموديولات</h2>
         <p class="mgmt-desc">تخصيص خصائص البرنامج، تفعيل وإلغاء ميزات الكاشير، وبصمة الجهاز لمنصة QuazLink</p>
       </div>
-      <div class="mgmt-actions">
-        <div class="view-subtabs">
-          <button type="button" class="subtab active" id="btnSubtabLicense" onclick="switchSettingsSubtab('license')">🔐 الترخيص والعتاد</button>
-          <button type="button" class="subtab" id="btnSubtabCredits" onclick="switchSettingsSubtab('credits')">💳 محفظة الكريديت</button>
-          <button type="button" class="subtab" id="btnSubtabSync" onclick="switchSettingsSubtab('sync')">☁️ المزامنة السحابية</button>
-          <button type="button" class="subtab" id="btnSubtabBackups" onclick="switchSettingsSubtab('backups')">💾 النسخ الاحتياطية</button>
-          <button type="button" class="subtab" id="btnSubtabStore" onclick="switchSettingsSubtab('store')">🏪 بيانات المحل والضرائب ETA</button>
-          <button type="button" class="subtab" id="btnSubtabModules" onclick="switchSettingsSubtab('modules')">🧩 الموديولات والميزات</button>
-          <button type="button" class="subtab" id="btnSubtabShifts" onclick="switchSettingsSubtab('shifts')">⏱️ إدارة الورديات والخزينة</button>
-          <button type="button" class="subtab" id="btnSubtabUpdates" onclick="switchSettingsSubtab('updates')">🔄 التحديثات (Updates) <span id="subtabUpdateDot" style="display: none; width: 7px; height: 7px; background: #34d399; border-radius: 50%; display: inline-block; margin-right: 3px;"></span></button>
-        </div>
+      <div class="settings-subtabs-nav view-subtabs">
+        <button type="button" class="subtab active" id="btnSubtabLicense" onclick="switchSettingsSubtab('license')">🔐 الترخيص والعتاد</button>
+        <button type="button" class="subtab" id="btnSubtabCredits" onclick="switchSettingsSubtab('credits')">💳 محفظة الكريديت</button>
+        <button type="button" class="subtab" id="btnSubtabSync" onclick="switchSettingsSubtab('sync')">☁️ المزامنة السحابية</button>
+        <button type="button" class="subtab" id="btnSubtabBackups" onclick="switchSettingsSubtab('backups')">💾 النسخ الاحتياطية</button>
+        <button type="button" class="subtab" id="btnSubtabStore" onclick="switchSettingsSubtab('store')">🏪 بيانات المحل والضرائب ETA</button>
+        <button type="button" class="subtab" id="btnSubtabModules" onclick="switchSettingsSubtab('modules')">🧩 الموديولات والميزات</button>
+        <button type="button" class="subtab" id="btnSubtabShifts" onclick="switchSettingsSubtab('shifts')">⏱️ إدارة الورديات والخزينة</button>
+        <button type="button" class="subtab" id="btnSubtabTheme" onclick="switchSettingsSubtab('theme')">🎨 المظهر والخلفيات (Glass Prism)</button>
+        <button type="button" class="subtab" id="btnSubtabUpdates" onclick="switchSettingsSubtab('updates')">🔄 التحديثات (Updates) <span id="subtabUpdateDot" style="display: none; width: 7px; height: 7px; background: #34d399; border-radius: 50%; display: inline-block; margin-right: 3px;"></span></button>
       </div>
     </div>
 
     <!-- PANE 1: License & Machine Lock -->
-    <div id="paneSettingsLicense" class="settings-pane" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsLicense" class="settings-pane" style="display: flex; flex-direction: column; gap: 12px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       <!-- Hardware ID Machine Lock Card -->
       <div class="settings-card license-hw-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -529,15 +560,17 @@
       <div class="settings-card license-activate-card">
         <h4 class="settings-card-title">تفعيل أو تجديد مفتاح الترخيص:</h4>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <input type="text" id="licenseKeyInput" class="settings-input hw-key-input" placeholder="أدخل مفتاح الترخيص (مثال: QLPOS-LIFE-... أو QLPOS-TRIAL-...)" autocomplete="off">
+          <input type="text" id="licenseKeyInput" class="settings-input hw-key-input" placeholder="أدخل مفتاح الترخيص (مثال: QLPOS-LIFE-... أو QLPOS-SAAS-...)" autocomplete="off">
           <button type="button" class="btn-primary" onclick="submitActivateLicense()">تفعيل الترخيص ⚡</button>
-          <button type="button" class="btn-sub" onclick="generateDemoTrialLicense()">تجديد ترخيص تجريبي مفتوح 🔄</button>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.5;">
+          ℹ️ <b>تنويه أمني:</b> الترخيص التجريبي الأولي مدته 30 يوماً ومربوط باللوحة الأم والمعالج الفيزيائي للجهاز. للحصول على ترخيص دائم أو سنوي، يرجى تزويد الدعم الفني ببصمة جهازك.
         </div>
       </div>
     </div>
 
     <!-- PANE 2: Credit Wallet & Cloud Vouchers -->
-    <div id="paneSettingsCredits" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsCredits" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       <div class="settings-card settings-info-banner">
         <p style="margin: 0; font-size: 0.8rem; line-height: 1.5;">
           💳 <b>محفظة رصيد الكريديت للخدمات السحابية:</b> يتم خصم التوكنز ورسائل الواتساب تلقائياً عند استخدام خدمات الذكاء الاصطناعي والإيصالات الرقمية لحماية هوامش الربح. يمكنك شحن الرصيد بأكواد الكوبونات الرقمية المعتمدة.
@@ -607,7 +640,7 @@
     </div>
 
     <!-- PANE 3: Cloud Sync & Offline-First Connectivity -->
-    <div id="paneSettingsSync" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsSync" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       <!-- Sync Status Overview Banner -->
       <div class="settings-card sync-status-banner">
         <div>
@@ -680,7 +713,164 @@
     </div>
 
     <!-- PANE 4: Atomic Backups & Disaster Recovery -->
-    <div id="paneSettingsBackups" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsBackups" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
+
+      <!-- GOOGLE DRIVE CLOUD BACKUP INTEGRATION CARD -->
+      <div class="settings-card gdrive-integration-card" id="gdriveIntegrationCard" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 10px; padding: 14px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+        <div class="gdrive-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div class="gdrive-title-group" style="display: flex; align-items: center; gap: 10px;">
+            <div class="gdrive-icon-badge" style="width: 36px; height: 36px; background: rgba(255, 255, 255, 0.08); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <svg width="22" height="22" viewBox="0 0 87.3 78">
+                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
+                <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+              </svg>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h4 class="settings-card-title" style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #f8fafc;">الربط السحابي مع Google Drive (النسخ الاحتياطي التلقائي):</h4>
+                <span id="gdriveStatusBadge" class="sync-status-badge badge-offline" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 4px;">جاري الفحص...</span>
+              </div>
+              <span class="settings-hint-text" style="font-size: 0.76rem; color: #94a3b8;">حفظ وإيداع كافة نسخ قاعدة البيانات والمنتجات (.qzbk) تلقائياً وبأمان في مجلد مخصص بحسابك الشخصي على Google Drive.</span>
+            </div>
+          </div>
+          <div>
+            <button type="button" class="btn-sm btn-sub" onclick="loadGoogleDriveStatus()" title="تحديث حالة الربط">🔄 تحديث الحالة</button>
+          </div>
+        </div>
+
+        <!-- Google Drive Connected Info View -->
+        <div id="gdriveConnectedBox" style="display: none; margin-top: 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: 8px; padding: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="font-size: 1.5rem;">👤</span>
+              <div>
+                <div style="font-weight: 700; color: #34d399; font-size: 0.88rem;" id="gdriveAccountEmail">user@gmail.com</div>
+                <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 2px;">
+                  📁 مجلد الحفظ السحابي: <strong style="color: #38bdf8;">QuazLink POS Backups</strong>
+                  <span style="margin: 0 6px;">|</span>
+                  🕒 آخر نسخة رُفعت: <span id="gdriveLastBackupTime" style="color: #f1f5f9;">-</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 16px; font-size: 0.82rem;" onclick="createAndUploadGoogleDriveBackup()">☁️ إنشاء ورفع نسخة سحابية الآن</button>
+              <button type="button" class="btn-action-cyan" style="padding: 7px 16px; font-size: 0.82rem; border-radius: 6px; font-weight: 700; cursor: pointer;" onclick="openGoogleDriveModal()">📂 تصفح النسخ على Drive واستعادتها</button>
+              <button type="button" class="btn-sub" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171; padding: 6px 12px;" onclick="disconnectGoogleDrive()">❌ إلغاء الربط</button>
+            </div>
+          </div>
+
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <label style="display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+              <span class="switch-toggle">
+                <input type="checkbox" id="gdriveAutoBackupToggle" onchange="toggleGoogleDriveAutoBackup(this.checked)" checked>
+                <span class="switch-slider"></span>
+              </span>
+              <span class="toggle-text-label" style="font-size: 0.82rem; font-weight: 600; color: #e2e8f0;">تفعيل الرفع التلقائي إلى Google Drive (عند كل نسخة جديدة أو إغلاق وردية)</span>
+            </label>
+            <span style="font-size: 0.74rem; color: #94a3b8;">🔒 محمي وموثق ببروتوكول Google OAuth 2.0 القياسي</span>
+          </div>
+        </div>
+
+        <!-- Google Drive Disconnected View -->
+        <div id="gdriveDisconnectedBox" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.16); border-radius: 8px; padding: 12px; flex-wrap: wrap; gap: 10px;">
+          <div style="max-width: 620px;">
+            <div style="font-weight: 700; color: #f8fafc; font-size: 0.9rem; margin-bottom: 3px;">حساب Google Drive غير مربوط حالياً</div>
+            <div style="font-size: 0.78rem; color: #94a3b8; line-height: 1.4;">
+              اربط حسابك الآن لتفعيل النسخ الاحتياطي التلقائي إلى السحابة بنقرة واحدة، لتتمكن من استعادة كافة بياناتك ومنتجاتك وفواتيرك بأمان تام من أي مكان وفي أي وقت.
+            </div>
+          </div>
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 8px 18px; display: inline-flex; align-items: center; gap: 8px; font-weight: 700;" onclick="connectGoogleDrive()">
+            <svg width="18" height="18" viewBox="0 0 87.3 78">
+              <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+              <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
+              <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+              <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+              <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+              <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+            </svg>
+            <span>🔗 ربط حساب Google Drive الآن</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Automated Backup Schedule Card -->
+      <div class="settings-card auto-backup-schedule-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.4rem; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;">⏰</span>
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <h4 class="settings-card-title" style="margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--text-main);">جدولة النسخ الاحتياطي التلقائي (Automatic Auto-Backup):</h4>
+                <span id="backupScheduleStatusBadge" class="sync-status-badge badge-online" style="padding: 2px 8px; font-size: 0.72rem; border-radius: 4px; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981;">مفعلة وتعمل في الخلفية 🟢</span>
+              </div>
+              <span class="settings-hint-text" style="font-size: 0.76rem; color: var(--text-muted);">يقوم النظام بتوليد وحفظ نسخة احتياطية مشفرة (.qzbk) في الخلفية تلقائياً دون مقاطعة الكاشير.</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" class="btn-checkout primary" style="width: auto; padding: 6px 14px; font-size: 0.8rem;" onclick="saveBackupSchedule(true)">💾 حفظ الإعدادات</button>
+            <button type="button" class="btn-sm btn-sub" onclick="loadBackupSchedule()" title="تحديث حالة الجدولة">🔄 تحديث</button>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: center;">
+          <!-- Periodic Toggle & Frequency Selector -->
+          <div class="backup-schedule-col">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">تفعيل النسخ الاحتياطي الدوري:</span>
+              <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+                <span class="switch-toggle">
+                  <input type="checkbox" id="autoBackupEnabledToggle" onchange="onAutoBackupSettingChanged()" checked>
+                  <span class="switch-slider"></span>
+                </span>
+              </label>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label for="autoBackupIntervalSelect" style="font-size: 0.76rem; color: var(--text-muted); white-space: nowrap;">التكرار الزمني:</label>
+              <select id="autoBackupIntervalSelect" class="pos-print-select" onchange="onAutoBackupSettingChanged()" style="flex: 1; border: 1px solid rgba(56, 189, 248, 0.4); color: var(--accent-cyan); font-weight: 700; border-radius: 6px; padding: 5px 8px; font-size: 0.82rem;">
+                <option value="30">كل 30 دقيقة (Every 30 Mins)</option>
+                <option value="60" selected>كل ساعة (Every 1 Hour) - موصى به ⭐</option>
+                <option value="120">كل ساعتين (Every 2 Hours)</option>
+                <option value="360">كل 6 ساعات (Every 6 Hours)</option>
+                <option value="720">كل 12 ساعة (Every 12 Hours)</option>
+                <option value="1440">يومياً - كل 24 ساعة (Daily)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Google Drive Sync & Shift Close Protection -->
+          <div class="backup-schedule-col">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">الرفع السحابي لـ Google Drive:</span>
+              <label style="display: inline-flex; align-items: center; cursor: pointer; user-select: none;">
+                <span class="switch-toggle">
+                  <input type="checkbox" id="autoBackupUploadDriveToggle" onchange="onAutoBackupSettingChanged()" checked>
+                  <span class="switch-slider"></span>
+                </span>
+              </label>
+            </div>
+            <div style="font-size: 0.74rem; color: var(--text-muted); display: flex; align-items: center; gap: 5px;">
+              <span>☁️ إيداع النسخة آلياً فور توليدها في حساب Google Drive المربوط.</span>
+            </div>
+          </div>
+
+          <!-- Schedule Timers Monitor -->
+          <div class="backup-schedule-col">
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px; display: flex; justify-content: space-between;">
+              <span>🕒 آخر نسخة مجدولة:</span>
+              <strong id="autoBackupLastRunLabel" style="color: var(--text-main); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">لم يتم بعد</strong>
+            </div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+              <span>⏳ النسخة القادمة:</span>
+              <strong id="autoBackupNextRunLabel" style="color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">جاري التحديد...</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Backup Actions Header -->
       <div class="settings-card backup-header-card">
         <div>
@@ -709,6 +899,7 @@
               <th>الحجم</th>
               <th>البصمة المشفرة SHA-256</th>
               <th>التاريخ والوقت</th>
+              <th>Google Drive</th>
               <th>ملاحظات</th>
               <th>إجراءات</th>
             </tr>
@@ -721,7 +912,7 @@
     </div>
 
     <!-- PANE 5: Modular Feature Flags (Feature Store) -->
-    <div id="paneSettingsModules" class="settings-pane" style="display: none; flex-direction: column; gap: 10px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsModules" class="settings-pane" style="display: none; flex-direction: column; gap: 10px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       <div class="settings-card settings-info-banner">
         <p style="margin: 0; font-size: 0.8rem; line-height: 1.5;">
           🧩 <b>تخصيص النظام حسب رغبة العميل:</b> يمكنك تفعيل أو تعطيل أي ميزة تناسب طبيعة المحل. الميزات المعطلة ستختفي تلقائياً من واجهة الكاشير لتبسيط الاستخدام.
@@ -841,7 +1032,7 @@
     </div>
 
     <!-- PANE 6: Shift Management & Cash Drawer (Z-Report) -->
-    <div id="paneSettingsShifts" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsShifts" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       <!-- Shift Status Card -->
       <div id="shiftCurrentWidget" class="settings-card shift-widget-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
@@ -914,7 +1105,7 @@
     </div>
 
     <!-- PANE 7: Store & ETA Tax Authority Profile -->
-    <div id="paneSettingsStore" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsStore" class="settings-pane" style="display: none; flex-direction: column; gap: 12px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       <div class="settings-card store-profile-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-glass); padding-bottom: 10px;">
           <div>
@@ -1086,7 +1277,7 @@
     </div>
 
     <!-- PANE 8: Updates & Release Management -->
-    <div id="paneSettingsUpdates" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; overflow-y: auto; padding: 4px;">
+    <div id="paneSettingsUpdates" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
       
       <!-- Version & Check Header Card -->
       <div class="update-header-card">
@@ -1096,7 +1287,7 @@
               <span style="font-size: 1.4rem;">🔄</span>
               <h3 class="update-card-title">تحديثات برنامج QuazLink POS & ERP</h3>
               <span class="update-version-badge">
-                الإصدار الحالي: v<span id="currentAppVerDisplay">1.2.7</span>
+                الإصدار الحالي: v<span id="currentAppVerDisplay">1.3.6</span>
               </span>
             </div>
             <p class="update-desc-text">
@@ -1138,6 +1329,180 @@
             <span class="update-auto-desc">إظهار شريط إشعار فوري عند توفر إصدار أحدث لضمان تشغيل المتجر بأعلى أداء وأمان.</span>
           </div>
           <span class="update-auto-badge">✅ مفعل تلقائياً</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PANE 9: Theme, Custom Backgrounds & Glass Prism Engine -->
+    <div id="paneSettingsTheme" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
+      <!-- Banner Card -->
+      <div class="settings-card settings-info-banner" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(99, 102, 241, 0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.6rem;">🎨</span>
+            <div>
+              <h4 style="margin: 0; color: #fff; font-size: 0.95rem; font-weight: 800;">تخصيص المظهر، الخلفيات ومحرك الزجاج المنشوري (Glass Prism Engine)</h4>
+              <p style="margin: 3px 0 0; font-size: 0.78rem; color: #94a3b8;">
+                عيّن خلفية سطح المكتب لبرنامج الكاشير، وتحكم بدقة في مستوى الضبابية (Blur) والتعتيم والشفافية الزجاجية للمربعات والقوائم.
+              </p>
+            </div>
+          </div>
+          <button type="button" class="btn-sm btn-secondary" onclick="resetToDefaultTheme()" style="padding: 6px 14px; border-radius: 8px;">🔄 استعادة المظهر الافتراضي</button>
+        </div>
+      </div>
+
+      <!-- Controls Grid: Toggles & Upload -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+        <!-- Main Toggles Card -->
+        <div class="settings-card theme-control-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">💎</span>
+              <strong style="color: #fff; font-size: 0.88rem;">محرك الزجاج المنشوري (Glass Prism Mode)</strong>
+            </div>
+            <label class="switch-toggle" style="margin: 0;">
+              <input type="checkbox" id="toggleGlassPrism" onchange="onGlassPrismToggled()">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p style="font-size: 0.76rem; color: #94a3b8; line-height: 1.5; margin-bottom: 14px;">
+            تحويل كافة لوحات الكاشير، وجداول السلة، وبطاقات الدفع إلى زجاج مصنفر عاكس للضوء مع إبراز ألوان الأصناف بدقة فائقة.
+          </p>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.2rem;">🖼️</span>
+              <strong style="color: #fff; font-size: 0.88rem;">تفعيل الخلفية المخصصة (Custom Wallpaper)</strong>
+            </div>
+            <label class="switch-toggle" style="margin: 0;">
+              <input type="checkbox" id="toggleCustomBg" onchange="onCustomBgToggled()">
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+          <p style="font-size: 0.76rem; color: #94a3b8; line-height: 1.5; margin-top: 6px;">
+            إظهار الصورة أو المعرض المختار كخلفية حية لكامل واجهة النظام خلف اللوحات الزجاجية.
+          </p>
+        </div>
+
+        <!-- Wallpaper Upload & Source Card -->
+        <div class="settings-card theme-control-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <strong style="color: #fff; font-size: 0.88rem;">📁 رفع صورة خلفية من جهازك</strong>
+            <span id="currentWallpaperBadge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(6,182,212,0.15); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3);">الافتراضي</span>
+          </div>
+          <p style="font-size: 0.76rem; color: #94a3b8; margin-bottom: 12px;">
+            يدعم صورك الخاصة بدقة عالية (PNG, JPG, WebP). سيتم ضبطها وتخزينها محلياً لحسابك:
+          </p>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="customBgFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display: none;" onchange="handleCustomBgUpload(event)">
+            <button type="button" class="btn-primary" onclick="document.getElementById('customBgFileInput').click()" style="display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; font-weight: 700;">
+              <span>📂</span> <span>اختيار صورة من الكمبيوتر...</span>
+            </button>
+            <button type="button" class="btn-sub" id="btnRemoveCustomBg" onclick="removeUploadedWallpaper()" style="padding: 8px 12px; border-radius: 8px; display: none;">✕ حذف الصورة</button>
+          </div>
+          <span id="customBgFileNameDisplay" style="display: block; margin-top: 8px; font-size: 0.72rem; color: #34d399; font-mono: true;"></span>
+        </div>
+      </div>
+
+      <!-- Built-in Curated Presets Gallery -->
+      <div class="settings-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">✨</span>
+            <strong style="color: #fff; font-size: 0.9rem;">معرض الخلفيات الفاخرة المدمجة (Curated Presets)</strong>
+          </div>
+          <span style="font-size: 0.75rem; color: #94a3b8;">اضغط على أي تصميم لتطبيقه فوراً بنقرة واحدة</span>
+        </div>
+
+        <div class="theme-presets-grid" id="themePresetsGrid">
+          <!-- 5 Presets rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Sliders Card: Blur & Dim Controls -->
+      <div class="settings-card">
+        <h4 style="margin: 0 0 14px 0; color: #fff; font-size: 0.9rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+          <span>🎛️</span> <span>أدوات التحكم في الضبابية (Blur) والتعتيم والشفافية المنشورية</span>
+        </h4>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+          <!-- Slider 1: Background Blur -->
+          <div class="slider-control-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="rangeBgBlur" style="font-size: 0.8rem; font-weight: 700; color: #f1f5f9;">🌫️ ضبابية صورة الخلفية (Background Blur):</label>
+              <span id="labelBgBlurVal" class="slider-badge">10px</span>
+            </div>
+            <input type="range" id="rangeBgBlur" min="0" max="30" step="1" value="10" class="theme-range-slider" oninput="updateBgBlurLive(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+              <span>0px (حادة ونقية)</span>
+              <span>15px (متوازنة)</span>
+              <span>30px (أقصى نعومة)</span>
+            </div>
+          </div>
+
+          <!-- Slider 2: Background Dim / Darkness -->
+          <div class="slider-control-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="rangeBgDim" style="font-size: 0.8rem; font-weight: 700; color: #f1f5f9;">🌑 مستوى تعتيم الخلفية (Background Dim / Overlay):</label>
+              <span id="labelBgDimVal" class="slider-badge">65%</span>
+            </div>
+            <input type="range" id="rangeBgDim" min="15" max="90" step="5" value="65" class="theme-range-slider" oninput="updateBgDimLive(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+              <span>15% (مضيئة)</span>
+              <span>65% (موصى بها لقراءة الفواتير)</span>
+              <span>90% (داكنة جداً)</span>
+            </div>
+          </div>
+
+          <!-- Slider 3: Glass Panels Translucency -->
+          <div class="slider-control-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="rangeGlassOpacity" style="font-size: 0.8rem; font-weight: 700; color: #f1f5f9;">🪟 شفافية اللوحات والبطاقات (Glass Translucency):</label>
+              <span id="labelGlassOpacityVal" class="slider-badge">60%</span>
+            </div>
+            <input type="range" id="rangeGlassOpacity" min="20" max="85" step="5" value="60" class="theme-range-slider" oninput="updateGlassOpacityLive(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+              <span>20% (شبه زجاج خالص)</span>
+              <span>60% (مثالية للمتجر)</span>
+              <span>85% (أكثر تماسكاً)</span>
+            </div>
+          </div>
+
+          <!-- Slider 4: Glass Backdrop Filter Blur -->
+          <div class="slider-control-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <label for="rangeGlassBlur" style="font-size: 0.8rem; font-weight: 700; color: #f1f5f9;">🔮 ضبابية الزجاج المصنفر (Panel Glass Blur):</label>
+              <span id="labelGlassBlurVal" class="slider-badge">16px</span>
+            </div>
+            <input type="range" id="rangeGlassBlur" min="6" max="30" step="2" value="16" class="theme-range-slider" oninput="updateGlassBlurLive(this.value)">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+              <span>6px (خفيف)</span>
+              <span>16px (مصنفر قياسي)</span>
+              <span>30px (زجاج سائل عميق)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Interactive Preview Card -->
+      <div class="settings-card" style="position: relative; overflow: hidden;">
+        <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 0.88rem; font-weight: 800;">
+          👁️ معاينة حية لشكل الزجاج المنشوري على الخلفية الحالية:
+        </h4>
+        <div id="themeLivePreviewArea" class="theme-live-preview-box">
+          <div class="preview-mini-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="preview-badge">📦 صنف تجريبي</span>
+              <span style="font-size: 0.72rem; color: #34d399; font-weight: 800;">متوفر (45)</span>
+            </div>
+            <div style="font-weight: 800; font-size: 0.95rem; color: #fff; margin-bottom: 4px;">شاشة سامسونج منحنية 27 بوصة Gaming</div>
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;">SN: SN-SAM-27-CURVED-001</div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <span style="font-size: 1.15rem; font-weight: 900; color: #34d399;">EGP 7,450.00</span>
+              <button type="button" class="btn-sm btn-emerald" style="padding: 4px 12px; border-radius: 6px; font-weight: 700;">+ إضافة للسلة</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1300,9 +1665,12 @@
           </label>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn-sub" onclick="closeEditProductModal()">إلغاء</button>
-        <button type="button" class="btn-checkout primary" onclick="submitEditProduct()">💾 حفظ التعديلات</button>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" class="btn-action btn-action-red" onclick="deleteProductFromModal()" style="padding: 7px 14px; font-weight:700;">🗑️ حذف الصنف</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-sub" onclick="closeEditProductModal()">إلغاء</button>
+          <button type="button" class="btn-checkout primary" onclick="submitEditProduct()">💾 حفظ التعديلات</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1491,25 +1859,36 @@
     </div>
   </div>
 
-  <!-- Customer Modal (F3 in POS) -->
+  <!-- Customer / Supplier Modal (F3 in POS) -->
   <div class="pos-modal-backdrop" id="customerModal">
     <div class="pos-modal">
       <div class="modal-header">
-        <h3>تحديد العميل (F3)</h3>
+        <h3 id="contactModalTitle">تحديد العميل (F3)</h3>
         <button class="modal-close" onclick="closeCustomerModal()">✕</button>
       </div>
       <div class="modal-body">
+        <div class="input-group" id="contactExistingSelectGroup" style="margin-bottom: 12px;">
+          <label id="contactSelectLabel">اختر من القائمة المسجلة:</label>
+          <select id="contactExistingSelect" onchange="onExistingContactPicked(this.value)" style="width: 100%; padding: 8px 12px; border-radius: 8px; background: rgba(15,23,42,0.8); color: #fff; border: 1px solid rgba(255,255,255,0.15); font-family: inherit;">
+            <option value="">-- أو اختر جهة مسجلة مسبقاً --</option>
+          </select>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin: 8px 0; color:var(--text-muted); font-size:0.75rem;">
+          <hr style="flex:1; border:none; border-top:1px solid rgba(255,255,255,0.1);">
+          <span>أو إدخال بيانات جديدة</span>
+          <hr style="flex:1; border:none; border-top:1px solid rgba(255,255,255,0.1);">
+        </div>
         <div class="input-group">
-          <label>رقم هاتف العميل:</label>
+          <label id="contactPhoneLabel">رقم الهاتف:</label>
           <input type="text" id="customerPhoneInput" placeholder="01xxxxxxxxx" onkeyup="if(event.key==='Enter') searchCustomer()">
         </div>
         <div class="input-group">
-          <label>اسم العميل / الشركة:</label>
-          <input type="text" id="customerNameInput" placeholder="اسم العميل">
+          <label id="contactNameLabel">الاسم / الشركة:</label>
+          <input type="text" id="customerNameInput" placeholder="اكتب الاسم هنا...">
         </div>
       </div>
       <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
-        <button class="btn-sub warning" type="button" onclick="resetToCashCustomer()">إلغاء العميل (عميل نقدي)</button>
+        <button class="btn-sub warning" type="button" id="btnResetContact" onclick="resetToCashCustomer()">إلغاء (طرف نقدي)</button>
         <div style="display:flex; gap:8px;">
           <button class="btn-sub" onclick="closeCustomerModal()">إلغاء</button>
           <button class="btn-checkout primary" onclick="saveCustomer()">حفظ واختيار</button>
@@ -1728,22 +2107,22 @@
       </div>
       <div class="modal-body" style="gap: 12px;">
         <!-- Header Info Card -->
-        <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
+        <div class="inv-modal-header-card" style="border: 1px solid var(--border-glass); border-radius: 8px; padding: 10px 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
           <div>
-            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">العميل:</span>
-            <span id="invModalCustomer" style="font-weight:700; color:#fff; font-size:0.85rem;">عميل نقدي</span>
+            <span class="inv-modal-prop-label" style="font-size:0.75rem; display:block;">العميل / الطرف:</span>
+            <span id="invModalCustomer" class="inv-modal-prop-val" style="font-weight:800; font-size:0.88rem;">عميل نقدي</span>
           </div>
           <div>
-            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">الهاتف:</span>
-            <span id="invModalPhone" style="font-family:'JetBrains Mono',monospace; color:var(--accent-cyan); font-size:0.82rem;">-</span>
+            <span class="inv-modal-prop-label" style="font-size:0.75rem; display:block;">الهاتف:</span>
+            <span id="invModalPhone" style="font-family:'JetBrains Mono',monospace; color:var(--accent-cyan); font-size:0.85rem; font-weight:700;">-</span>
           </div>
           <div>
-            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">طريقة الدفع:</span>
-            <span id="invModalMethod" style="color:var(--accent-emerald); font-weight:700; font-size:0.82rem;">نقداً</span>
+            <span class="inv-modal-prop-label" style="font-size:0.75rem; display:block;">طريقة الدفع:</span>
+            <span id="invModalMethod" style="color:var(--accent-emerald); font-weight:800; font-size:0.85rem;">نقداً</span>
           </div>
           <div>
-            <span style="font-size:0.72rem; color:var(--text-muted); display:block;">تاريخ الإصدار:</span>
-            <span id="invModalDate" style="color:var(--text-dim); font-size:0.78rem;">-</span>
+            <span class="inv-modal-prop-label" style="font-size:0.75rem; display:block;">تاريخ الإصدار:</span>
+            <span id="invModalDate" class="inv-modal-prop-val text-dim" style="font-size:0.8rem; font-weight:600;">-</span>
           </div>
         </div>
 
@@ -1802,6 +2181,12 @@
           <button type="button" class="btn-sub" style="border-color:var(--accent-amber); color:var(--accent-amber); padding: 6px 12px; font-size: 0.82rem;" onclick="startReturnForCurrentModalInvoice()">
             <span>↩️</span> عمل مرتجع
           </button>
+          <button type="button" class="btn-sub" style="border-color:rgba(59,130,246,0.5); color:#60a5fa; padding: 6px 12px; font-size: 0.82rem;" onclick="editCurrentModalInvoice()" title="تعديل الفاتورة">
+            <span>✏️</span> تعديل
+          </button>
+          <button type="button" class="btn-sub" style="border-color:rgba(239,68,68,0.5); color:#f87171; padding: 6px 12px; font-size: 0.82rem;" onclick="deleteCurrentModalInvoice()" title="حذف الفاتورة">
+            <span>🗑️</span> حذف
+          </button>
         </div>
         <button type="button" class="btn-sub" onclick="closeSaleInvoiceDetails()">إغلاق</button>
       </div>
@@ -1851,6 +2236,204 @@
       <div class="modal-footer" style="display: flex; justify-content: space-between;">
         <button type="button" class="btn-sub" onclick="closeSalesReturnModal()">إلغاء</button>
         <button type="button" class="btn-checkout primary" style="width: auto; padding: 7px 18px;" onclick="confirmSalesReturnSubmit()">تأكيد المرتجع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12b. Confirm Delete Invoice Modal -->
+  <div class="pos-modal-backdrop" id="confirmDeleteInvoiceModal">
+    <div class="pos-modal delete-invoice-modal" style="width: 530px; max-width: 95vw;">
+      <div class="modal-header delete-modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">🗑️</span>
+          <div>
+            <h3 class="delete-modal-title">تأكيد حذف الفاتورة نهائياً</h3>
+            <span class="delete-modal-subtitle text-dim" style="font-size: 0.78rem;">إلغاء الفاتورة من النظام واسترجاع محتوياتها للمخزن</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close" onclick="closeConfirmDeleteModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 14px;">
+        <div class="delete-modal-card">
+          <div class="delete-card-row">
+            <span class="delete-card-label">رقم الفاتورة:</span>
+            <code id="deleteModalInvNumber" class="delete-card-val inv-num">-</code>
+          </div>
+          <div class="delete-card-row">
+            <span class="delete-card-label">إجمالي الفاتورة:</span>
+            <span id="deleteModalInvAmount" class="delete-card-val inv-amount">-</span>
+          </div>
+          <div class="delete-card-row">
+            <span class="delete-card-label">العميل / الطرف الآخر:</span>
+            <span id="deleteModalInvCustomer" class="delete-card-val inv-cust">-</span>
+          </div>
+        </div>
+
+        <div class="delete-modal-warning">
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <span style="font-size: 1.3rem; flex-shrink: 0;">⚠️</span>
+            <div>
+              <strong style="display: block; margin-bottom: 3px;">تنبيه تدقيق ومخزون:</strong>
+              <span>سيؤدي تأكيد الحذف إلى إلغاء الفاتورة بالكامل، <b>واسترجاع كميات جميع الأصناف المباعة إلى رصيد المخزن فورياً</b>، وتسوية أي مديونية أو مقبوضات على العميل.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn-sub" onclick="closeConfirmDeleteModal()" style="padding: 7px 16px;">❌ إلغاء وتراجع</button>
+        <button type="button" class="btn-checkout" id="btnExecuteDeleteInvoice" style="background: #ef4444; border-color: #dc2626; color: #fff; width: auto; padding: 7px 18px; font-size: 0.86rem;" onclick="executeDeleteInvoice()">
+          <span>🗑️</span> نعم، تأكيد الحذف النهائي
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12b-2. Confirm Delete Product Modal -->
+  <div class="pos-modal-backdrop" id="confirmDeleteProductModal">
+    <div class="pos-modal delete-invoice-modal" style="width: 520px; max-width: 95vw;">
+      <div class="modal-header delete-modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.4rem;">🗑️</span>
+          <div>
+            <h3 class="delete-modal-title">تأكيد حذف الصنف من المخزن</h3>
+            <span class="delete-modal-subtitle text-dim" style="font-size: 0.78rem;">حذف كارت الصنف وسيريالاته المسجلة في المخزن</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close" onclick="closeConfirmDeleteProductModal()">✕</button>
+      </div>
+      <div class="modal-body" style="gap: 14px;">
+        <div class="delete-modal-card">
+          <div class="delete-card-row">
+            <span class="delete-card-label">اسم المنتج:</span>
+            <span id="deleteModalProdName" class="delete-card-val inv-cust" style="color: #38bdf8; font-weight: 700;">-</span>
+          </div>
+          <div class="delete-card-row">
+            <span class="delete-card-label">الباركود / SKU:</span>
+            <code id="deleteModalProdBarcode" class="delete-card-val inv-num">-</code>
+          </div>
+        </div>
+
+        <div class="delete-modal-warning">
+          <div style="display: flex; gap: 10px; align-items: flex-start;">
+            <span style="font-size: 1.3rem; flex-shrink: 0;">⚠️</span>
+            <div>
+              <strong style="display: block; margin-bottom: 3px;">تنبيه المخزون والتدقيق:</strong>
+              <span id="deleteModalWarningText">سيؤدي تأكيد الحذف إلى إزالة الصنف وسيريالاته من المخزن نهائياً. لا يمكن التراجع عن هذه الخطوة بعد التأكيد.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn-sub" onclick="closeConfirmDeleteProductModal()" style="padding: 7px 16px;">❌ إلغاء وتراجع</button>
+        <button type="button" class="btn-checkout" id="btnExecuteDeleteProduct" style="background: #ef4444; border-color: #dc2626; color: #fff; width: auto; padding: 7px 18px; font-size: 0.86rem;" onclick="executeDeleteProduct()">
+          <span>🗑️</span> نعم، تأكيد الحذف النهائي
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12c. Edit Sale Invoice Modal -->
+  <div class="pos-modal-backdrop" id="editSaleInvoiceModal">
+    <div class="pos-modal edit-invoice-modal" style="width: 890px; max-width: 96vw; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">✏️</span>
+          <div>
+            <h3 class="edit-modal-title" style="font-size:1.1rem; margin-bottom:2px;">
+              تعديل فاتورة مبيعات: <span id="editInvNumberBadge" style="color:var(--accent-cyan); font-family:'JetBrains Mono',monospace;">INV-...</span>
+            </h3>
+            <span class="edit-modal-subtitle text-dim" style="font-size:0.78rem;">تعديل الأصناف، الكميات، الأسعار، الخصم، العميل مع تسوية المخزون آلياً</span>
+          </div>
+        </div>
+        <button type="button" class="modal-close" onclick="closeEditSaleInvoiceModal()">✕</button>
+      </div>
+      
+      <div class="modal-body" style="gap: 12px; overflow-y: auto; flex: 1;">
+        <!-- Top Row: Customer, Payment Method, Notes -->
+        <div class="edit-inv-header-box">
+          <div>
+            <label class="edit-inv-label">العميل:</label>
+            <select id="editInvCustomerSelect" class="form-control pos-input-field">
+              <option value="">عميل نقدي (بدون حساب)</option>
+            </select>
+          </div>
+          <div>
+            <label class="edit-inv-label">طريقة الدفع:</label>
+            <select id="editInvPaymentMethod" class="form-control pos-input-field">
+              <option value="cash">نقداً (كاش)</option>
+              <option value="credit">آجل / دين</option>
+              <option value="visa">فيزا / بنك</option>
+              <option value="vodafone_cash">محفظة إلكترونية</option>
+            </select>
+          </div>
+          <div style="grid-column: span 2;">
+            <label class="edit-inv-label">ملاحظات الفاتورة:</label>
+            <input type="text" id="editInvNotes" class="form-control pos-input-field" placeholder="أي ملاحظات إضافية على الفاتورة...">
+          </div>
+        </div>
+
+        <!-- Product Search / Quick Add Row -->
+        <div style="position: relative;">
+          <input type="text" id="editInvSearchProduct" class="mgmt-search-input pos-input-field" placeholder="🔍 إضافة صنف جديد للفاتورة بالاسم أو الباركود..." style="width: 100%; font-size: 0.85rem;" oninput="handleEditInvProductSearch(this.value)" autocomplete="off">
+          <div id="editInvProductSuggestions" class="search-suggestions-dropdown" style="display:none; position:absolute; top:100%; right:0; left:0; z-index:9999; max-height: 220px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-container edit-inv-table-wrap" style="max-height: 250px; overflow-y: auto;">
+          <table class="pos-table edit-inv-table" style="font-size: 0.82rem;">
+            <thead>
+              <tr>
+                <th style="min-width: 180px;">الصنف</th>
+                <th style="width: 110px;">السعر (EGP)</th>
+                <th style="width: 120px; text-align: center;">الكمية</th>
+                <th style="width: 110px;">الإجمالي</th>
+                <th style="width: 130px;">السيريال</th>
+                <th style="width: 50px; text-align: center;">حذف</th>
+              </tr>
+            </thead>
+            <tbody id="editInvItemsBody">
+              <!-- Populated dynamically via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Financial Summary & Inputs -->
+        <div class="edit-inv-summary-box">
+          <div class="summary-col">
+            <span class="summary-col-label">المجموع الفرعي:</span>
+            <span id="editInvSubtotalDisplay" class="summary-col-val subtotal">0.00 EGP</span>
+          </div>
+          <div class="summary-col">
+            <label class="summary-col-label">الخصم (EGP):</label>
+            <input type="number" id="editInvDiscountInput" class="form-control pos-input-field" min="0" step="any" value="0" oninput="recalcEditInvoiceTotals()">
+          </div>
+          <div class="summary-col">
+            <label class="summary-col-label">ضريبة (14%):</label>
+            <label class="summary-vat-toggle">
+              <input type="checkbox" id="editInvVat14Checkbox" onchange="recalcEditInvoiceTotals()">
+              <span>تطبيق 14%</span>
+            </label>
+          </div>
+          <div class="summary-col">
+            <span class="summary-col-label">الصافي النهائي:</span>
+            <span id="editInvFinalAmountDisplay" class="summary-col-val final-amt">0.00 EGP</span>
+          </div>
+          <div class="summary-col">
+            <label class="summary-col-label">المدفوع (EGP):</label>
+            <input type="number" id="editInvPaidInput" class="form-control pos-input-field" min="0" step="any" value="0" oninput="recalcEditInvoiceTotals()">
+          </div>
+          <div class="summary-col">
+            <span class="summary-col-label">المتبقي (آجل):</span>
+            <span id="editInvRemainingDisplay" class="summary-col-val remaining">0.00 EGP</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn-sub" onclick="closeEditSaleInvoiceModal()">❌ إلغاء</button>
+        <button type="button" class="btn-checkout primary" id="btnSaveEditedInvoice" style="width: auto; padding: 7px 22px; font-size: 0.88rem;" onclick="saveEditedInvoice()">
+          <span>💾</span> حفظ التعديلات وتحديث المخزن
+        </button>
       </div>
     </div>
   </div>
@@ -2011,8 +2594,8 @@
 
   <!-- 18. Invoice Print Preview & Format Switcher Modal -->
   <div class="pos-modal-backdrop" id="invoicePrintPreviewModal">
-    <div class="pos-modal" style="width: 860px; max-width: 96vw; max-height: 94vh; display: flex; flex-direction: column;">
-      <div class="modal-header" style="flex-shrink: 0; padding-bottom: 10px;">
+    <div class="pos-modal invoice-preview-modal-box" style="width: 930px; max-width: 97vw; height: 93vh; max-height: 94vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="flex-shrink: 0; padding-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="font-size: 1.25rem;">🖨️</span>
           <div>
@@ -2020,22 +2603,109 @@
             <span id="invoicePreviewModalSubtitle" class="text-dim" style="font-size: 0.76rem;"></span>
           </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <!-- Format Switcher Subtabs -->
           <div class="view-subtabs" style="padding: 2px; margin: 0;">
             <button type="button" class="subtab active" id="btnPreviewTabThermal" onclick="switchPreviewFormat('thermal')">🧾 حراري</button>
             <button type="button" class="subtab" id="btnPreviewTabA4" onclick="switchPreviewFormat('a4')">📄 A4 رسمية</button>
             <button type="button" class="subtab" id="btnPreviewTabA5" onclick="switchPreviewFormat('a5')">📑 A5 مدمجة</button>
           </div>
+          <!-- Preview Zoom Controls Toolbar -->
+          <div class="preview-zoom-toolbar" style="display: flex; align-items: center; gap: 3px; background: rgba(255, 255, 255, 0.06); padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.12);">
+            <button type="button" class="btn-sub btn-sm" style="padding: 2px 7px; font-weight: 800; min-width: 24px; font-size: 0.78rem;" onclick="adjustPreviewZoom(-0.05)" title="تصغير المعاينة">−</button>
+            <button type="button" class="btn-sub btn-sm" id="btnPreviewZoomFit" style="padding: 2px 8px; font-size: 0.72rem; font-weight: 700;" onclick="togglePreviewZoomFit()" title="ملاءمة الشاشة والعرض التلقائي">ملاءمة الصفحة</button>
+            <button type="button" class="btn-sub btn-sm" style="padding: 2px 7px; font-weight: 800; min-width: 24px; font-size: 0.78rem;" onclick="adjustPreviewZoom(0.05)" title="تكبير المعاينة">+</button>
+            <span id="previewZoomValBadge" style="font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: #38bdf8; min-width: 38px; text-align: center; margin-right: 2px; cursor: pointer;" onclick="resetPreviewZoom()" title="إعادة ضبط الحجم (100%)">100%</span>
+          </div>
           <button type="button" class="modal-close" onclick="closeInvoicePreviewModal()">✕</button>
         </div>
       </div>
-      <div class="modal-body" style="flex: 1; overflow-y: auto; background: #0f172a; padding: 14px; display: flex; justify-content: center; align-items: flex-start; border-radius: 8px; margin: 0 4px;">
-        <div id="invoicePreviewContainer" style="width: 100%; display: flex; justify-content: center;"></div>
+      <div class="modal-body preview-modal-body" style="flex: 1; overflow: auto; background: #0b1120; padding: 18px 10px; border-radius: 8px; margin: 0 4px; text-align: center; scrollbar-width: thin;">
+        <div id="invoicePreviewContainer" style="display: inline-block; margin: 0 auto; text-align: right; vertical-align: top; max-width: 100%;"></div>
       </div>
       <div class="modal-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding-top: 10px;">
         <button type="button" class="btn-sub" onclick="closeInvoicePreviewModal()">إلغاء (ESC)</button>
         <button type="button" class="btn-checkout primary" id="btnExecuteInvoicePrint" onclick="executeCurrentPreviewPrint()" style="width: auto; padding: 8px 24px; font-weight: 800;">
           <span>🖨️</span> تنفيذ أمر الطباعة الآن
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. Google Drive Cloud Backups Remote Browser Modal -->
+  <div class="pos-modal-backdrop" id="modalGdriveBackups">
+    <div class="pos-modal" style="width: 840px; max-width: 96vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="flex-shrink: 0; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 1.3rem;">☁️</span>
+          <div>
+            <h3 style="color: #fff; font-size: 1.05rem; margin: 0;">النسخ الاحتياطية السحابية على Google Drive</h3>
+            <span class="text-dim" style="font-size: 0.76rem;">مجلد: QuazLink POS Backups | استعراض النسخ واسترجاعها مباشرة</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="btn-sm btn-sub" onclick="loadDriveRemoteBackups()">🔄 تحديث</button>
+          <button type="button" class="modal-close" onclick="closeGoogleDriveModal()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 12px;">
+        <div class="mgmt-table-card" style="margin: 0; box-shadow: none; max-height: 450px;">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>اسم ملف النسخة</th>
+                <th>الحجم</th>
+                <th>تاريخ الرفع</th>
+                <th>معاينة في Drive</th>
+                <th>إجراء الاستعادة</th>
+              </tr>
+            </thead>
+            <tbody id="gdriveRemoteTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; padding: 25px; color: var(--text-dim);">جاري تحميل النسخ السحابية...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; padding-top: 10px;">
+        <span style="font-size: 0.78rem; color: var(--text-dim);">💡 عند استعادة نسخة سحابية، سيتم تنزيلها وتطبيقها على قاعدة البيانات فوراً.</span>
+        <button type="button" class="btn-sub" onclick="closeGoogleDriveModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔒 Hard Paywall Modal Overlay (30-Day Expiry / Lockout) -->
+  <div id="paywallModal" class="paywall-overlay" style="display: none;">
+    <div class="paywall-container glass-prism">
+      <div class="paywall-icon-badge">🔒</div>
+      <h2 class="paywall-title" id="paywallTitle">انتهت فترة التجربة المجانية (30 يوماً)</h2>
+      <p class="paywall-desc" id="paywallDesc">
+        شكراً لاستخدامك نظام QuazLink POS & ERP. لمواصلة إصدار الفواتير والبيع دون توقف، يرجى تفعيل ترخيص معتمد لجهازك. بياناتك ومخزونك وفواتيرك السابقة محفوظة بأمان 100%.
+      </p>
+
+      <!-- Hardware ID Box -->
+      <div class="paywall-hw-card">
+        <div class="paywall-hw-label">بصمة عتاد هذا الجهاز الفريدة (Hardware ID):</div>
+        <div class="paywall-hw-row">
+          <span id="paywallHwDisplay" class="paywall-hw-val">QL-HW-XXXX-XXXX-XXXX-XXXX</span>
+          <button type="button" class="btn-copy-hw" onclick="copyPaywallHwId()">📋 نسخ البصمة</button>
+        </div>
+      </div>
+
+      <!-- Activation Input -->
+      <div class="paywall-activate-box">
+        <input type="text" id="paywallKeyInput" class="paywall-input" placeholder="أدخل مفتاح الترخيص (مثال: QLPOS-LIFE-... أو QLPOS-SAAS-...)" autocomplete="off">
+        <button type="button" class="btn-primary paywall-act-btn" onclick="submitPaywallActivate()">⚡ تفعيل الترخيص الآن</button>
+      </div>
+
+      <!-- WhatsApp Direct Link -->
+      <div class="paywall-support-row">
+        <a id="btnPaywallWhatsapp" href="https://wa.me/201019078440?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AA%D9%81%D8%B9%D9%8A%D9%84%20%D8%AA%D8%B1%D8%AE%D9%8A%D8%B5%20QuazLink%20POS" target="_blank" class="btn-paywall-wa">
+          💬 تواصل معنا عبر واتساب لتفعيل أو شراء الترخيص
+        </a>
+        <button type="button" class="btn-paywall-settings" onclick="openPaywallSettings()">
+          ⚙️ فتح شاشة الإعدادات والتراخيص
         </button>
       </div>
     </div>

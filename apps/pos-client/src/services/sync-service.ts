@@ -60,6 +60,8 @@ export class SyncService {
   private settingsService: SettingsService;
   private licensingService: LicensingService;
   private autoSyncTimer: NodeJS.Timeout | null = null;
+  private autoBackupTimer: NodeJS.Timeout | null = null;
+  private onBackupCreatedCallback: ((backup: BackupItem) => void) | null = null;
   private backupDir: string;
 
   constructor(db: PosDatabase, settingsService: SettingsService, licensingService: LicensingService) {
@@ -79,6 +81,7 @@ export class SyncService {
 
     this.ensureTables();
     this.initAutoSync();
+    this.initAutoBackup();
   }
 
   private ensureTables(): void {
@@ -453,7 +456,7 @@ export class SyncService {
       [backupId, backupType, targetPath, stat.size, checksum, notes]
     );
 
-    return {
+    const backupItem: BackupItem = {
       id: backupId,
       backupType,
       filePath: targetPath,
@@ -463,6 +466,16 @@ export class SyncService {
       notes,
       createdAt: new Date().toISOString(),
     };
+
+    if (this.onBackupCreatedCallback) {
+      try {
+        this.onBackupCreatedCallback(backupItem);
+      } catch (cbErr: any) {
+        console.warn('⚠️ [SyncService] onBackupCreated callback error:', cbErr?.message || cbErr);
+      }
+    }
+
+    return backupItem;
   }
 
   public listBackups(): BackupItem[] {
@@ -629,5 +642,93 @@ export class SyncService {
   public restartAutoSync(): void {
     this.stopAutoSync();
     this.initAutoSync();
+  }
+
+  // ==========================================
+  // محرك جدولة النسخ الاحتياطي التلقائي (Auto-Backup Scheduler)
+  // ==========================================
+
+  public setOnBackupCreated(cb: (backup: BackupItem) => void): void {
+    this.onBackupCreatedCallback = cb;
+  }
+
+  public initAutoBackup(): void {
+    const enabled = this.settingsService.getSetting('auto_backup_enabled', 'true') === 'true';
+    if (!enabled) return;
+
+    if (this.autoBackupTimer) {
+      clearInterval(this.autoBackupTimer);
+      this.autoBackupTimer = null;
+    }
+
+    // فحص كل دقيقة لمعرفة إذا حان موعد النسخة الاحتياطية المجدولة
+    this.autoBackupTimer = setInterval(async () => {
+      try {
+        const isEnabled = this.settingsService.getSetting('auto_backup_enabled', 'true') === 'true';
+        if (!isEnabled) return;
+
+        const intervalMins = Math.max(5, parseInt(this.settingsService.getSetting('auto_backup_interval_mins', '60'), 10) || 60);
+        const lastRunStr = this.settingsService.getSetting('auto_backup_last_run', '');
+        const lastRunMs = lastRunStr ? new Date(lastRunStr).getTime() : 0;
+        const nowMs = Date.now();
+
+        if (nowMs - lastRunMs >= intervalMins * 60 * 1000) {
+          const hoursLabel = intervalMins >= 60 ? `${(intervalMins / 60).toFixed(intervalMins % 60 === 0 ? 0 : 1)} ساعة` : `${intervalMins} دقيقة`;
+          console.log(`⏰ [SyncService] Auto-backup triggered (schedule: كل ${hoursLabel})...`);
+          
+          await this.createBackup({
+            type: 'local',
+            notes: `نسخة احتياطية دورية آلية مجدولة (كل ${hoursLabel}) - ${new Date().toLocaleTimeString('ar-EG')}`,
+          });
+
+          this.settingsService.setSetting('auto_backup_last_run', new Date().toISOString());
+        }
+      } catch (err: any) {
+        console.warn('⚠️ [SyncService] Scheduled backup execution error:', err?.message || err);
+      }
+    }, 60 * 1000);
+
+    if (this.autoBackupTimer && typeof this.autoBackupTimer.unref === 'function') {
+      this.autoBackupTimer.unref();
+    }
+  }
+
+  public stopAutoBackup(): void {
+    if (this.autoBackupTimer) {
+      clearInterval(this.autoBackupTimer);
+      this.autoBackupTimer = null;
+    }
+  }
+
+  public restartAutoBackup(): void {
+    this.stopAutoBackup();
+    this.initAutoBackup();
+  }
+
+  public getAutoBackupStatus(): {
+    enabled: boolean;
+    intervalMins: number;
+    uploadToDrive: boolean;
+    lastRun: string | null;
+    nextRun: string | null;
+  } {
+    const enabled = this.settingsService.getSetting('auto_backup_enabled', 'true') === 'true';
+    const intervalMins = Math.max(5, parseInt(this.settingsService.getSetting('auto_backup_interval_mins', '60'), 10) || 60);
+    const uploadToDrive = this.settingsService.getSetting('auto_backup_upload_gdrive', 'true') === 'true';
+    const lastRun = this.settingsService.getSetting('auto_backup_last_run', '') || null;
+
+    let nextRun: string | null = null;
+    if (enabled) {
+      const baseMs = lastRun ? new Date(lastRun).getTime() : Date.now();
+      nextRun = new Date(baseMs + intervalMins * 60 * 1000).toISOString();
+    }
+
+    return {
+      enabled,
+      intervalMins,
+      uploadToDrive,
+      lastRun,
+      nextRun,
+    };
   }
 }

@@ -29,6 +29,10 @@ export class SettingsService {
     print_format_a4: 'true',
     print_format_a5: 'true',
     default_print_format: 'thermal',
+    auto_backup_enabled: 'true',
+    auto_backup_interval_mins: '60',
+    auto_backup_upload_gdrive: 'true',
+    auto_backup_last_run: '',
   };
 
   constructor(db: PosDatabase) {

@@ -12,8 +12,9 @@ export interface PurchaseItemInput {
 }
 
 export interface CreatePurchaseInvoiceInput {
-  supplierId: string;
+  supplierId?: string;
   items: PurchaseItemInput[];
+  paymentMethod?: string;
   paidAmount?: number;
   notes?: string;
   branchCode?: string;
@@ -41,9 +42,23 @@ export class PurchaseService {
       throw new Error('Purchase invoice must contain at least one item.');
     }
 
-    const supplier = this.contactService.getContactById(input.supplierId);
-    if (!supplier) {
-      throw new Error(`Supplier not found: ${input.supplierId}`);
+    let resolvedSupplierId: string;
+    let supplier = input.supplierId ? this.contactService.getContactById(input.supplierId) : null;
+    if (supplier) {
+      resolvedSupplierId = supplier.id;
+    } else {
+      const suppliers = this.contactService.getAllContacts('supplier');
+      if (suppliers && suppliers.length > 0) {
+        supplier = suppliers[0];
+        resolvedSupplierId = supplier.id;
+      } else {
+        supplier = this.contactService.createContact({
+          name: 'مورد عام / نقدي',
+          type: 'supplier',
+          phone: '01000000000',
+        });
+        resolvedSupplierId = supplier.id;
+      }
     }
 
     return this.db.transaction(() => {
@@ -73,13 +88,14 @@ export class PurchaseService {
           );
         }
 
-        const totalPrice = item.quantity * item.unitPrice;
+        const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : ((item as any).unitCost ?? 0);
+        const totalPrice = item.quantity * unitPrice;
         subtotal += totalPrice;
 
         validatedItems.push({
           product,
           quantity: item.quantity,
-          unitPrice: item.unitPrice,
+          unitPrice,
           totalPrice,
           serialNumbers: item.serialNumbers,
         });
@@ -88,7 +104,7 @@ export class PurchaseService {
       const finalAmount = subtotal;
       const paid = input.paidAmount ?? finalAmount;
       const remaining = Number((finalAmount - paid).toFixed(2));
-      const paymentMethod = remaining > 0 ? 'credit' : 'cash';
+      const paymentMethod = input.paymentMethod || (remaining > 0 ? 'credit' : 'cash');
 
       // 1. إدراج فاتورة الشراء
       this.db.run(
@@ -102,7 +118,7 @@ export class PurchaseService {
           invoiceId,
           invoiceNumber,
           paymentMethod,
-          input.supplierId,
+          resolvedSupplierId,
           subtotal,
           finalAmount,
           paid,
@@ -154,7 +170,7 @@ export class PurchaseService {
       // 3. تحديث حساب المورد وسجل المدفوعات
       if (remaining > 0) {
         // المتبقي دين للمورد علينا (رصيد دائن للمورد)
-        this.contactService.updateBalance(input.supplierId, remaining);
+        this.contactService.updateBalance(resolvedSupplierId, remaining);
       }
 
       if (paid > 0) {
@@ -162,7 +178,7 @@ export class PurchaseService {
         this.db.run(
           `INSERT INTO payments (id, contact_id, invoice_id, amount, type, method, notes)
            VALUES (?, ?, ?, ?, 'payment', 'cash', 'دفعة سداد فاتورة شراء بضاعة')`,
-          [paymentId, input.supplierId, invoiceId, paid]
+          [paymentId, resolvedSupplierId, invoiceId, paid]
         );
       }
 

@@ -498,7 +498,17 @@ export interface PosTerminalItem {
   osRelease: string;
   osArch: string;
   cpuModel: string;
+  cpuProcessorId?: string | null;
+  cpuCores?: number | null;
   totalMemoryMB: number;
+  freeMemoryMB?: number | null;
+  motherboardUuid?: string;
+  motherboardSerial?: string | null;
+  motherboardMfr?: string | null;
+  motherboardModel?: string | null;
+  diskModel?: string | null;
+  diskSizeGB?: number | null;
+  biosVersion?: string | null;
   appVersion: string;
   licenseType: string;
   licenseKey: string | null;
@@ -512,6 +522,13 @@ export interface PosTerminalItem {
   launchCount: number;
   firstSeenAt: string;
   lastSeenAt: string;
+  trialStartedAt?: string;
+  expiresAt?: string;
+  daysRemaining?: number | null;
+  daysElapsed?: number;
+  isTrialExpired?: boolean;
+  trialProgressPercent?: number;
+  rawHardware?: any;
   isOnline: boolean;
 }
 
@@ -571,6 +588,15 @@ export async function updateUserRole(
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ role }),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function deletePosTerminal(
+  terminalId: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await apiFetch(`/api/admin/pos-terminals/${terminalId}`, {
+    method: "DELETE",
   });
   return jsonOrThrow(res);
 }

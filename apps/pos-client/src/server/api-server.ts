@@ -17,6 +17,7 @@ import { ShiftService } from '../services/shift-service.js';
 import { SyncService } from '../services/sync-service.js';
 import { EtaService } from '../services/eta-service.js';
 import { PosUpdaterService, CURRENT_VERSION } from '../services/updater-service.js';
+import { GoogleDriveService } from '../services/google-drive-service.js';
 
 export interface PosServerOptions {
   port?: number;
@@ -40,6 +41,7 @@ export class PosServer {
   private syncService: SyncService;
   private etaService: EtaService;
   private updaterService: PosUpdaterService;
+  private googleDriveService: GoogleDriveService;
   private uiDir: string;
   private telemetryTimer: NodeJS.Timeout | null = null;
 
@@ -57,6 +59,19 @@ export class PosServer {
     this.shiftService = new ShiftService(this.db);
     this.syncService = new SyncService(this.db, this.settingsService, this.licensingService);
     this.etaService = new EtaService(this.db);
+    this.googleDriveService = new GoogleDriveService(this.db, this.settingsService, this.syncService);
+
+    // Wire automatic backup hook to Google Drive
+    this.syncService.setOnBackupCreated((backup) => {
+      const gdriveStatus = this.googleDriveService.getStatus();
+      const uploadToDrive = this.settingsService.getSetting('auto_backup_upload_gdrive', 'true') === 'true';
+      if (gdriveStatus.connected && (uploadToDrive || gdriveStatus.autoBackup)) {
+        this.googleDriveService.uploadBackupToDrive(backup.id).catch((err: any) => {
+          console.warn('[GoogleDrive] Auto upload for backup failed:', err?.message || err);
+        });
+      }
+    });
+
     const platformUrl = this.settingsService.getSetting('platform_url') || process.env.QUAZLINK_PLATFORM_URL || 'https://app.quazlink.site';
     this.updaterService = new PosUpdaterService(CURRENT_VERSION, platformUrl);
 
@@ -94,9 +109,7 @@ export class PosServer {
       try {
         const hwId = this.licensingService.getHardwareId();
         const bp = this.db.queryOne<any>('SELECT * FROM business_profile LIMIT 1');
-        const cpus = os.cpus();
-        const cpuModel = cpus && cpus[0] ? cpus[0].model : 'Standard Processor';
-        const totalMem = Math.round(os.totalmem() / (1024 * 1024));
+        const specs = this.licensingService.getDetailedHardwareSpecs();
         const username = os.userInfo ? (os.userInfo().username || 'Cashier') : 'Cashier';
 
         await this.updaterService.sendTelemetryBeacon({
@@ -106,12 +119,22 @@ export class PosServer {
           osPlatform: process.platform,
           osRelease: os.release(),
           osArch: os.arch(),
-          cpuModel,
-          totalMemoryMB: totalMem,
+          cpuModel: specs.cpuModel,
+          cpuProcessorId: specs.cpuProcessorId,
+          cpuCores: specs.cpuCores,
+          totalMemoryMB: specs.totalMemoryMB,
+          motherboardUuid: specs.motherboardUuid,
+          motherboardSerial: specs.motherboardSerial,
+          motherboardMfr: specs.motherboardMfr,
+          motherboardModel: specs.motherboardModel,
+          diskModel: specs.diskModel,
+          diskSizeGB: specs.diskSizeGB,
+          biosVersion: specs.biosVersion,
           appVersion: this.updaterService.getCurrentVersion(),
           businessName: bp?.business_name || 'Retail Terminal',
           licenseType: bp?.license_type || 'trial',
           licenseKey: bp?.license_key || null,
+          rawHardware: specs,
         });
       } catch {}
     };
@@ -122,6 +145,11 @@ export class PosServer {
     // Periodic heartbeat every 15 minutes
     this.telemetryTimer = setInterval(sendBeacon, 15 * 60 * 1000);
     if (this.telemetryTimer.unref) this.telemetryTimer.unref();
+
+    // Periodic local runtime heartbeat every 2 minutes to protect against clock manipulation
+    setInterval(() => {
+      this.licensingService.recordRuntimeHeartbeat();
+    }, 2 * 60 * 1000);
   }
 
   public stop(): Promise<void> {
@@ -208,6 +236,22 @@ export class PosServer {
 
     // 4. POST /api/invoices/checkout
     if (pathname === '/api/invoices/checkout' && req.method === 'POST') {
+      const lic = this.licensingService.getLicenseInfo();
+      if (lic.isPaywallLocked) {
+        const errorMsg = lic.status === 'clock_tampered'
+          ? '⚠️ تم قفل النظام: تم اكتشاف تلاعب في ساعة وتاريخ الويندوز. يرجى ضبط توقيت الجهاز بدقة أو التواصل مع الدعم الفني.'
+          : '⚠️ انتهت فترة التجربة المجانية (30 يوماً). يرجى شراء وتفعيل ترخيص معتمد لمواصلة إصدار الفواتير.';
+        this.sendJson(res, {
+          success: false,
+          error: errorMsg,
+          isPaywallLocked: true,
+          status: lic.status,
+          hardwareId: lic.hardwareId,
+        }, 403);
+        return;
+      }
+      this.licensingService.recordRuntimeHeartbeat();
+
       const body = await this.readBody(req);
       const invoice = this.invoiceService.createSaleInvoice(body);
 
@@ -281,6 +325,37 @@ export class PosServer {
       return;
     }
 
+    // 5d. DELETE /api/invoices/:id or POST /api/invoices/:id/delete (حذف الفاتورة نهائياً واسترجاع المخزون)
+    if (
+      (pathname.match(/^\/api\/invoices\/[^/]+$/) && req.method === 'DELETE') ||
+      (pathname.match(/^\/api\/invoices\/[^/]+\/delete$/) && req.method === 'POST')
+    ) {
+      const id = pathname.replace('/api/invoices/', '').replace('/delete', '');
+      if (['checkout', 'return'].includes(id)) {
+        this.sendJson(res, { success: false, error: 'Invalid invoice ID' }, 400);
+        return;
+      }
+      const result = this.invoiceService.deleteInvoice(id);
+      this.sendJson(res, { ...result });
+      return;
+    }
+
+    // 5e. PUT /api/invoices/:id or POST /api/invoices/:id/update (تعديل فاتورة مبيعات)
+    if (
+      (pathname.match(/^\/api\/invoices\/[^/]+$/) && req.method === 'PUT') ||
+      (pathname.match(/^\/api\/invoices\/[^/]+\/update$/) && req.method === 'POST')
+    ) {
+      const id = pathname.replace('/api/invoices/', '').replace('/update', '');
+      if (['checkout', 'return'].includes(id)) {
+        this.sendJson(res, { success: false, error: 'Invalid invoice ID' }, 400);
+        return;
+      }
+      const body = await this.readBody(req);
+      const updated = this.invoiceService.updateSaleInvoice(id, body);
+      this.sendJson(res, { success: true, invoice: updated });
+      return;
+    }
+
 
     // 6. POST /api/products (إضافة منتج جديد مع سيريالات اختيارية)
     if (pathname === '/api/products' && req.method === 'POST') {
@@ -299,6 +374,39 @@ export class PosServer {
       const body = await this.readBody(req);
       const updated = this.productService.updateProduct(id, body);
       this.sendJson(res, { success: true, product: updated });
+      return;
+    }
+
+    // 7.1 DELETE /api/products/:id or POST /api/products/:id/delete (حذف منتج)
+    if (
+      (pathname.match(/^\/api\/products\/[^/]+$/) && req.method === 'DELETE') ||
+      (pathname.match(/^\/api\/products\/[^/]+\/delete$/) && (req.method === 'POST' || req.method === 'DELETE'))
+    ) {
+      try {
+        const id = pathname.replace('/api/products/', '').replace('/delete', '');
+        let force = false;
+        try {
+          const body = await this.readBody(req);
+          if (body && body.force) force = true;
+        } catch {}
+
+        const result = this.productService.deleteProduct(id, force);
+        this.sendJson(res, {
+          message: `تم حذف المنتج "${result.productName}" بنجاح`,
+          ...result,
+        });
+      } catch (err: any) {
+        const isConstraint = err.message && err.message.includes('حركة فواتير مسجلة');
+        this.sendJson(
+          res,
+          {
+            success: false,
+            error: err.message,
+            canForce: Boolean(isConstraint),
+          },
+          400
+        );
+      }
       return;
     }
 
@@ -546,6 +654,11 @@ export class PosServer {
       const body = await this.readBody(req);
       try {
         const result = this.shiftService.closeShift(body);
+        // Automatic backup upon closing shift
+        this.syncService.createBackup({
+          type: 'local',
+          notes: `نسخة احتياطية تلقائية عند إغلاق الوردية (#${result?.shift?.shiftNumber || ''})`,
+        }).catch((e: any) => console.warn('Auto backup on shift close failed:', e?.message));
         this.sendJson(res, { success: true, ...result });
       } catch (err: any) {
         this.sendJson(res, { success: false, error: err.message }, 400);
@@ -597,10 +710,41 @@ export class PosServer {
       return;
     }
 
+    // 32b. GET /api/backups/schedule (حالة وإعدادات جدولة النسخ الاحتياطي التلقائي)
+    if (pathname === '/api/backups/schedule' && req.method === 'GET') {
+      const schedule = this.syncService.getAutoBackupStatus();
+      this.sendJson(res, { success: true, schedule });
+      return;
+    }
+
+    // 32c. POST /api/backups/schedule (تحديث إعدادات جدولة النسخ الاحتياطي التلقائي)
+    if (pathname === '/api/backups/schedule' && req.method === 'POST') {
+      const body = await this.readBody(req);
+      if (typeof body.enabled !== 'undefined') {
+        this.settingsService.setSetting('auto_backup_enabled', body.enabled ? 'true' : 'false');
+      }
+      if (body.intervalMins) {
+        this.settingsService.setSetting('auto_backup_interval_mins', String(body.intervalMins));
+      }
+      if (typeof body.uploadToDrive !== 'undefined') {
+        this.settingsService.setSetting('auto_backup_upload_gdrive', body.uploadToDrive ? 'true' : 'false');
+      }
+      this.syncService.restartAutoBackup();
+      const schedule = this.syncService.getAutoBackupStatus();
+      this.sendJson(res, { success: true, schedule });
+      return;
+    }
+
     // 33. POST /api/backups/create (إنشاء نسخة احتياطية فورية)
     if (pathname === '/api/backups/create' && req.method === 'POST') {
       const body = await this.readBody(req);
       const backup = await this.syncService.createBackup(body);
+      const gdriveStatus = this.googleDriveService.getStatus();
+      if (gdriveStatus.connected && (gdriveStatus.autoBackup || body.type === 'cloud' || body.uploadToDrive)) {
+        this.googleDriveService.uploadBackupToDrive(backup.id).catch((err: any) => {
+          console.warn('[GoogleDrive] Auto-upload after local backup creation failed:', err.message);
+        });
+      }
       this.sendJson(res, { success: true, backup });
       return;
     }
@@ -628,6 +772,88 @@ export class PosServer {
         'Content-Disposition': `attachment; filename="quazlink_backup_${backupId}.qzbk"`,
       });
       res.end(payload);
+      return;
+    }
+
+    // 35b. Google Drive Cloud Backup Integration Endpoints
+    // GET /api/gdrive/status
+    if (pathname === '/api/gdrive/status' && req.method === 'GET') {
+      const status = this.googleDriveService.getStatus();
+      this.sendJson(res, { success: true, ...status });
+      return;
+    }
+
+    // POST /api/gdrive/connect (بدء جلسة الربط السحابي عبر المتصفح)
+    if (pathname === '/api/gdrive/connect' && req.method === 'POST') {
+      try {
+        const result = await this.googleDriveService.startAuthFlow();
+        this.sendJson(res, result);
+      } catch (err: any) {
+        this.sendJson(res, { success: false, error: err.message }, 500);
+      }
+      return;
+    }
+
+    // POST /api/gdrive/disconnect (إلغاء ربط الحساب)
+    if (pathname === '/api/gdrive/disconnect' && req.method === 'POST') {
+      const result = this.googleDriveService.disconnect();
+      this.sendJson(res, result);
+      return;
+    }
+
+    // POST /api/gdrive/toggle-auto (تفعيل/تعطيل النسخ التلقائي)
+    if (pathname === '/api/gdrive/toggle-auto' && req.method === 'POST') {
+      const body = await this.readBody(req);
+      this.googleDriveService.setAutoBackup(body.enabled !== false);
+      const status = this.googleDriveService.getStatus();
+      this.sendJson(res, { success: true, ...status });
+      return;
+    }
+
+    // POST /api/gdrive/upload/:backupId (رفع نسخة احتياطية محلية محددة إلى Drive)
+    if (pathname.match(/^\/api\/gdrive\/upload\/[^/]+$/) && req.method === 'POST') {
+      const backupId = pathname.split('/')[4];
+      try {
+        const result = await this.googleDriveService.uploadBackupToDrive(backupId);
+        this.sendJson(res, result);
+      } catch (err: any) {
+        this.sendJson(res, { success: false, error: err.message }, 500);
+      }
+      return;
+    }
+
+    // POST /api/gdrive/create-and-upload (إنشاء نسخة جديدة ورفعها فورياً)
+    if (pathname === '/api/gdrive/create-and-upload' && req.method === 'POST') {
+      const body = await this.readBody(req);
+      try {
+        const result = await this.googleDriveService.createAndUploadBackup(body.notes);
+        this.sendJson(res, result);
+      } catch (err: any) {
+        this.sendJson(res, { success: false, error: err.message }, 500);
+      }
+      return;
+    }
+
+    // GET /api/gdrive/list (استعراض النسخ المتوفرة على حساب Google Drive)
+    if (pathname === '/api/gdrive/list' && req.method === 'GET') {
+      try {
+        const files = await this.googleDriveService.listDriveBackups();
+        this.sendJson(res, { success: true, files });
+      } catch (err: any) {
+        this.sendJson(res, { success: false, error: err.message }, 500);
+      }
+      return;
+    }
+
+    // POST /api/gdrive/restore/:fileId (تنزيل نسخة من Drive واستعادتها للنظام)
+    if (pathname.match(/^\/api\/gdrive\/restore\/[^/]+$/) && req.method === 'POST') {
+      const fileId = pathname.split('/')[4];
+      try {
+        const result = await this.googleDriveService.restoreFromDrive(fileId);
+        this.sendJson(res, result);
+      } catch (err: any) {
+        this.sendJson(res, { success: false, error: err.message }, 500);
+      }
       return;
     }
 

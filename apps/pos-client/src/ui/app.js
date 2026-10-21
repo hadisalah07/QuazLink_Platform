@@ -12,12 +12,14 @@ let searchDebounceTimer = null;
 // Application State
 const state = {
   cart: [], // { product, quantity, unitPrice, serialNumber }
+  invoiceType: 'sale', // 'sale' | 'purchase'
   priceType: 'retail', // 'retail' | 'wholesale'
   discountAmount: 0,
   applyVat14: false,
   paymentMethod: 'cash',
   paidAmount: 0,
-  customer: null, // { id, name, phone }
+  customer: null, // { id, name, phone } for sale
+  supplier: null, // { id, name, phone } for purchase
   pendingSerialProduct: null, // Product awaiting serial prompt confirmation
 };
 
@@ -40,14 +42,13 @@ let appSettingsCache = {
   print_format_a5: 'true',
   default_print_format: 'thermal',
 };
-let currentPreviewInvoiceData = null;
-let currentPreviewFormat = 'thermal';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initClock();
   initZoomControls();
+  initFullscreenControls();
   initGlobalBarcodeListener();
   initKeyboardShortcuts();
   initSearchAutocomplete();
@@ -56,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshLowStockCount();
   initAppSettings();
   updateCashierPrintFormatUI();
+  updateInvoiceModeUI();
   renderInvoiceMetaHeader();
   focusSearch();
   setTimeout(autoCheckForUpdatesOnStartup, 1500);
@@ -64,30 +66,97 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// Floating Modern Toast Notification Engine
-function showToast(message, type = 'info') {
+// Floating Modern Toast Notification Engine (Single Overwrite Mode)
+let activeToastTimeout = null;
+let activeToastRemoveTimeout = null;
+
+function showToast(message, type = 'info', duration = 3000) {
   const container = document.getElementById('toastContainer');
   if (!container) {
     console.log(`[${type}] ${message}`);
     return;
   }
+
+  // Clear existing dismiss timers immediately
+  if (activeToastTimeout) {
+    clearTimeout(activeToastTimeout);
+    activeToastTimeout = null;
+  }
+  if (activeToastRemoveTimeout) {
+    clearTimeout(activeToastRemoveTimeout);
+    activeToastRemoveTimeout = null;
+  }
+
   const icons = {
     success: '✅',
     error: '❌',
     warning: '⚠️',
     info: 'ℹ️',
   };
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span style="font-size:1rem;">${icons[type] || 'ℹ️'}</span><span>${message}</span>`;
-  container.appendChild(toast);
+  const iconStr = icons[type] || 'ℹ️';
 
-  setTimeout(() => {
+  // Strip duplicate leading emoji if present in message text
+  let cleanMsg = String(message || '').trim();
+  if (cleanMsg.startsWith('✅') || cleanMsg.startsWith('❌') || cleanMsg.startsWith('⚠️') || cleanMsg.startsWith('ℹ️')) {
+    cleanMsg = cleanMsg.substring(2).trim();
+  }
+
+  // Check if a toast already exists in the container (Single Overwrite Mode)
+  let toast = container.querySelector('.toast');
+
+  if (toast) {
+    // 1) Overwrite existing toast in-place
+    toast.className = `toast toast-${type} toast-pop`;
+    toast.innerHTML = `<span style="font-size:1rem; flex-shrink: 0;">${iconStr}</span><span>${cleanMsg}</span>`;
+    toast.classList.remove('toast-out');
+
+    // Force DOM reflow to re-trigger pop animation smoothly
+    toast.style.animation = 'none';
+    void toast.offsetHeight;
+    toast.style.animation = '';
+
+    // Remove any extra orphan toasts to guarantee strictly ONE visible toast
+    const allToasts = container.querySelectorAll('.toast');
+    for (let i = 1; i < allToasts.length; i++) {
+      allToasts[i].remove();
+    }
+  } else {
+    // 2) Create new toast element if none exists
+    container.innerHTML = '';
+    toast = document.createElement('div');
+    toast.className = `toast toast-${type} toast-pop`;
+    toast.innerHTML = `<span style="font-size:1rem; flex-shrink: 0;">${iconStr}</span><span>${cleanMsg}</span>`;
+    container.appendChild(toast);
+  }
+
+  // Allow clicking on toast to dismiss immediately
+  toast.style.cursor = 'pointer';
+  toast.title = 'انقر للإغلاق الفوري';
+  toast.onclick = () => {
+    if (activeToastTimeout) {
+      clearTimeout(activeToastTimeout);
+      activeToastTimeout = null;
+    }
+    if (activeToastRemoveTimeout) {
+      clearTimeout(activeToastRemoveTimeout);
+      activeToastRemoveTimeout = null;
+    }
     toast.classList.add('toast-out');
-    setTimeout(() => {
+    activeToastRemoveTimeout = setTimeout(() => {
       if (toast.parentNode) toast.parentNode.removeChild(toast);
+      activeToastRemoveTimeout = null;
+    }, 200);
+  };
+
+  // Schedule auto-dismiss with a fresh timer
+  activeToastTimeout = setTimeout(() => {
+    toast.classList.add('toast-out');
+    activeToastRemoveTimeout = setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+      activeToastTimeout = null;
+      activeToastRemoveTimeout = null;
     }, 250);
-  }, 3200);
+  }, duration);
 }
 
 // -------------------------------------------------------------
@@ -96,6 +165,7 @@ function showToast(message, type = 'info') {
 function initTheme() {
   const savedTheme = localStorage.getItem('quazlink_pos_theme') || 'dark';
   applyTheme(savedTheme, false);
+  initCustomBackgroundAndGlass();
 }
 
 function applyTheme(theme, notify = true) {
@@ -150,6 +220,354 @@ async function saveThemeSetting(theme) {
       body: JSON.stringify({ theme }),
     });
   } catch (e) {}
+}
+
+// -------------------------------------------------------------
+// Custom Background & Glass Prism Engine
+// -------------------------------------------------------------
+
+const THEME_PRESETS = {
+  'cosmic-aurora': {
+    name: 'سديم الشفق الأرجواني',
+    style: 'radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.5) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.45) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.35) 0%, transparent 60%), linear-gradient(135deg, #050711 0%, #0d1224 50%, #080c18 100%)'
+  },
+  'cyber-emerald': {
+    name: 'الزمرد السيبراني',
+    style: 'radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.45) 0%, transparent 45%), radial-gradient(circle at 85% 85%, rgba(5, 150, 105, 0.4) 0%, transparent 50%), radial-gradient(circle at 50% 20%, rgba(6, 182, 212, 0.3) 0%, transparent 50%), linear-gradient(135deg, #021a14 0%, #061f18 40%, #030f0c 100%)'
+  },
+  'midnight-neon': {
+    name: 'الشفق النيوني الليلي',
+    style: 'radial-gradient(circle at 75% 25%, rgba(236, 72, 153, 0.4) 0%, transparent 50%), radial-gradient(circle at 20% 75%, rgba(59, 130, 246, 0.5) 0%, transparent 55%), radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.35) 0%, transparent 60%), linear-gradient(160deg, #090a1a 0%, #10122e 60%, #070814 100%)'
+  },
+  'obsidian-prism': {
+    name: 'حجر السج الماسي',
+    style: 'radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.15) 0%, transparent 50%), radial-gradient(circle at 0% 100%, rgba(30, 41, 59, 0.7) 0%, transparent 50%), radial-gradient(circle at 100% 0%, rgba(51, 65, 85, 0.5) 0%, transparent 50%), linear-gradient(135deg, #07090e 0%, #0e121a 50%, #05060a 100%)'
+  },
+  'deep-ocean': {
+    name: 'أشعة المحيط العميقة',
+    style: 'radial-gradient(circle at 30% 20%, rgba(20, 184, 166, 0.5) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(14, 116, 144, 0.45) 0%, transparent 50%), radial-gradient(circle at 50% 90%, rgba(3, 105, 161, 0.4) 0%, transparent 55%), linear-gradient(145deg, #02131d 0%, #052332 50%, #010c14 100%)'
+  }
+};
+
+function getThemeConfig() {
+  return {
+    bgEnabled: localStorage.getItem('quazlink_custom_bg_enabled') === 'true',
+    glassPrism: localStorage.getItem('quazlink_glass_prism_enabled') !== 'false',
+    preset: localStorage.getItem('quazlink_custom_bg_preset') || 'cosmic-aurora',
+    customDataUrl: localStorage.getItem('quazlink_custom_bg_data') || '',
+    customFileName: localStorage.getItem('quazlink_custom_bg_filename') || '',
+    blur: parseInt(localStorage.getItem('quazlink_custom_bg_blur') || '10', 10),
+    dim: parseInt(localStorage.getItem('quazlink_custom_bg_dim') || '65', 10),
+    glassOpacity: parseInt(localStorage.getItem('quazlink_glass_opacity') || '60', 10),
+    glassBlur: parseInt(localStorage.getItem('quazlink_glass_blur') || '16', 10)
+  };
+}
+
+function initCustomBackgroundAndGlass() {
+  const cfg = getThemeConfig();
+  applyCustomBackgroundStyles(cfg);
+}
+
+function applyCustomBackgroundStyles(cfg) {
+  const root = document.documentElement;
+  const bgContainer = document.getElementById('customBgContainer');
+  const bgLayer = document.getElementById('customBgLayer');
+
+  root.style.setProperty('--custom-bg-blur', `${cfg.blur}px`);
+  root.style.setProperty('--custom-bg-dim', (cfg.dim / 100).toFixed(2));
+  root.style.setProperty('--glass-surface', `rgba(15, 23, 42, ${(cfg.glassOpacity / 100).toFixed(2)})`);
+  root.style.setProperty('--glass-surface-hover', `rgba(22, 33, 56, ${Math.min(0.95, (cfg.glassOpacity / 100) + 0.12).toFixed(2)})`);
+  root.style.setProperty('--glass-blur', `${cfg.glassBlur}px`);
+
+  if (cfg.bgEnabled) {
+    document.body.classList.add('has-custom-bg');
+    if (bgContainer) bgContainer.style.display = 'block';
+
+    if (bgLayer) {
+      if (cfg.customDataUrl) {
+        bgLayer.style.background = '';
+        bgLayer.style.backgroundImage = `url("${cfg.customDataUrl}")`;
+      } else if (THEME_PRESETS[cfg.preset]) {
+        bgLayer.style.backgroundImage = '';
+        bgLayer.style.background = THEME_PRESETS[cfg.preset].style;
+      } else {
+        bgLayer.style.backgroundImage = '';
+        bgLayer.style.background = THEME_PRESETS['cosmic-aurora'].style;
+      }
+    }
+  } else {
+    document.body.classList.remove('has-custom-bg');
+    if (bgContainer) bgContainer.style.display = 'none';
+  }
+
+  if (cfg.glassPrism && cfg.bgEnabled) {
+    document.body.classList.add('theme-glass-prism');
+  } else {
+    document.body.classList.remove('theme-glass-prism');
+  }
+
+  updateLivePreviewShim(cfg);
+}
+
+function initThemeSettingsTab() {
+  const cfg = getThemeConfig();
+
+  // Render presets
+  const grid = document.getElementById('themePresetsGrid');
+  if (grid) {
+    grid.innerHTML = '';
+    Object.keys(THEME_PRESETS).forEach((k) => {
+      const p = THEME_PRESETS[k];
+      const isSelected = !cfg.customDataUrl && cfg.preset === k;
+      const card = document.createElement('div');
+      card.className = `preset-card ${isSelected ? 'active' : ''}`;
+      card.style.background = p.style;
+      card.onclick = () => selectThemePreset(k);
+      card.innerHTML = `
+        <span class="preset-card-check">✓</span>
+        <span class="preset-card-title">${p.name}</span>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // Toggles
+  const toggleGlass = document.getElementById('toggleGlassPrism');
+  if (toggleGlass) toggleGlass.checked = cfg.glassPrism;
+
+  const toggleBg = document.getElementById('toggleCustomBg');
+  if (toggleBg) toggleBg.checked = cfg.bgEnabled;
+
+  // Sliders
+  const rBlur = document.getElementById('rangeBgBlur');
+  if (rBlur) rBlur.value = cfg.blur;
+  const lBlur = document.getElementById('labelBgBlurVal');
+  if (lBlur) lBlur.textContent = `${cfg.blur}px`;
+
+  const rDim = document.getElementById('rangeBgDim');
+  if (rDim) rDim.value = cfg.dim;
+  const lDim = document.getElementById('labelBgDimVal');
+  if (lDim) lDim.textContent = `${cfg.dim}%`;
+
+  const rGlassOp = document.getElementById('rangeGlassOpacity');
+  if (rGlassOp) rGlassOp.value = cfg.glassOpacity;
+  const lGlassOp = document.getElementById('labelGlassOpacityVal');
+  if (lGlassOp) lGlassOp.textContent = `${cfg.glassOpacity}%`;
+
+  const rGlassBlur = document.getElementById('rangeGlassBlur');
+  if (rGlassBlur) rGlassBlur.value = cfg.glassBlur;
+  const lGlassBlur = document.getElementById('labelGlassBlurVal');
+  if (lGlassBlur) lGlassBlur.textContent = `${cfg.glassBlur}px`;
+
+  // Badges & upload status
+  const badge = document.getElementById('currentWallpaperBadge');
+  const btnRemove = document.getElementById('btnRemoveCustomBg');
+  const fileDisplay = document.getElementById('customBgFileNameDisplay');
+
+  if (cfg.customDataUrl) {
+    if (badge) {
+      badge.textContent = 'صورة مخصصة مرفوعة';
+      badge.style.color = '#34d399';
+      badge.style.background = 'rgba(16,185,129,0.15)';
+      badge.style.borderColor = 'rgba(16,185,129,0.4)';
+    }
+    if (btnRemove) btnRemove.style.display = 'inline-block';
+    if (fileDisplay) fileDisplay.textContent = `📁 ${cfg.customFileName || 'صورة مخصصة'}`;
+  } else {
+    if (badge) {
+      const presetName = THEME_PRESETS[cfg.preset]?.name || 'الافتراضي';
+      badge.textContent = `جاهز: ${presetName}`;
+      badge.style.color = '#06b6d4';
+      badge.style.background = 'rgba(6,182,212,0.15)';
+      badge.style.borderColor = 'rgba(6,182,212,0.4)';
+    }
+    if (btnRemove) btnRemove.style.display = 'none';
+    if (fileDisplay) fileDisplay.textContent = '';
+  }
+
+  updateLivePreviewShim(cfg);
+}
+
+function onGlassPrismToggled() {
+  const isChecked = document.getElementById('toggleGlassPrism')?.checked;
+  localStorage.setItem('quazlink_glass_prism_enabled', isChecked ? 'true' : 'false');
+  const cfg = getThemeConfig();
+  cfg.glassPrism = isChecked;
+  applyCustomBackgroundStyles(cfg);
+  showToast(isChecked ? 'تم تفعيل محرك الزجاج المنشوري 💎' : 'تم تعطيل تأثير الزجاج', 'info');
+}
+
+function onCustomBgToggled() {
+  const isChecked = document.getElementById('toggleCustomBg')?.checked;
+  localStorage.setItem('quazlink_custom_bg_enabled', isChecked ? 'true' : 'false');
+  if (isChecked) {
+    localStorage.setItem('quazlink_glass_prism_enabled', 'true');
+    const toggleGlass = document.getElementById('toggleGlassPrism');
+    if (toggleGlass) toggleGlass.checked = true;
+  }
+  const cfg = getThemeConfig();
+  cfg.bgEnabled = isChecked;
+  cfg.glassPrism = true;
+  applyCustomBackgroundStyles(cfg);
+  showToast(isChecked ? 'تم تفعيل الخلفية المخصصة بنجاح 🖼️' : 'تم العودة للخلفية الافتراضية', 'info');
+}
+
+function selectThemePreset(presetKey) {
+  if (!THEME_PRESETS[presetKey]) return;
+  localStorage.setItem('quazlink_custom_bg_preset', presetKey);
+  localStorage.removeItem('quazlink_custom_bg_data');
+  localStorage.removeItem('quazlink_custom_bg_filename');
+  localStorage.setItem('quazlink_custom_bg_enabled', 'true');
+  localStorage.setItem('quazlink_glass_prism_enabled', 'true');
+
+  const cfg = getThemeConfig();
+  applyCustomBackgroundStyles(cfg);
+  initThemeSettingsTab();
+  showToast(`تم تفعيل تصميم "${THEME_PRESETS[presetKey].name}" ✨`, 'success');
+}
+
+function handleCustomBgUpload(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawDataUrl = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      const maxWidth = 1920;
+      const maxHeight = 1080;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth || height > maxHeight) {
+        if (width / height > maxWidth / maxHeight) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      try {
+        localStorage.setItem('quazlink_custom_bg_data', optimizedDataUrl);
+        localStorage.setItem('quazlink_custom_bg_filename', file.name);
+        localStorage.setItem('quazlink_custom_bg_enabled', 'true');
+        localStorage.setItem('quazlink_glass_prism_enabled', 'true');
+
+        const cfg = getThemeConfig();
+        applyCustomBackgroundStyles(cfg);
+        initThemeSettingsTab();
+        showToast('تم رفع وتطبيق الخلفية المخصصة بنجاح! 🖼️✨', 'success');
+      } catch (err) {
+        showToast('حجم الصورة كبير جداً على الذاكرة المحلية، يرجى اختيار صورة أصغر', 'error');
+      }
+    };
+    img.src = rawDataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeUploadedWallpaper() {
+  localStorage.removeItem('quazlink_custom_bg_data');
+  localStorage.removeItem('quazlink_custom_bg_filename');
+  const cfg = getThemeConfig();
+  applyCustomBackgroundStyles(cfg);
+  initThemeSettingsTab();
+  showToast('تمت إزالة الصورة المرفوعة والعودة للتصميم المدمج 🔄', 'info');
+}
+
+function updateBgBlurLive(val) {
+  const num = parseInt(val, 10);
+  document.documentElement.style.setProperty('--custom-bg-blur', `${num}px`);
+  const lbl = document.getElementById('labelBgBlurVal');
+  if (lbl) lbl.textContent = `${num}px`;
+  localStorage.setItem('quazlink_custom_bg_blur', num.toString());
+  updateLivePreviewShim(getThemeConfig());
+}
+
+function updateBgDimLive(val) {
+  const num = parseInt(val, 10);
+  document.documentElement.style.setProperty('--custom-bg-dim', (num / 100).toFixed(2));
+  const lbl = document.getElementById('labelBgDimVal');
+  if (lbl) lbl.textContent = `${num}%`;
+  localStorage.setItem('quazlink_custom_bg_dim', num.toString());
+  updateLivePreviewShim(getThemeConfig());
+}
+
+function updateGlassOpacityLive(val) {
+  const num = parseInt(val, 10);
+  document.documentElement.style.setProperty('--glass-surface', `rgba(15, 23, 42, ${(num / 100).toFixed(2)})`);
+  document.documentElement.style.setProperty('--glass-surface-hover', `rgba(22, 33, 56, ${Math.min(0.95, (num / 100) + 0.12).toFixed(2)})`);
+  const lbl = document.getElementById('labelGlassOpacityVal');
+  if (lbl) lbl.textContent = `${num}%`;
+  localStorage.setItem('quazlink_glass_opacity', num.toString());
+}
+
+function updateGlassBlurLive(val) {
+  const num = parseInt(val, 10);
+  document.documentElement.style.setProperty('--glass-blur', `${num}px`);
+  const lbl = document.getElementById('labelGlassBlurVal');
+  if (lbl) lbl.textContent = `${num}px`;
+  localStorage.setItem('quazlink_glass_blur', num.toString());
+}
+
+function resetToDefaultTheme() {
+  localStorage.removeItem('quazlink_custom_bg_enabled');
+  localStorage.removeItem('quazlink_glass_prism_enabled');
+  localStorage.removeItem('quazlink_custom_bg_data');
+  localStorage.removeItem('quazlink_custom_bg_filename');
+  localStorage.removeItem('quazlink_custom_bg_preset');
+  localStorage.removeItem('quazlink_custom_bg_blur');
+  localStorage.removeItem('quazlink_custom_bg_dim');
+  localStorage.removeItem('quazlink_glass_opacity');
+  localStorage.removeItem('quazlink_glass_blur');
+
+  const cfg = getThemeConfig();
+  applyCustomBackgroundStyles(cfg);
+  initThemeSettingsTab();
+  showToast('تمت استعادة المظهر الافتراضي للنظام 🔄', 'success');
+}
+
+function updateLivePreviewShim(cfg) {
+  const previewBox = document.getElementById('themeLivePreviewArea');
+  if (!previewBox) return;
+
+  let bgShim = previewBox.querySelector('.preview-bg-shim');
+  if (!bgShim) {
+    bgShim = document.createElement('div');
+    bgShim.className = 'preview-bg-shim';
+    previewBox.prepend(bgShim);
+  }
+
+  let overlayShim = previewBox.querySelector('.preview-overlay-shim');
+  if (!overlayShim) {
+    overlayShim = document.createElement('div');
+    overlayShim.className = 'preview-overlay-shim';
+    previewBox.insertBefore(overlayShim, previewBox.querySelector('.preview-mini-card'));
+  }
+
+  bgShim.style.filter = `blur(${cfg.blur}px)`;
+  overlayShim.style.background = `rgba(10, 14, 23, ${(cfg.dim / 100).toFixed(2)})`;
+
+  if (cfg.customDataUrl) {
+    bgShim.style.background = '';
+    bgShim.style.backgroundImage = `url("${cfg.customDataUrl}")`;
+  } else if (THEME_PRESETS[cfg.preset]) {
+    bgShim.style.backgroundImage = '';
+    bgShim.style.background = THEME_PRESETS[cfg.preset].style;
+  } else {
+    bgShim.style.backgroundImage = '';
+    bgShim.style.background = THEME_PRESETS['cosmic-aurora'].style;
+  }
 }
 
 // Live Clock Ticker
@@ -212,20 +630,20 @@ function initKeyboardShortcuts() {
       e.preventDefault();
       focusSearch();
     }
-    // F2: Toggle Retail / Wholesale
+    // F2: Toggle Invoice Type (Sale <-> Purchase)
     else if (e.key === 'F2') {
       e.preventDefault();
-      togglePriceType();
+      toggleInvoiceType();
     }
-    // F3: Customer Search
+    // F3: Customer / Supplier Search
     else if (e.key === 'F3') {
       e.preventDefault();
       openCustomerModal();
     }
-    // F4: Edit Quantity of Last Item
+    // F4: Toggle Retail / Wholesale
     else if (e.key === 'F4') {
       e.preventDefault();
-      editLastItemQuantity();
+      togglePriceType();
     }
     // F8: Shift & Cash Drawer Control
     else if (e.key === 'F8') {
@@ -245,10 +663,26 @@ function initKeyboardShortcuts() {
       e.preventDefault();
       handleCheckout(true);
     }
-    // Escape: Close Modals or Clear
+    // Escape: Exit Fullscreen first if active, otherwise close modals
     else if (e.key === 'Escape') {
       e.preventDefault();
-      closeAllModals();
+      const openModal = document.querySelector('.modal[style*="display: flex"], .modal[style*="display: block"]');
+      if (openModal) {
+        closeAllModals();
+      } else if (isAppFullscreen()) {
+        exitAppFullscreen();
+      } else {
+        closeAllModals();
+      }
+    }
+    // Ctrl + Q: Exit Fullscreen (or toggle)
+    else if (e.ctrlKey && (e.key === 'q' || e.key === 'Q' || e.code === 'KeyQ')) {
+      e.preventDefault();
+      if (isAppFullscreen()) {
+        exitAppFullscreen();
+      } else {
+        toggleAppFullscreen();
+      }
     }
     // Zoom In: Ctrl + = or Ctrl + + or NumpadAdd (Windows 7 / Arabic Keyboards supported)
     else if (
@@ -315,8 +749,12 @@ function initKeyboardShortcuts() {
 let currentAppZoom = 1.0;
 
 function initZoomControls() {
+  // Always clear any legacy inline zoom
+  document.body.style.zoom = '';
+  document.documentElement.style.zoom = '';
+
   const savedZoom = parseFloat(localStorage.getItem('quazlink_pos_zoom') || '1.0');
-  if (savedZoom && !isNaN(savedZoom) && savedZoom !== 1.0) {
+  if (savedZoom && !isNaN(savedZoom)) {
     applyZoom(savedZoom, false);
   }
 
@@ -339,19 +777,121 @@ function resetZoom() {
 }
 
 function applyZoom(factor, notify = true) {
-  currentAppZoom = factor;
+  currentAppZoom = Math.min(2.5, Math.max(0.5, Math.round(factor * 10) / 10));
+
   if (window.electronAPI && typeof window.electronAPI.setZoomFactor === 'function') {
-    window.electronAPI.setZoomFactor(factor);
+    window.electronAPI.setZoomFactor(currentAppZoom);
+    // In Electron, native setZoomFactor scales the webContents flawlessly.
+    // Ensure CSS zoom is completely removed to prevent double-scaling and dead margins.
+    document.body.style.zoom = '';
+    document.documentElement.style.zoom = '';
+  } else {
+    // Pure web browser environment fallback: apply zoom to root html
+    document.documentElement.style.zoom = String(currentAppZoom);
+    document.body.style.zoom = '';
   }
-  document.body.style.zoom = factor;
-  localStorage.setItem('quazlink_pos_zoom', String(factor));
+
+  localStorage.setItem('quazlink_pos_zoom', String(currentAppZoom));
 
   const zoomBadge = document.getElementById('headerZoomLevel');
-  if (zoomBadge) zoomBadge.textContent = `${Math.round(factor * 100)}%`;
+  if (zoomBadge) zoomBadge.textContent = `${Math.round(currentAppZoom * 100)}%`;
 
   if (notify) {
-    const pct = Math.round(factor * 100);
+    const pct = Math.round(currentAppZoom * 100);
     showToast(`🔍 مستوى التكبير: ${pct}%${pct === 100 ? ' (الافتراضي)' : ''}`, pct === 100 ? 'info' : 'success');
+  }
+
+  if (typeof updatePreviewSheetIfActive === 'function') {
+    updatePreviewSheetIfActive();
+  }
+}
+
+// -------------------------------------------------------------
+// 2b. Fullscreen Management Engine (Window / Browser / Electron)
+// -------------------------------------------------------------
+let isAppFullscreenActive = false;
+
+function initFullscreenControls() {
+  if (window.electronAPI && typeof window.electronAPI.onFullscreenChanged === 'function') {
+    window.electronAPI.onFullscreenChanged((isFull) => {
+      isAppFullscreenActive = isFull;
+      updateFullscreenUI(isFull);
+    });
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    isAppFullscreenActive = !!document.fullscreenElement;
+    updateFullscreenUI(isAppFullscreenActive);
+  });
+  document.addEventListener('webkitfullscreenchange', () => {
+    isAppFullscreenActive = !!document.webkitFullscreenElement;
+    updateFullscreenUI(isAppFullscreenActive);
+  });
+}
+
+function isAppFullscreen() {
+  if (window.electronAPI && typeof window.electronAPI.isFullscreen === 'function') {
+    return isAppFullscreenActive;
+  }
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+
+function toggleAppFullscreen() {
+  if (window.electronAPI && typeof window.electronAPI.toggleFullscreen === 'function') {
+    window.electronAPI.toggleFullscreen();
+    return;
+  }
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    const el = document.documentElement;
+    if (el.requestFullscreen) {
+      el.requestFullscreen().catch(() => {});
+    } else if (el.webkitRequestFullscreen) {
+      el.webkitRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
+
+function exitAppFullscreen() {
+  if (window.electronAPI && typeof window.electronAPI.exitFullscreen === 'function') {
+    window.electronAPI.exitFullscreen();
+    return;
+  }
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  } else if (document.webkitFullscreenElement) {
+    document.webkitExitFullscreen();
+  }
+}
+
+function updateFullscreenUI(isFull) {
+  isAppFullscreenActive = !!isFull;
+  const btn = document.getElementById('btnHeaderFullscreenToggle');
+  const iconExpand = document.getElementById('fullscreenIconExpand');
+  const iconCompress = document.getElementById('fullscreenIconCompress');
+
+  if (iconExpand && iconCompress) {
+    if (isFull) {
+      iconExpand.style.display = 'none';
+      iconCompress.style.display = 'inline-block';
+      if (btn) {
+        btn.classList.add('is-fullscreen');
+        btn.title = 'الخروج من ملء الشاشة (اضغط ESC أو Ctrl+Q)';
+      }
+      showToast('🖥️ تم تفعيل وضع ملء الشاشة (اضغط ESC أو Ctrl+Q للخروج)', 'info');
+    } else {
+      iconExpand.style.display = 'inline-block';
+      iconCompress.style.display = 'none';
+      if (btn) {
+        btn.classList.remove('is-fullscreen');
+        btn.title = 'ملء الشاشة Fullscreen (اضغط ESC أو Ctrl+Q للخروج)';
+      }
+    }
   }
 }
 
@@ -785,43 +1325,186 @@ async function onCashierPrintFormatChange(newFormat) {
 }
 
 // -------------------------------------------------------------
-// Invoice Quick Meta Header (Type, Customer Name, Phone)
+// Invoice Mode Switcher (Sale <-> Purchase / Receiving)
+// -------------------------------------------------------------
+function toggleInvoiceType() {
+  const targetMode = state.invoiceType === 'sale' ? 'purchase' : 'sale';
+  setInvoiceMode(targetMode);
+}
+
+function setInvoiceMode(mode) {
+  if (state.invoiceType === mode) return;
+
+  if (state.cart.length > 0) {
+    const isSaleToPurchase = mode === 'purchase';
+    const confirmMsg = isSaleToPurchase
+      ? 'أنت على وشك التبديل إلى (فاتورة شراء وتوريد للمخزن). سيتم تفريغ السلة الحالية لأن أسعار الشراء تختلف عن أسعار البيع. هل تود المتابعة؟'
+      : 'أنت على وشك التبديل إلى (فاتورة بيع). سيتم تفريغ السلة الحالية. هل تود المتابعة؟';
+    if (!confirm(confirmMsg)) {
+      return;
+    }
+    state.cart = [];
+    state.discountAmount = 0;
+  }
+
+  state.invoiceType = mode;
+  updateInvoiceModeUI();
+  renderCart();
+  renderInvoiceMetaHeader();
+  focusSearch();
+
+  if (mode === 'purchase') {
+    showToast('🚚 تم التبديل إلى نمط (فاتورة شراء وتوريد للمخزن). الأصناف المضافة ستزيد رصيد المخزن بسعر التكلفة.', 'info');
+  } else {
+    showToast('🛒 تم التبديل إلى نمط (فاتورة بيع). الأصناف المضافة ستخصم من رصيد المخزن بسعر البيع.', 'info');
+  }
+}
+
+function updateInvoiceModeUI() {
+  const isPurchase = state.invoiceType === 'purchase';
+
+  // Segmented switcher ribbon buttons
+  const btnSale = document.getElementById('modeBtnSale');
+  const btnPurchase = document.getElementById('modeBtnPurchase');
+  if (btnSale && btnPurchase) {
+    btnSale.classList.toggle('active', !isPurchase);
+    btnPurchase.classList.toggle('active', isPurchase);
+  }
+
+  // F2 Shortcut Pill
+  const f2Label = document.getElementById('posInvoiceTypeShortcutLabel');
+  const f2Btn = document.getElementById('posInvoiceTypeShortcutBtn');
+  if (f2Label) {
+    f2Label.textContent = isPurchase ? '🚚 فاتورة شراء' : '🛒 فاتورة بيع';
+  }
+  if (f2Btn) {
+    if (isPurchase) {
+      f2Btn.style.background = 'rgba(245, 158, 11, 0.2)';
+      f2Btn.style.borderColor = 'rgba(245, 158, 11, 0.45)';
+      f2Btn.style.color = '#fbbf24';
+      f2Btn.title = 'نمط الفاتورة: شراء وتوريد - اضغط للتبديل إلى بيع (F2)';
+    } else {
+      f2Btn.style.background = '';
+      f2Btn.style.borderColor = '';
+      f2Btn.style.color = '';
+      f2Btn.title = 'نمط الفاتورة: بيع - اضغط للتبديل إلى شراء (F2)';
+    }
+  }
+
+  // Legacy F4 pill support (if present in DOM)
+  const priceTypeBadge = document.getElementById('priceTypeBadge');
+  const priceTypeBtn = document.getElementById('posPriceTypeShortcutBtn');
+  if (priceTypeBtn && priceTypeBadge) {
+    priceTypeBadge.textContent = isPurchase ? 'فاتورة شراء' : 'فاتورة بيع';
+    priceTypeBadge.style.color = isPurchase ? '#fbbf24' : 'var(--accent-emerald)';
+    priceTypeBtn.title = 'تبديل نمط الفاتورة بين بيع وشراء (F4 / F2)';
+  }
+
+  // Checkout button (#btnCheckout)
+  const btnCheckout = document.getElementById('btnCheckout');
+  const btnCheckoutIcon = document.getElementById('btnCheckoutIcon');
+  const btnCheckoutLabel = document.getElementById('btnCheckoutLabel');
+  const posPrintShortcutLabel = document.getElementById('posPrintShortcutLabel');
+  if (btnCheckout) {
+    if (isPurchase) {
+      btnCheckout.classList.add('purchase-mode');
+      if (btnCheckoutIcon) btnCheckoutIcon.textContent = '📥';
+      if (btnCheckoutLabel) btnCheckoutLabel.textContent = 'حفظ وتوريد للمخزن (F12)';
+      if (posPrintShortcutLabel) posPrintShortcutLabel.textContent = 'حفظ وتوريد (F12)';
+    } else {
+      btnCheckout.classList.remove('purchase-mode');
+      if (btnCheckoutIcon) btnCheckoutIcon.textContent = '🖨️';
+      if (btnCheckoutLabel) btnCheckoutLabel.textContent = 'دفع وطباعة حرارية (F12)';
+      if (posPrintShortcutLabel) posPrintShortcutLabel.textContent = 'دفع وطباعة حرارية';
+    }
+  }
+
+  // Contact name badge in shortcuts ribbon (#customerNameBadge)
+  const contactBadge = document.getElementById('customerNameBadge');
+  if (contactBadge) {
+    if (isPurchase) {
+      contactBadge.textContent = state.supplier ? state.supplier.name : 'مورد عام / نقدي';
+    } else {
+      contactBadge.textContent = state.customer ? state.customer.name : 'عميل نقدي';
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// Invoice Quick Meta Header (Type, Contact Name, Phone)
 // -------------------------------------------------------------
 function renderInvoiceMetaHeader() {
   const typeBadge = document.getElementById('invoiceMetaTypeBadge');
   const customerNameEl = document.getElementById('invoiceMetaCustomerName');
   const customerPhoneEl = document.getElementById('invoiceMetaCustomerPhone');
+  const contactIcon = document.getElementById('invoiceMetaContactIcon');
+  const contactLabel = document.getElementById('invoiceMetaContactLabel');
+
+  const isPurchase = state.invoiceType === 'purchase';
 
   if (typeBadge) {
-    if (state.priceType === 'wholesale') {
-      typeBadge.textContent = 'فاتورة بيع (جملة)';
-      typeBadge.className = 'meta-badge-type wholesale';
+    if (isPurchase) {
+      typeBadge.textContent = '🚚 فاتورة شراء';
+      typeBadge.className = 'meta-badge-type purchase';
+      typeBadge.title = 'نمط فاتورة شراء وتوريد - اضغط للتبديل إلى فاتورة بيع (F2)';
     } else {
-      typeBadge.textContent = 'فاتورة بيع (قطاعي)';
+      typeBadge.textContent = '🛒 فاتورة بيع';
       typeBadge.className = 'meta-badge-type retail';
+      typeBadge.title = 'نمط فاتورة بيع - اضغط للتبديل إلى فاتورة شراء (F2)';
     }
   }
 
+  if (contactIcon) {
+    contactIcon.textContent = isPurchase ? '🏢' : '👤';
+  }
+
+  if (contactLabel) {
+    contactLabel.textContent = isPurchase ? 'المورد:' : 'العميل:';
+  }
+
   if (customerNameEl) {
-    customerNameEl.textContent = state.customer ? state.customer.name : 'عميل نقدي';
+    if (isPurchase) {
+      customerNameEl.textContent = state.supplier ? state.supplier.name : 'مورد عام / نقدي';
+    } else {
+      customerNameEl.textContent = state.customer ? state.customer.name : 'عميل نقدي';
+    }
   }
 
   if (customerPhoneEl) {
-    customerPhoneEl.textContent = state.customer && state.customer.phone ? state.customer.phone : '—';
+    if (isPurchase) {
+      customerPhoneEl.textContent = state.supplier && state.supplier.phone ? state.supplier.phone : '—';
+    } else {
+      customerPhoneEl.textContent = state.customer && state.customer.phone ? state.customer.phone : '—';
+    }
+  }
+
+  const ribbonBadge = document.getElementById('customerNameBadge');
+  if (ribbonBadge) {
+    if (isPurchase) {
+      ribbonBadge.textContent = state.supplier ? state.supplier.name : 'مورد عام / نقدي';
+    } else {
+      ribbonBadge.textContent = state.customer ? state.customer.name : 'عميل نقدي';
+    }
   }
 }
 
 function resetToCashCustomer() {
-  state.customer = null;
+  const isPurchase = state.invoiceType === 'purchase';
+  if (isPurchase) {
+    state.supplier = null;
+    showToast('تم تعيين المورد كـ "مورد عام / نقدي"', 'info');
+  } else {
+    state.customer = null;
+    showToast('تم تعيين العميل كـ "عميل نقدي"', 'info');
+  }
   const badge = document.getElementById('customerNameBadge');
-  if (badge) badge.textContent = 'عميل نقدي';
+  if (badge) badge.textContent = isPurchase ? 'مورد عام / نقدي' : 'عميل نقدي';
   const pInput = document.getElementById('customerPhoneInput');
   const nInput = document.getElementById('customerNameInput');
   if (pInput) pInput.value = '';
   if (nInput) nInput.value = '';
   renderInvoiceMetaHeader();
   closeCustomerModal();
-  showToast('تم تعيين العميل كـ "عميل نقدي"', 'info');
 }
 
 // Check if product requires serial or can be added directly
@@ -834,9 +1517,14 @@ function addProductToCartOrPromptSerial(product) {
 }
 
 function addItemToCart(product, serialNumber = null) {
-  const price = state.priceType === 'wholesale' && product.sellPriceWholesale
-    ? product.sellPriceWholesale
-    : product.sellPriceRetail;
+  let price = 0;
+  if (state.invoiceType === 'purchase') {
+    price = (product.buyPrice !== undefined && product.buyPrice !== null) ? Number(product.buyPrice) : 0;
+  } else {
+    price = state.priceType === 'wholesale' && product.sellPriceWholesale
+      ? product.sellPriceWholesale
+      : product.sellPriceRetail;
+  }
 
   // If item doesn't have serial, increment qty if already in cart
   if (!product.hasSerial) {
@@ -862,6 +1550,9 @@ function addItemToCart(product, serialNumber = null) {
 // -------------------------------------------------------------
 // 5. Serial Prompt Guard Modal
 // -------------------------------------------------------------
+// -------------------------------------------------------------
+// 5. Serial Prompt Guard Modal
+// -------------------------------------------------------------
 async function promptSerialGuard(product) {
   state.pendingSerialProduct = product;
   document.getElementById('modalProductName').textContent = product.name;
@@ -869,10 +1560,16 @@ async function promptSerialGuard(product) {
   input.value = '';
 
   const listContainer = document.getElementById('availableSerialsList');
-  listContainer.innerHTML = '<span class="text-dim">جاري جلب السيريالات المتاحة...</span>';
 
   document.getElementById('serialModal').classList.add('active');
   input.focus();
+
+  if (state.invoiceType === 'purchase') {
+    listContainer.innerHTML = '<div style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:10px; color:#fbbf24; font-size:0.85rem; line-height:1.6;">📦 <b>توريد صنف جديد بسيريال:</b><br>امسح باركود السيريال الجديد بمسدس الباركود أو اكتبه يدوياً ثم اضغط <b>Enter</b> لإضافته للمخزن.</div>';
+    return;
+  }
+
+  listContainer.innerHTML = '<span class="text-dim">جاري جلب السيريالات المتاحة...</span>';
 
   try {
     const res = await fetch(`/api/products/${product.id}/serials`);
@@ -929,18 +1626,34 @@ function closeSerialModal() {
 // -------------------------------------------------------------
 // 6. Cart Rendering & Calculations
 // -------------------------------------------------------------
+function promptChangeItemPrice(index) {
+  const item = state.cart[index];
+  if (!item) return;
+  const currentPrice = item.unitPrice;
+  const newPriceStr = prompt(`تعديل سعر تكلفة الشراء والتوريد للصنف:\n${item.product.name}`, currentPrice);
+  if (newPriceStr !== null) {
+    const val = parseFloat(newPriceStr.trim());
+    if (!isNaN(val) && val >= 0) {
+      item.unitPrice = val;
+      renderCart();
+      showToast(`تم تحديث سعر الشراء للصنف إلى: ${val.toFixed(2)} EGP`, 'info');
+    }
+  }
+}
+
 function renderCart() {
   const tbody = document.getElementById('cartTableBody');
   tbody.innerHTML = '';
+  const isPur = state.invoiceType === 'purchase';
 
   if (state.cart.length === 0) {
     tbody.innerHTML = `
       <tr id="emptyCartRow">
         <td colspan="7" class="empty-state">
           <div class="empty-box">
-            <span class="empty-icon">🛒</span>
-            <h3>السلة فارغة حالياً</h3>
-            <p>ابدأ بمسح باركود المنتج بمسدس الباركود أو اضغط <b>F1</b> للبحث بالاسم والكود</p>
+            <span class="empty-icon">${isPur ? '🚚' : '🛒'}</span>
+            <h3>${isPur ? 'فاتورة شراء / توريد للمخزن فارغة' : 'السلة فارغة حالياً'}</h3>
+            <p>${isPur ? 'ابدأ بمسح باركود الأصناف الموردة أو اضغط <b>F1</b> لإضافتها للمخزن وتحديث الأرصدة' : 'ابدأ بمسح باركود المنتج بمسدس الباركود أو اضغط <b>F1</b> للبحث بالاسم والكود'}</p>
           </div>
         </td>
       </tr>`;
@@ -963,7 +1676,9 @@ function renderCart() {
           ${!item.serialNumber ? `<button class="btn-qty" onclick="changeQty(${index}, 1)">+</button>` : ''}
         </div>
       </td>
-      <td class="price-text">${item.unitPrice.toFixed(0)}</td>
+      <td class="price-text" ${isPur ? `style="cursor:pointer; color:#fbbf24; text-decoration: underline dotted #fbbf24;" title="اضغط لتعديل سعر تكلفة الشراء لهذا الصنف" onclick="promptChangeItemPrice(${index})"` : ''}>
+        ${item.unitPrice.toFixed(0)}${isPur ? ' <span style="font-size:10px; opacity:0.8;">✏️</span>' : ''}
+      </td>
       <td class="total-text">${total.toFixed(0)}</td>
       <td>
         <button class="btn-delete" onclick="removeItem(${index})">✕</button>
@@ -1031,14 +1746,15 @@ function recalculateTotals() {
   const changeLabel = document.getElementById('changeLabel');
   const changeVal = document.getElementById('changeVal');
 
+  const isPur = state.invoiceType === 'purchase';
   if (change >= 0) {
-    changeLabel.textContent = 'الباقي للزبون:';
+    changeLabel.textContent = isPur ? 'المدفوع بالكامل للمورد:' : 'الباقي للزبون:';
     changeVal.textContent = `${change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
     changeVal.style.color = '';
     changeVal.classList.remove('debt');
     changeVal.classList.add('positive');
   } else {
-    changeLabel.textContent = 'المتبقي (آجل/دين):';
+    changeLabel.textContent = isPur ? 'المتبقي للمورد (آجل/دين):' : 'المتبقي (آجل/دين):';
     changeVal.textContent = `${Math.abs(change).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EGP`;
     changeVal.style.color = '';
     changeVal.classList.remove('positive');
@@ -1074,29 +1790,16 @@ function setPaymentMethod(method) {
 }
 
 function togglePriceType() {
-  state.priceType = state.priceType === 'retail' ? 'wholesale' : 'retail';
-  const badge = document.getElementById('priceTypeBadge');
-  if (badge) {
-    badge.textContent = state.priceType === 'retail' ? 'سعر قطاعي' : 'سعر جملة';
-    badge.style.color = state.priceType === 'wholesale' ? 'var(--accent-cyan)' : '#fff';
-  }
-
-  // Update existing cart item prices
-  state.cart.forEach((item) => {
-    item.unitPrice = state.priceType === 'wholesale' && item.product.sellPriceWholesale
-      ? item.product.sellPriceWholesale
-      : item.product.sellPriceRetail;
-  });
-  renderCart();
-  renderInvoiceMetaHeader();
+  // Directly toggle POS invoice mode (Sale <-> Purchase)
+  toggleInvoiceType();
 }
 
 // -------------------------------------------------------------
-// 7. Checkout & Print Trigger
+// 7. Checkout & Print Trigger (Sale & Purchase Invoices)
 // -------------------------------------------------------------
 async function handleCheckout(printThermal = true) {
   if (state.cart.length === 0) {
-    showToast('السلة فارغة! برجاء مسح صنف واحد على الأقل قبل الدفع.', 'warning');
+    showToast('السلة فارغة! برجاء مسح صنف واحد على الأقل قبل المتابعة.', 'warning');
     focusSearch();
     return;
   }
@@ -1105,18 +1808,72 @@ async function handleCheckout(printThermal = true) {
   const discount = state.discountAmount || 0;
   const taxable = Math.max(0, subtotal - discount);
   const vatCheckbox = document.getElementById('vat14Checkbox');
-  const vat14 = vatCheckbox.checked ? Number((taxable * 0.14).toFixed(2)) : 0;
+  const vat14 = vatCheckbox && vatCheckbox.checked ? Number((taxable * 0.14).toFixed(2)) : 0;
   const finalAmount = Number((taxable + vat14).toFixed(2));
 
   const paidInput = document.getElementById('paidAmountInput');
   const paid = parseFloat(paidInput.value) || finalAmount;
 
+  // BRANCH 1: Purchase / Receiving Invoice (فاتورة شراء وتوريد للمخزن)
+  if (state.invoiceType === 'purchase') {
+    const payload = {
+      supplierId: state.supplier ? state.supplier.id : undefined,
+      paymentMethod: state.paymentMethod,
+      paidAmount: paid,
+      notes: 'توريد سريع من كاشير POS',
+      items: state.cart.map((i) => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        serialNumbers: i.serialNumber ? [i.serialNumber] : undefined,
+      })),
+    };
+
+    try {
+      const res = await fetch('/api/purchases', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        showToast(`خطأ أثناء حفظ فاتورة التوريد والشراء: ${data.error}`, 'error');
+        return;
+      }
+
+      playBeep(2000, 0.15); // Success high pitch chime
+      showToast(`✅ تم حفظ فاتورة التوريد #${data.purchase.invoiceNumber} وتحديث أرصدة المخزن بنجاح!`, 'success');
+
+      if (printThermal) {
+        displayReceiptPreview(data.purchase, state.cart, paid, finalAmount, true);
+      }
+
+      // Reset Cart & Supplier
+      state.cart = [];
+      state.discountAmount = 0;
+      state.supplier = null;
+      if (paidInput) paidInput.value = '';
+      renderInvoiceMetaHeader();
+      renderCart();
+
+      // Refresh product caches so increased stock is instantly available
+      loadPosProductsCache();
+      refreshLowStockCount();
+    } catch (err) {
+      console.error('Purchase checkout error:', err);
+      showToast('تعذر الاتصال بسيرفر الكاشير لحفظ التوريد.', 'error');
+    }
+    return;
+  }
+
+  // BRANCH 2: Sale Invoice (فاتورة بيع)
   const payload = {
     contactId: state.customer ? state.customer.id : null,
     paymentMethod: state.paymentMethod,
     discountAmount: discount,
     paidAmount: paid,
-    applyVat14: vatCheckbox.checked,
+    applyVat14: vatCheckbox && vatCheckbox.checked,
     printReceipt: printThermal,
     items: state.cart.map((i) => ({
       productId: i.product.id,
@@ -1135,6 +1892,10 @@ async function handleCheckout(printThermal = true) {
 
     const data = await res.json();
     if (!data.success) {
+      if (data.isPaywallLocked) {
+        showPaywallModal(data.error);
+        return;
+      }
       showToast(`خطأ أثناء إتمام الفاتورة: ${data.error}`, 'error');
       return;
     }
@@ -1151,7 +1912,7 @@ async function handleCheckout(printThermal = true) {
         openInvoicePreviewModal(data.invoice.id, activeFormat);
         printInvoiceDocument(data.invoice.id, activeFormat);
       } else {
-        displayReceiptPreview(data.invoice, state.cart, paid, finalAmount);
+        displayReceiptPreview(data.invoice, state.cart, paid, finalAmount, false);
         printInvoiceDocument(data.invoice.id, 'thermal');
       }
     } else {
@@ -1173,11 +1934,11 @@ async function handleCheckout(printThermal = true) {
   }
 }
 
-function displayReceiptPreview(invoice, items, paid, finalAmount) {
+function displayReceiptPreview(invoice, items, paid, finalAmount, isPurchase = false) {
   const paper = document.getElementById('receiptPaper');
   const storeName = appSettingsCache.store_name || 'AL-ASHOR COMPUTER & ELECTRONICS';
   const storePhone = appSettingsCache.store_phone || '01009876543';
-  const receiptFooter = appSettingsCache.receipt_footer || 'البضاعة المباعة ترد وتستبدل خلال 14 يوماً';
+  const receiptFooter = isPurchase ? 'إيصال استلام وتوريد بضاعة للمخزن' : (appSettingsCache.receipt_footer || 'البضاعة المباعة ترد وتستبدل خلال 14 يوماً');
 
   let itemsTxt = '';
   items.forEach((item) => {
@@ -1193,30 +1954,37 @@ function displayReceiptPreview(invoice, items, paid, finalAmount) {
     ${storeName.toUpperCase()}
           Tel: ${storePhone}
 ========================================
+${isPurchase ? 'PURCHASE / SUPPLY INVOICE' : 'SALE INVOICE'}
 Invoice: ${invoice.invoiceNumber}
-Date:    ${new Date(invoice.createdAt).toLocaleString('ar-EG')}
+Date:    ${new Date(invoice.createdAt || Date.now()).toLocaleString('ar-EG')}
 Cashier: POS01
+${isPurchase ? `Supplier: ${invoice.supplierName || (state.supplier ? state.supplier.name : 'مورد عام / نقدي')}` : `Customer: ${state.customer ? state.customer.name : 'عميل نقدي'}`}
 ----------------------------------------
 Item                     Qty     Total
 ----------------------------------------
 ${itemsTxt}----------------------------------------
-Subtotal:                ${invoice.subtotal.toFixed(2)} EGP
-Discount:               -${invoice.discountAmount.toFixed(2)} EGP
-VAT (14%):              +${invoice.taxVat14.toFixed(2)} EGP
+Subtotal:                ${Number(invoice.subtotal || invoice.totalAmount || 0).toFixed(2)} EGP
+Discount:               -${Number(invoice.discountAmount || 0).toFixed(2)} EGP
+VAT (14%):              +${Number(invoice.taxVat14 || 0).toFixed(2)} EGP
 ========================================
-NET TOTAL:               ${invoice.finalAmount.toFixed(2)} EGP
+NET TOTAL:               ${Number(invoice.finalAmount || invoice.totalAmount || finalAmount || 0).toFixed(2)} EGP
 ========================================
 Paid:                    ${paid.toFixed(2)} EGP
-Change:                  ${Math.max(0, paid - finalAmount).toFixed(2)} EGP
+${isPurchase ? 'Remaining:' : 'Change:'}                  ${Math.abs(paid - Number(invoice.finalAmount || invoice.totalAmount || finalAmount || 0)).toFixed(2)} EGP
 ----------------------------------------
 ${receiptFooter}
 Powered by QuazLink Retail OS
 ========================================
 `;
 
+  const titleEl = document.getElementById('receiptModalTitle');
+  if (titleEl) {
+    titleEl.textContent = isPurchase ? '✅ تم حفظ وتوريد بضاعة المخزن بنجاح' : '✅ تمت عملية البيع بنجاح';
+  }
+
   const phoneInput = document.getElementById('receiptPhoneInput');
   if (phoneInput) {
-    phoneInput.value = lastCustomerPhone || '';
+    phoneInput.value = isPurchase ? (state.supplier?.phone || '') : (lastCustomerPhone || '');
   }
 
   applyPrintFormatVisibility();
@@ -1262,16 +2030,84 @@ async function sendReceiptWhatsapp() {
 }
 
 // -------------------------------------------------------------
-// 8. Customer & Discount Modals
+// 8. Customer & Supplier Contact Modals (F3 in POS)
 // -------------------------------------------------------------
-function openCustomerModal() {
-  document.getElementById('customerModal').classList.add('active');
-  document.getElementById('customerPhoneInput').focus();
+async function openCustomerModal() {
+  const isPurchase = state.invoiceType === 'purchase';
+  const modal = document.getElementById('customerModal');
+  const title = document.getElementById('contactModalTitle');
+  const selectLabel = document.getElementById('contactSelectLabel');
+  const phoneLabel = document.getElementById('contactPhoneLabel');
+  const nameLabel = document.getElementById('contactNameLabel');
+  const resetBtn = document.getElementById('btnResetContact');
+  const select = document.getElementById('contactExistingSelect');
+  const phoneInput = document.getElementById('customerPhoneInput');
+  const nameInput = document.getElementById('customerNameInput');
+
+  if (title) title.textContent = isPurchase ? '🏢 تحديد المورد (F3)' : '👤 تحديد العميل (F3)';
+  if (selectLabel) selectLabel.textContent = isPurchase ? 'اختر المورد من المسجلين مسبقاً:' : 'اختر العميل من المسجلين مسبقاً:';
+  if (phoneLabel) phoneLabel.textContent = isPurchase ? 'رقم هاتف المورد:' : 'رقم هاتف العميل:';
+  if (nameLabel) nameLabel.textContent = isPurchase ? 'اسم المورد / الشركة:' : 'اسم العميل / الشركة:';
+  if (resetBtn) resetBtn.textContent = isPurchase ? 'إلغاء (مورد عام / نقدي)' : 'إلغاء (عميل نقدي)';
+
+  const currentContact = isPurchase ? state.supplier : state.customer;
+  if (phoneInput) phoneInput.value = currentContact ? (currentContact.phone || '') : '';
+  if (nameInput) nameInput.value = currentContact ? (currentContact.name || '') : '';
+
+  if (select) {
+    select.innerHTML = `<option value="">-- أو اختر ${isPurchase ? 'مورداً مسجلاً' : 'عميلاً مسجلاً'} مسبقاً --</option>`;
+    try {
+      const type = isPurchase ? 'supplier' : 'customer';
+      const res = await fetch(`/api/contacts?type=${type}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.contacts)) {
+        data.contacts.forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.name} (${c.phone || 'بدون هاتف'})${c.balance ? ` - رصيد: ${c.balance}` : ''}`;
+          if (currentContact && currentContact.id === c.id) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load contacts for modal:', err);
+    }
+  }
+
+  modal.classList.add('active');
+  if (phoneInput) phoneInput.focus();
 }
 
 function closeCustomerModal() {
   document.getElementById('customerModal').classList.remove('active');
   focusSearch();
+}
+
+function onExistingContactPicked(contactId) {
+  if (!contactId) return;
+  const isPurchase = state.invoiceType === 'purchase';
+  fetch(`/api/contacts`)
+    .then((r) => r.json())
+    .then((data) => {
+      if (data.success && Array.isArray(data.contacts)) {
+        const found = data.contacts.find((c) => c.id === contactId);
+        if (found) {
+          if (isPurchase) {
+            state.supplier = found;
+          } else {
+            state.customer = found;
+          }
+          const pInput = document.getElementById('customerPhoneInput');
+          const nInput = document.getElementById('customerNameInput');
+          if (pInput) pInput.value = found.phone || '';
+          if (nInput) nInput.value = found.name || '';
+          renderInvoiceMetaHeader();
+          closeCustomerModal();
+          showToast(`تم تحديد ${isPurchase ? 'المورد' : 'العميل'}: ${found.name}`, 'success');
+        }
+      }
+    })
+    .catch((e) => console.error(e));
 }
 
 async function searchCustomer() {
@@ -1290,6 +2126,7 @@ async function searchCustomer() {
 async function saveCustomer() {
   const phone = document.getElementById('customerPhoneInput').value.trim();
   const name = document.getElementById('customerNameInput').value.trim();
+  const isPurchase = state.invoiceType === 'purchase';
 
   if (!phone || !name) {
     showToast('برجاء إدخال الاسم ورقم الهاتف', 'warning');
@@ -1300,17 +2137,21 @@ async function saveCustomer() {
     const res = await fetch('/api/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'customer', name, phone }),
+      body: JSON.stringify({ type: isPurchase ? 'supplier' : 'customer', name, phone }),
     });
     const data = await res.json();
     if (data.success) {
-      state.customer = data.contact;
-      document.getElementById('customerNameBadge').textContent = name;
+      if (isPurchase) {
+        state.supplier = data.contact;
+      } else {
+        state.customer = data.contact;
+      }
       renderInvoiceMetaHeader();
       closeCustomerModal();
+      showToast(`تم حفظ وتحديد ${isPurchase ? 'المورد' : 'العميل'}: ${name}`, 'success');
     }
   } catch (err) {
-    showToast('تعذر حفظ بيانات العميل', 'error');
+    showToast('تعذر حفظ بيانات جهة الاتصال', 'error');
   }
 }
 
@@ -1654,6 +2495,7 @@ function renderInventoryTable(products) {
           <button class="btn-action btn-action-cyan" onclick="openMovementsModal('${p.id}', '${escapeQuotes(p.name)}')">📜 الحركة</button>
           ${appSettingsCache.enable_ai_ad === 'true' ? `<button class="btn-action btn-action-amber" onclick="openAiAdModal('${p.id}', '${escapeQuotes(p.name)}')">✨ إعلان AI</button>` : ''}
           ${p.hasSerial ? `<button class="btn-action btn-action-emerald" onclick="openBulkSerialModal('${p.id}', '${escapeQuotes(p.name)}')">+ سيريالات</button>` : ''}
+          <button class="btn-action btn-action-red" onclick="promptDeleteProduct('${p.id}', '${escapeQuotes(p.name)}', '${escapeQuotes(p.barcode || p.sku || '')}')" title="حذف الصنف من المخزن">🗑️ حذف</button>
         </div>
       </td>
     `;
@@ -1774,6 +2616,114 @@ async function submitEditProduct() {
     }
   } catch (err) {
     showToast('فشل الاتصال بسيرفر نقاط البيع أثناء تعديل الصنف', 'error');
+  }
+}
+
+function deleteProductFromModal() {
+  const id = document.getElementById('epId')?.value;
+  const name = document.getElementById('epName')?.value || 'الصنف';
+  const barcode = document.getElementById('epBarcode')?.value || '';
+  if (!id) return;
+  promptDeleteProduct(id, name, barcode);
+}
+
+// -------------------------------------------------------------
+// Product Delete Confirmation & Execution Engine
+// -------------------------------------------------------------
+let pendingDeleteProductId = null;
+let pendingDeleteProductName = '';
+let pendingDeleteProductBarcode = '';
+
+function promptDeleteProduct(productId, productName, productBarcode = '') {
+  pendingDeleteProductId = productId;
+  pendingDeleteProductName = productName;
+  pendingDeleteProductBarcode = productBarcode;
+
+  const modal = document.getElementById('confirmDeleteProductModal');
+  const nameEl = document.getElementById('deleteModalProdName');
+  const barcodeEl = document.getElementById('deleteModalProdBarcode');
+  const warningEl = document.getElementById('deleteModalWarningText');
+  const btn = document.getElementById('btnExecuteDeleteProduct');
+
+  if (nameEl) nameEl.textContent = productName;
+  if (barcodeEl) barcodeEl.textContent = productBarcode || 'بدون باركود';
+  if (warningEl) {
+    warningEl.innerHTML = 'سيؤدي تأكيد الحذف إلى إزالة الصنف وسيريالاته من المخزن نهائياً. لا يمكن التراجع عن هذه الخطوة بعد التأكيد.';
+    warningEl.style.color = '';
+  }
+
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<span>🗑️</span> نعم، تأكيد الحذف النهائي';
+    btn.onclick = () => executeDeleteProduct(false);
+  }
+
+  if (modal) modal.classList.add('active');
+}
+
+function closeConfirmDeleteProductModal() {
+  const modal = document.getElementById('confirmDeleteProductModal');
+  if (modal) modal.classList.remove('active');
+  pendingDeleteProductId = null;
+  pendingDeleteProductName = '';
+  pendingDeleteProductBarcode = '';
+}
+
+async function executeDeleteProduct(force = false) {
+  if (!pendingDeleteProductId) return;
+
+  const btn = document.getElementById('btnExecuteDeleteProduct');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> جاري الحذف...';
+  }
+
+  try {
+    const res = await fetch(`/api/products/${pendingDeleteProductId}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ force }),
+    });
+    const data = await res.json();
+
+    if (!data.success) {
+      if (data.canForce) {
+        const warningEl = document.getElementById('deleteModalWarningText');
+        if (warningEl) {
+          warningEl.innerHTML = `⚠️ <b>تنبيه فواتير سابقة:</b> ${data.error}<br><br><span style="color:#f87171; font-weight:700;">هل ترغب في فرض الحذف الشامل وإزالة ارتباط الصنف بالفواتير السابقة؟</span>`;
+          warningEl.style.color = '#f87171';
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>⚠️</span> نعم، فرض الحذف الشامل';
+          btn.onclick = () => executeDeleteProduct(true);
+        }
+        showToast('الصنف مرتبط بحركات فواتير سابقة', 'warning');
+      } else {
+        showToast(`فشل حذف الصنف: ${data.error || 'خطأ غير معروف'}`, 'error');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🗑️</span> نعم، تأكيد الحذف النهائي';
+        }
+      }
+      return;
+    }
+
+    closeConfirmDeleteProductModal();
+    closeEditProductModal();
+    showToast(`✅ تم حذف الصنف "${pendingDeleteProductName}" بنجاح`, 'success');
+
+    // Refresh UI
+    if (typeof loadInventory === 'function') await loadInventory();
+    if (typeof loadPosProductsCache === 'function') await loadPosProductsCache();
+    if (typeof loadQuickProducts === 'function') loadQuickProducts();
+    if (typeof refreshLowStockCount === 'function') refreshLowStockCount();
+  } catch (err) {
+    showToast(`حدث خطأ أثناء الحذف: ${err.message}`, 'error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🗑️</span> نعم، تأكيد الحذف النهائي';
+    }
   }
 }
 
@@ -2070,9 +3020,11 @@ function renderSalesInvoicesTable(invoices) {
       <td>
         <div class="table-actions-group">
           <button class="btn-action btn-action-cyan" onclick="openSaleInvoiceDetails('${inv.id}')" title="عرض تفاصيل الفاتورة">👁️ تفاصيل</button>
+          ${!isReturn ? `<button class="btn-action btn-action-blue" onclick="openEditSaleInvoiceModal('${inv.id}')" title="تعديل بيانات وأصناف الفاتورة">✏️ تعديل</button>` : ''}
           <button class="btn-action btn-action-emerald" onclick="openInvoicePreviewModal('${inv.id}')" title="معاينة وطباعة الفاتورة (A4 • A5 • حراري)">🖨️ طباعة</button>
           <button class="btn-action btn-action-whatsapp" onclick="sendWhatsappForInvoice('${inv.id}')" title="إرسال عبر واتساب">💬</button>
           ${!isReturn ? `<button class="btn-action btn-action-amber" onclick="openSalesReturnModal('${inv.id}')" title="عمل مرتجع للفاتورة">↩️ مرتجع</button>` : ''}
+          <button class="btn-action btn-action-red" onclick="promptDeleteInvoice('${inv.id}', '${inv.invoiceNumber}', ${inv.finalAmount}, '${(inv.contactName || 'عميل نقدي').replace(/'/g, "\\'")}')" title="حذف الفاتورة نهائياً">🗑️ حذف</button>
         </div>
       </td>
     `;
@@ -2169,6 +3121,464 @@ function startReturnForCurrentModalInvoice() {
   const id = currentViewingInvoiceData.invoice.id;
   closeSaleInvoiceDetails();
   openSalesReturnModal(id);
+}
+
+function editCurrentModalInvoice() {
+  if (!currentViewingInvoiceData?.invoice) return;
+  const id = currentViewingInvoiceData.invoice.id;
+  closeSaleInvoiceDetails();
+  openEditSaleInvoiceModal(id);
+}
+
+function deleteCurrentModalInvoice() {
+  if (!currentViewingInvoiceData?.invoice) return;
+  const inv = currentViewingInvoiceData.invoice;
+  const contact = currentViewingInvoiceData.contact;
+  promptDeleteInvoice(inv.id, inv.invoiceNumber, inv.finalAmount, contact?.name || inv.contactName || 'عميل نقدي');
+}
+
+// -------------------------------------------------------------
+// DELETE INVOICE CONFIRMATION & EXECUTION
+// -------------------------------------------------------------
+let pendingDeleteInvoiceId = null;
+let pendingDeleteInvoiceNumber = '';
+
+function promptDeleteInvoice(invoiceId, invoiceNumber, finalAmount, contactName) {
+  pendingDeleteInvoiceId = invoiceId;
+  pendingDeleteInvoiceNumber = invoiceNumber;
+
+  const modal = document.getElementById('confirmDeleteInvoiceModal');
+  const numEl = document.getElementById('deleteModalInvNumber');
+  const amtEl = document.getElementById('deleteModalInvAmount');
+  const custEl = document.getElementById('deleteModalInvCustomer');
+
+  if (numEl) numEl.textContent = invoiceNumber;
+  if (amtEl) amtEl.textContent = `${Number(finalAmount || 0).toFixed(2)} EGP`;
+  if (custEl) custEl.textContent = contactName || 'عميل نقدي';
+
+  if (modal) modal.classList.add('active');
+}
+
+function closeConfirmDeleteModal() {
+  const modal = document.getElementById('confirmDeleteInvoiceModal');
+  if (modal) modal.classList.remove('active');
+  pendingDeleteInvoiceId = null;
+  pendingDeleteInvoiceNumber = '';
+}
+
+async function executeDeleteInvoice() {
+  if (!pendingDeleteInvoiceId) return;
+
+  const btn = document.getElementById('btnExecuteDeleteInvoice');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> جاري الحذف واسترجاع المخزون...';
+  }
+
+  try {
+    const res = await fetch(`/api/invoices/${pendingDeleteInvoiceId}/delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+    if (!data.success) {
+      showToast(`فشل حذف الفاتورة: ${data.error || 'خطأ غير معروف'}`, 'error');
+      return;
+    }
+
+    showToast(`✅ تم حذف الفاتورة ${pendingDeleteInvoiceNumber} واسترجاع محتوياتها للمخزن بنجاح`, 'success');
+    closeConfirmDeleteModal();
+    closeSaleInvoiceDetails();
+    loadSalesInvoices();
+    if (typeof loadInventory === 'function') loadInventory();
+    if (typeof loadQuickProducts === 'function') loadQuickProducts();
+  } catch (err) {
+    console.error('Delete invoice error:', err);
+    showToast('تعذر الاتصال بالسيرفر لحذف الفاتورة', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// EDIT INVOICE MODAL & LOGIC
+// -------------------------------------------------------------
+let editingInvoiceId = null;
+let editingInvoiceData = null;
+let editingInvoiceItems = [];
+
+async function openEditSaleInvoiceModal(invoiceId) {
+  try {
+    const res = await fetch(`/api/invoices/${invoiceId}`);
+    const data = await res.json();
+    if (!data.success || !data.invoice) {
+      showToast('تعذر العثور على بيانات الفاتورة للتعديل', 'error');
+      return;
+    }
+
+    if (data.invoice.type !== 'sale') {
+      showToast('لا يمكن تعديل فواتير المرتجعات، التعديل متاح فقط لفواتير البيع.', 'warning');
+      return;
+    }
+
+    editingInvoiceId = invoiceId;
+    editingInvoiceData = data.invoice;
+    editingInvoiceItems = (data.items || []).map((item) => ({
+      productId: item.productId,
+      productName: item.productName || 'صنف',
+      productBarcode: item.productBarcode || '',
+      hasSerial: Boolean(item.hasSerial),
+      quantity: Number(item.quantity) || 1,
+      unitPrice: Number(item.unitPrice) || 0,
+      totalPrice: Number(item.totalPrice) || 0,
+      serialNumber: item.serialNumber || '',
+    }));
+
+    const numBadge = document.getElementById('editInvNumberBadge');
+    if (numBadge) numBadge.textContent = data.invoice.invoiceNumber;
+
+    const notesInput = document.getElementById('editInvNotes');
+    if (notesInput) notesInput.value = data.invoice.notes || '';
+
+    const discInput = document.getElementById('editInvDiscountInput');
+    if (discInput) discInput.value = data.invoice.discountAmount || 0;
+
+    const vatCheckbox = document.getElementById('editInvVat14Checkbox');
+    if (vatCheckbox) vatCheckbox.checked = (data.invoice.taxVat14 || 0) > 0;
+
+    const methodSelect = document.getElementById('editInvPaymentMethod');
+    if (methodSelect) methodSelect.value = data.invoice.paymentMethod || 'cash';
+
+    const paidInput = document.getElementById('editInvPaidInput');
+    if (paidInput) paidInput.value = data.invoice.paidAmount ?? data.invoice.finalAmount;
+
+    await populateEditInvoiceCustomers(data.invoice.contactId);
+
+    renderEditInvItems();
+    recalcEditInvoiceTotals();
+
+    const modal = document.getElementById('editSaleInvoiceModal');
+    if (modal) modal.classList.add('active');
+  } catch (err) {
+    console.error('Error opening edit invoice modal:', err);
+    showToast('خطأ أثناء تحميل بيانات الفاتورة للتعديل', 'error');
+  }
+}
+
+async function populateEditInvoiceCustomers(selectedContactId) {
+  const select = document.getElementById('editInvCustomerSelect');
+  if (!select) return;
+  select.innerHTML = '<option value="">عميل نقدي (بدون حساب)</option>';
+
+  try {
+    const res = await fetch('/api/contacts?type=customer');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.contacts)) {
+      data.contacts.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.name} (${c.phone || 'بدون هاتف'})`;
+        if (selectedContactId && c.id === selectedContactId) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    console.warn('Failed to load customers for edit invoice:', e);
+  }
+}
+
+function closeEditSaleInvoiceModal() {
+  const modal = document.getElementById('editSaleInvoiceModal');
+  if (modal) modal.classList.remove('active');
+  editingInvoiceId = null;
+  editingInvoiceData = null;
+  editingInvoiceItems = [];
+  const sugg = document.getElementById('editInvProductSuggestions');
+  if (sugg) sugg.style.display = 'none';
+}
+
+function renderEditInvItems() {
+  const tbody = document.getElementById('editInvItemsBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (editingInvoiceItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:25px; color:var(--text-dim);">لا توجد أصناف في الفاتورة! استخدم شريط البحث أعلاه لإضافة صنف.</td></tr>';
+    return;
+  }
+
+  editingInvoiceItems.forEach((item, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <span style="font-weight:700; display:block;">${item.productName}</span>
+        ${item.productBarcode ? `<span style="font-size:0.7rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace;">[${item.productBarcode}]</span>` : ''}
+      </td>
+      <td>
+        <input type="number" min="0" step="any" class="form-control pos-input-field edit-item-price-input" value="${item.unitPrice}" style="padding:4px 8px; font-size:0.85rem; font-family:'JetBrains Mono',monospace; width:95px;" oninput="updateEditInvItemPrice(${index}, this.value)">
+      </td>
+      <td style="text-align: center;">
+        <div style="display:inline-flex; align-items:center; gap:3px;">
+          <button type="button" class="btn-sub" style="padding:2px 7px; font-size:0.8rem;" onclick="changeEditInvItemQty(${index}, -1)">-</button>
+          <input type="number" min="1" step="any" class="form-control pos-input-field edit-item-qty-input" value="${item.quantity}" style="width:55px; text-align:center; padding:4px 2px; font-size:0.85rem; font-family:'JetBrains Mono',monospace;" oninput="setEditInvItemQty(${index}, this.value)">
+          <button type="button" class="btn-sub" style="padding:2px 7px; font-size:0.8rem;" onclick="changeEditInvItemQty(${index}, 1)">+</button>
+        </div>
+      </td>
+      <td class="price-text" style="color:var(--accent-emerald); font-weight:700;">
+        ${(item.quantity * item.unitPrice).toFixed(2)} EGP
+      </td>
+      <td>
+        ${item.hasSerial 
+          ? `<input type="text" class="form-control pos-input-field edit-item-serial-input" value="${item.serialNumber || ''}" placeholder="سيريال..." style="padding:4px 8px; font-size:0.78rem; font-family:'JetBrains Mono',monospace; width:115px;" oninput="setEditInvItemSerial(${index}, this.value)">`
+          : '<span style="color:var(--text-dim); font-size:0.75rem;">-</span>'}
+      </td>
+      <td style="text-align: center;">
+        <button type="button" class="btn-action btn-action-red" onclick="removeEditInvItem(${index})" title="حذف الصنف من الفاتورة">🗑️</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function changeEditInvItemQty(index, delta) {
+  if (!editingInvoiceItems[index]) return;
+  const newQty = Math.max(1, (editingInvoiceItems[index].quantity || 1) + delta);
+  editingInvoiceItems[index].quantity = newQty;
+  editingInvoiceItems[index].totalPrice = newQty * editingInvoiceItems[index].unitPrice;
+  renderEditInvItems();
+  recalcEditInvoiceTotals();
+}
+
+function setEditInvItemQty(index, val) {
+  if (!editingInvoiceItems[index]) return;
+  const q = Math.max(1, parseFloat(val) || 1);
+  editingInvoiceItems[index].quantity = q;
+  editingInvoiceItems[index].totalPrice = q * editingInvoiceItems[index].unitPrice;
+  recalcEditInvoiceTotals();
+}
+
+function updateEditInvItemPrice(index, val) {
+  if (!editingInvoiceItems[index]) return;
+  const p = Math.max(0, parseFloat(val) || 0);
+  editingInvoiceItems[index].unitPrice = p;
+  editingInvoiceItems[index].totalPrice = editingInvoiceItems[index].quantity * p;
+  recalcEditInvoiceTotals();
+}
+
+function setEditInvItemSerial(index, val) {
+  if (!editingInvoiceItems[index]) return;
+  editingInvoiceItems[index].serialNumber = (val || '').trim();
+}
+
+function removeEditInvItem(index) {
+  editingInvoiceItems.splice(index, 1);
+  renderEditInvItems();
+  recalcEditInvoiceTotals();
+}
+
+async function handleEditInvProductSearch(query) {
+  const cleanQ = (query || '').trim().toLowerCase();
+  const dropdown = document.getElementById('editInvProductSuggestions');
+  if (!dropdown) return;
+
+  if (cleanQ.length === 0) {
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  let pool = cachedProducts || [];
+  if (pool.length === 0) {
+    try {
+      const res = await fetch('/api/products');
+      const data = await res.json();
+      if (data.success && data.products) {
+        cachedProducts = data.products;
+        pool = cachedProducts;
+      }
+    } catch {}
+  }
+
+  const matched = pool.filter((p) => {
+    const n = (p.name || '').toLowerCase();
+    const b = (p.barcode || '').toLowerCase();
+    const s = (p.sku || '').toLowerCase();
+    return n.includes(cleanQ) || b.includes(cleanQ) || s.includes(cleanQ);
+  }).slice(0, 8);
+
+  if (matched.length === 0) {
+    dropdown.innerHTML = '<div style="padding:10px 14px; color:var(--text-dim); font-size:0.8rem;">لا توجد أصناف مطابقة</div>';
+    dropdown.style.display = 'block';
+    return;
+  }
+
+  dropdown.innerHTML = '';
+  matched.forEach((p) => {
+    const div = document.createElement('div');
+    div.style.padding = '8px 12px';
+    div.style.cursor = 'pointer';
+    div.style.display = 'flex';
+    div.style.justifyContent = 'space-between';
+    div.style.alignItems = 'center';
+    div.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+    div.innerHTML = `
+      <div>
+        <strong style="color:#fff; font-size:0.82rem; display:block;">${p.name}</strong>
+        <span style="font-size:0.7rem; color:var(--text-dim); font-family:'JetBrains Mono',monospace;">باركود: ${p.barcode || 'لا يوجد'} • المخزن: ${p.stockQuantity}</span>
+      </div>
+      <span style="color:var(--accent-emerald); font-weight:800; font-family:'JetBrains Mono',monospace; font-size:0.85rem;">${p.sellPriceRetail.toFixed(2)} EGP</span>
+    `;
+    div.onmouseenter = () => { div.style.background = 'rgba(6,182,212,0.15)'; };
+    div.onmouseleave = () => { div.style.background = 'transparent'; };
+    div.onclick = () => {
+      addEditInvProduct(p);
+      dropdown.style.display = 'none';
+      const searchInp = document.getElementById('editInvSearchProduct');
+      if (searchInp) searchInp.value = '';
+    };
+    dropdown.appendChild(div);
+  });
+  dropdown.style.display = 'block';
+}
+
+function addEditInvProduct(prod) {
+  const existing = editingInvoiceItems.find((i) => i.productId === prod.id && !prod.hasSerial);
+  if (existing) {
+    existing.quantity += 1;
+    existing.totalPrice = existing.quantity * existing.unitPrice;
+  } else {
+    editingInvoiceItems.push({
+      productId: prod.id,
+      productName: prod.name,
+      productBarcode: prod.barcode || '',
+      hasSerial: Boolean(prod.hasSerial),
+      quantity: 1,
+      unitPrice: prod.sellPriceRetail || 0,
+      totalPrice: prod.sellPriceRetail || 0,
+      serialNumber: '',
+    });
+  }
+  renderEditInvItems();
+  recalcEditInvoiceTotals();
+}
+
+function recalcEditInvoiceTotals() {
+  const subtotal = editingInvoiceItems.reduce((acc, item) => acc + (item.quantity * item.unitPrice), 0);
+  const subtotalEl = document.getElementById('editInvSubtotalDisplay');
+  if (subtotalEl) subtotalEl.textContent = `${subtotal.toFixed(2)} EGP`;
+
+  const discInput = document.getElementById('editInvDiscountInput');
+  const discount = Math.max(0, parseFloat(discInput ? discInput.value : 0) || 0);
+
+  const taxable = Math.max(0, subtotal - discount);
+  const vatCheckbox = document.getElementById('editInvVat14Checkbox');
+  const vat14 = (vatCheckbox && vatCheckbox.checked) ? Number((taxable * 0.14).toFixed(2)) : 0;
+
+  const finalAmount = Number((taxable + vat14).toFixed(2));
+  const finalEl = document.getElementById('editInvFinalAmountDisplay');
+  if (finalEl) finalEl.textContent = `${finalAmount.toFixed(2)} EGP`;
+
+  const paidInput = document.getElementById('editInvPaidInput');
+  let paid = parseFloat(paidInput ? paidInput.value : 0);
+  if (isNaN(paid)) paid = finalAmount;
+
+  const remaining = Math.max(0, Number((finalAmount - paid).toFixed(2)));
+  const remEl = document.getElementById('editInvRemainingDisplay');
+  if (remEl) {
+    remEl.textContent = `${remaining.toFixed(2)} EGP`;
+    remEl.style.color = remaining > 0 ? 'var(--accent-amber)' : 'var(--text-dim)';
+  }
+}
+
+async function saveEditedInvoice() {
+  if (!editingInvoiceId) return;
+
+  if (editingInvoiceItems.length === 0) {
+    showToast('لا يمكن حفظ الفاتورة بدون أي أصناف!', 'warning');
+    return;
+  }
+
+  for (const item of editingInvoiceItems) {
+    if (item.hasSerial && !item.serialNumber) {
+      showToast(`الصنف [${item.productName}] يتطلب إدخال السيريال / IMEI.`, 'warning');
+      return;
+    }
+  }
+
+  const btn = document.getElementById('btnSaveEditedInvoice');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> جاري حفظ التعديلات وتحديث المخزن...';
+  }
+
+  const custSelect = document.getElementById('editInvCustomerSelect');
+  const contactId = custSelect ? custSelect.value || null : null;
+
+  const methodSelect = document.getElementById('editInvPaymentMethod');
+  const paymentMethod = methodSelect ? methodSelect.value : 'cash';
+
+  const notesInput = document.getElementById('editInvNotes');
+  const notes = notesInput ? notesInput.value.trim() : null;
+
+  const discInput = document.getElementById('editInvDiscountInput');
+  const discountAmount = Math.max(0, parseFloat(discInput ? discInput.value : 0) || 0);
+
+  const vatCheckbox = document.getElementById('editInvVat14Checkbox');
+  const applyVat14 = vatCheckbox ? vatCheckbox.checked : false;
+
+  const paidInput = document.getElementById('editInvPaidInput');
+  const paidAmount = parseFloat(paidInput ? paidInput.value : 0);
+
+  const payload = {
+    contactId,
+    paymentMethod,
+    discountAmount,
+    applyVat14,
+    paidAmount,
+    notes,
+    items: editingInvoiceItems.map((i) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+      unitPrice: i.unitPrice,
+      serialNumber: i.serialNumber || undefined,
+    })),
+  };
+
+  try {
+    const res = await fetch(`/api/invoices/${editingInvoiceId}/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!data.success) {
+      showToast(`خطأ أثناء حفظ تعديل الفاتورة: ${data.error || 'خطأ غير معروف'}`, 'error');
+      return;
+    }
+
+    showToast(`✅ تم حفظ تعديلات الفاتورة وتحديث أرصدة المخزن بنجاح`, 'success');
+    closeEditSaleInvoiceModal();
+    closeSaleInvoiceDetails();
+    loadSalesInvoices();
+    if (typeof loadInventory === 'function') loadInventory();
+    if (typeof loadQuickProducts === 'function') loadQuickProducts();
+  } catch (err) {
+    console.error('Error saving edited invoice:', err);
+    showToast('تعذر الاتصال بالسيرفر لحفظ التعديلات', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
 }
 
 async function reprintThermalInvoice(invoiceId, format) {
@@ -2462,8 +3872,24 @@ function generateInvoiceHtml(invoice, items, contact, format = 'a4') {
   <style>
     @page { size: ${pageSize}; margin: ${pageMargin}; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif; }
-    body { background: #ffffff; color: #0f172a; direction: rtl; text-align: right; font-size: ${baseFontSize}; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .inv-wrapper { width: 100%; border: 1.5px solid #0f172a; border-radius: 6px; padding: ${headerPadding}; background: #fff; }
+    body {
+      background: #ffffff;
+      color: #0f172a;
+      direction: rtl;
+      text-align: right;
+      font-size: ${baseFontSize};
+      line-height: 1.4;
+      padding: ${isA4 ? '12mm 10mm' : isA5 ? '8mm 6mm' : '6px'};
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    @media print {
+      body {
+        padding: 0 !important;
+      }
+    }
+    .inv-wrapper { width: 100%; border: 1.5px solid #0f172a; border-radius: 6px; padding: ${headerPadding}; background: #fff; box-sizing: border-box; }
     
     /* Header Section */
     .inv-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 12px; }
@@ -2687,6 +4113,90 @@ async function printInvoiceDocument(invoiceId, format = null) {
 // Interactive Invoice Preview Modal (A4, A5, and Thermal)
 // -------------------------------------------------------------
 
+let currentPreviewInvoiceData = null;
+let currentPreviewFormat = 'thermal';
+let previewSheetZoom = 1.0;
+let isPreviewAutoFit = true;
+
+function calcPreviewAutoFit() {
+  const modalBody = document.querySelector('.preview-modal-body');
+  if (!modalBody) return 0.85;
+
+  const availW = modalBody.clientWidth - 48; // Breathing room on both sides
+  const availH = modalBody.clientHeight - 48; // Breathing room top and bottom
+
+  const sheetW = currentPreviewFormat === 'a4' ? 780 : (currentPreviewFormat === 'a5' ? 550 : 330);
+  const sheetH = currentPreviewFormat === 'a4' ? 1100 : (currentPreviewFormat === 'a5' ? 780 : 520);
+
+  if (availW <= 0 || availH <= 0) return 0.85;
+
+  if (currentPreviewFormat === 'thermal') {
+    const scale = Math.min(1.0, availW / sheetW);
+    return Math.max(0.4, Math.round(scale * 20) / 20);
+  }
+
+  // For A4 & A5: Fit both width AND height so the entire page is visible without clipping!
+  const scaleW = availW / sheetW;
+  const scaleH = availH / sheetH;
+  let fitScale = Math.min(scaleW, scaleH);
+
+  // Clamp nicely between 0.45 and 1.0, rounded to nearest 5%
+  return Math.min(1.0, Math.max(0.45, Math.round(fitScale * 20) / 20));
+}
+
+function applyPreviewZoomToSheet() {
+  const sheet = document.getElementById('activePreviewSheet');
+  const wrapper = document.getElementById('previewScaleWrapper');
+  const badge = document.getElementById('previewZoomValBadge');
+  const fitBtn = document.getElementById('btnPreviewZoomFit');
+  if (!sheet || !wrapper) return;
+
+  const pct = Math.round(previewSheetZoom * 100);
+  if (badge) badge.textContent = `${pct}%`;
+  if (fitBtn) fitBtn.classList.toggle('active', isPreviewAutoFit);
+
+  const baseW = currentPreviewFormat === 'a4' ? 780 : (currentPreviewFormat === 'a5' ? 550 : 330);
+  const baseH = sheet.offsetHeight || (currentPreviewFormat === 'a4' ? 1100 : (currentPreviewFormat === 'a5' ? 780 : 500));
+
+  sheet.style.transform = `translateX(-50%) scale(${previewSheetZoom})`;
+  sheet.style.transformOrigin = 'top center';
+
+  wrapper.style.width = `${Math.ceil(baseW * previewSheetZoom)}px`;
+  wrapper.style.height = `${Math.ceil(baseH * previewSheetZoom)}px`;
+}
+
+function adjustPreviewZoom(delta) {
+  isPreviewAutoFit = false;
+  previewSheetZoom = Math.min(2.0, Math.max(0.35, Math.round((previewSheetZoom + delta) * 20) / 20));
+  applyPreviewZoomToSheet();
+}
+
+function togglePreviewZoomFit() {
+  isPreviewAutoFit = !isPreviewAutoFit;
+  if (isPreviewAutoFit) {
+    previewSheetZoom = calcPreviewAutoFit();
+  } else {
+    previewSheetZoom = 1.0;
+  }
+  applyPreviewZoomToSheet();
+}
+
+function resetPreviewZoom() {
+  isPreviewAutoFit = false;
+  previewSheetZoom = 1.0;
+  applyPreviewZoomToSheet();
+}
+
+function updatePreviewSheetIfActive() {
+  const modal = document.getElementById('invoicePrintPreviewModal');
+  if (modal && modal.classList.contains('active')) {
+    if (isPreviewAutoFit) {
+      previewSheetZoom = calcPreviewAutoFit();
+    }
+    applyPreviewZoomToSheet();
+  }
+}
+
 async function openInvoicePreviewModal(invoiceId, initialFormat = null) {
   try {
     const res = await fetch(`/api/invoices/${invoiceId}`);
@@ -2698,17 +4208,21 @@ async function openInvoicePreviewModal(invoiceId, initialFormat = null) {
 
     currentPreviewInvoiceData = data;
     currentPreviewFormat = initialFormat || appSettingsCache.default_print_format || 'thermal';
+    isPreviewAutoFit = true;
 
     const titleEl = document.getElementById('invoicePreviewModalTitle');
     const subEl = document.getElementById('invoicePreviewModalSubtitle');
     if (titleEl) titleEl.textContent = `معاينة الفاتورة: ${data.invoice.invoiceNumber}`;
     if (subEl) subEl.textContent = `التاريخ: ${new Date(data.invoice.createdAt).toLocaleString('ar-EG')} • العميل: ${data.contact?.name || 'عميل نقدي'}`;
 
-    renderCurrentPreviewSheet();
-    applyPrintFormatVisibility();
-
     const modal = document.getElementById('invoicePrintPreviewModal');
     if (modal) modal.classList.add('active');
+
+    // Render after modal is in DOM so clientWidth / clientHeight are measured accurately
+    requestAnimationFrame(() => {
+      renderCurrentPreviewSheet();
+      applyPrintFormatVisibility();
+    });
   } catch (e) {
     showToast('تعذر فتح معاينة الفاتورة', 'error');
   }
@@ -2722,6 +4236,7 @@ function closeInvoicePreviewModal() {
 
 function switchPreviewFormat(format) {
   currentPreviewFormat = format;
+  isPreviewAutoFit = true;
   renderCurrentPreviewSheet();
 }
 
@@ -2745,12 +4260,47 @@ function renderCurrentPreviewSheet() {
 
   const html = generateInvoiceHtml(invoice, items, contact, currentPreviewFormat);
 
-  // Render inside clean responsive container
+  if (isPreviewAutoFit) {
+    previewSheetZoom = calcPreviewAutoFit();
+  }
+
+  const baseW = currentPreviewFormat === 'a4' ? 780 : (currentPreviewFormat === 'a5' ? 550 : 330);
+  const initialH = currentPreviewFormat === 'a4' ? 1100 : (currentPreviewFormat === 'a5' ? 780 : 500);
+
   container.innerHTML = `
-    <div class="invoice-preview-sheet sheet-${currentPreviewFormat}">
-      <iframe srcdoc="${html.replace(/"/g, '&quot;')}" style="width:100%; height:${currentPreviewFormat === 'a4' ? '1080px' : currentPreviewFormat === 'a5' ? '760px' : '520px'}; border:none;" scrolling="no"></iframe>
+    <div class="preview-scale-wrapper" id="previewScaleWrapper" style="width: ${Math.ceil(baseW * previewSheetZoom)}px; height: ${Math.ceil(initialH * previewSheetZoom)}px; margin: 0 auto; position: relative;">
+      <div class="invoice-preview-sheet sheet-${currentPreviewFormat}" id="activePreviewSheet" style="position: absolute; top: 0; left: 50%; transform: translateX(-50%) scale(${previewSheetZoom}); transform-origin: top center; width: ${baseW}px;">
+        <iframe id="invoicePreviewIframe" srcdoc="${html.replace(/"/g, '&quot;')}" style="width: 100%; height: ${initialH}px; border: none; display: block; background: #fff;" scrolling="no"></iframe>
+      </div>
     </div>
   `;
+
+  // Attach dynamic height listener to iframe
+  const iframe = document.getElementById('invoicePreviewIframe');
+  const sheet = document.getElementById('activePreviewSheet');
+  if (iframe && sheet) {
+    const syncHeight = () => {
+      try {
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc && doc.body) {
+          doc.body.style.overflow = 'hidden';
+          doc.documentElement.style.overflow = 'hidden';
+          const scrollH = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, doc.body.offsetHeight);
+          const minH = currentPreviewFormat === 'a4' ? 1060 : (currentPreviewFormat === 'a5' ? 740 : 450);
+          const finalH = Math.max(scrollH + 10, minH);
+          iframe.style.height = `${finalH}px`;
+          sheet.style.minHeight = `${finalH}px`;
+          applyPreviewZoomToSheet();
+        }
+      } catch (err) {}
+    };
+
+    iframe.onload = syncHeight;
+    setTimeout(syncHeight, 60);
+    setTimeout(syncHeight, 250);
+  }
+
+  applyPreviewZoomToSheet();
 }
 
 function executeCurrentPreviewPrint() {
@@ -2760,6 +4310,13 @@ function executeCurrentPreviewPrint() {
   closeInvoicePreviewModal();
   printInvoiceDocument(id, format);
 }
+
+window.addEventListener('resize', () => {
+  if (typeof updatePreviewSheetIfActive === 'function') {
+    updatePreviewSheetIfActive();
+  }
+});
+
 
 // -------------------------------------------------------------
 // Format Visibility & Safety Synchronization
@@ -3524,12 +5081,17 @@ let lastClosedZReportText = '';
 
 // Subtab switcher in Settings
 function switchSettingsSubtab(tabName) {
-  const tabs = ['license', 'credits', 'sync', 'backups', 'store', 'modules', 'shifts', 'updates'];
+  const tabs = ['license', 'credits', 'sync', 'backups', 'store', 'modules', 'shifts', 'theme', 'updates'];
   tabs.forEach((t) => {
     const btn = document.getElementById(`btnSubtab${t.charAt(0).toUpperCase() + t.slice(1)}`);
     const pane = document.getElementById(`paneSettings${t.charAt(0).toUpperCase() + t.slice(1)}`);
     if (btn) btn.classList.toggle('active', t === tabName);
-    if (pane) pane.style.display = t === tabName ? 'flex' : 'none';
+    if (pane) {
+      pane.style.display = t === tabName ? 'flex' : 'none';
+      if (t === tabName) {
+        pane.scrollTop = 0;
+      }
+    }
   });
 
   if (tabName === 'credits') {
@@ -3538,11 +5100,15 @@ function switchSettingsSubtab(tabName) {
     loadSyncStatus();
   } else if (tabName === 'backups') {
     loadBackupsList();
+    loadGoogleDriveStatus();
+    loadBackupSchedule();
   } else if (tabName === 'store') {
     loadStoreAndTaxSettings();
   } else if (tabName === 'shifts') {
     refreshShiftStatus();
     loadShiftsHistory();
+  } else if (tabName === 'theme') {
+    initThemeSettingsTab();
   } else if (tabName === 'updates') {
     loadUpdatesTab();
   }
@@ -3629,7 +5195,7 @@ async function manualCheckForUpdates(silent = false) {
     if (data.success) {
       cachedUpdateInfo = data;
       const curDisplay = document.getElementById('currentAppVerDisplay');
-      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.7';
+      if (curDisplay) curDisplay.textContent = data.currentVersion || '1.2.9';
       const headerVer = document.getElementById('headerAppVersionBadge');
       if (headerVer && data.currentVersion) headerVer.textContent = 'v' + data.currentVersion;
 
@@ -3778,6 +5344,8 @@ async function initAppSettings() {
   } catch (e) {}
 
   refreshShiftStatus();
+  loadGoogleDriveStatus();
+  loadBackupSchedule();
 }
 
 function applyAppSettingsUI() {
@@ -3853,6 +5421,11 @@ async function loadLicenseData() {
     if (data.success && data.license) {
       currentLicenseCache = data.license;
       renderLicenseUI(data.license);
+      if (data.license.isPaywallLocked) {
+        showPaywallModal();
+      } else {
+        hidePaywallModal();
+      }
     }
   } catch (e) {}
 }
@@ -3872,12 +5445,19 @@ function renderLicenseUI(lic) {
     if (lic.status === 'active') {
       statusBadge.textContent = '✅ مفعل رسمياً';
       statusBadge.className = 'lic-status-badge badge-active';
+    } else if (lic.status === 'clock_tampered') {
+      statusBadge.textContent = '⛔ ساعة الويندوز متلاعب بها';
+      statusBadge.className = 'lic-status-badge badge-warning';
+      statusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+      statusBadge.style.color = '#f87171';
     } else if (lic.status === 'trial') {
-      statusBadge.textContent = '⚡ تجريبي مفتوح (Trial)';
+      statusBadge.textContent = `⚡ تجريبي نشط (${lic.daysRemaining ?? 30} يوم)`;
       statusBadge.className = 'lic-status-badge badge-trial';
     } else {
-      statusBadge.textContent = '⚠️ يحتاج تفعيل';
+      statusBadge.textContent = '🔒 منتهي الصلاحية';
       statusBadge.className = 'lic-status-badge badge-warning';
+      statusBadge.style.background = 'rgba(239, 68, 68, 0.2)';
+      statusBadge.style.color = '#f87171';
     }
   }
 
@@ -3885,8 +5465,8 @@ function renderLicenseUI(lic) {
     tierName.textContent = lic.tier === 'lifetime'
       ? 'ترخيص دائم (Lifetime License)'
       : lic.tier === 'saas_subscription'
-        ? 'اشتراك سحابي دوري (Cloud SaaS)'
-        : 'نسخة تجريبية كاملة (Enterprise Trial)';
+        ? 'اشتراك سنوي دوري (Cloud SaaS)'
+        : 'نسخة تجريبية مؤمنة (30-Day Protected Trial)';
   }
 
   if (expDate) {
@@ -3894,15 +5474,94 @@ function renderLicenseUI(lic) {
   }
 
   if (daysRem) {
-    daysRem.textContent = lic.daysRemaining !== null ? `${lic.daysRemaining} يوم متبقي` : 'مدى الحياة ∞';
+    if (lic.status === 'active' || lic.tier === 'lifetime') {
+      daysRem.textContent = 'مدى الحياة ∞';
+    } else if (lic.status === 'clock_tampered') {
+      daysRem.textContent = 'مغلق (تلاعب بالوقت)';
+    } else {
+      daysRem.textContent = lic.daysRemaining !== null ? `${lic.daysRemaining} يوم متبقي` : '0 يوم';
+    }
   }
 }
 
 function copyHardwareId() {
   if (!currentLicenseCache?.hardwareId) return;
   navigator.clipboard.writeText(currentLicenseCache.hardwareId).then(() => {
-    showToast('تم نسخ بصمة الجهاز بنجاح. ضعها في منصة QuazLink لاستخراج الكود.', 'success');
+    showToast('تم نسخ بصمة الجهاز بنجاح. أرسلها لإدارة QuazLink لاستخراج الكود.', 'success');
   });
+}
+
+function showPaywallModal(customMessage) {
+  const modal = document.getElementById('paywallModal');
+  if (!modal) return;
+  const hwDisplay = document.getElementById('paywallHwDisplay');
+  const title = document.getElementById('paywallTitle');
+  const desc = document.getElementById('paywallDesc');
+  const waBtn = document.getElementById('btnPaywallWhatsapp');
+
+  const hwId = currentLicenseCache?.hardwareId || 'QL-HW-UNKNOWN';
+  if (hwDisplay) hwDisplay.textContent = hwId;
+
+  if (currentLicenseCache?.status === 'clock_tampered') {
+    if (title) title.textContent = '⚠️ تم قفل النظام: تلاعب في ساعة وتاريخ الويندوز';
+    if (desc) desc.textContent = 'تم اكتشاف تأخير أو تلاعب في ساعة وتاريخ جهاز الكمبيوتر. تم إيقاف عمليات البيع لحماية المنظومة. يرجى ضبط توقيت الويندوز تلقائياً بدقة أو التواصل مع الدعم الفني.';
+  } else {
+    if (title) title.textContent = '🔒 انتهت فترة التجربة المجانية (30 يوماً)';
+    if (desc) desc.textContent = customMessage || 'شكراً لاستخدامك نظام QuazLink POS & ERP. لقد انتهت فترة الـ 30 يوماً التجريبية المصرح بها لهذا العتاد. بياناتك ومخزونك وفواتيرك السابقة محفوظة بأمان 100%. لمواصلة إصدار الفواتير، يرجى تفعيل ترخيص معتمد.';
+  }
+
+  if (waBtn) {
+    const textMsg = encodeURIComponent(`مرحباً فريق QuazLink، أرغب في شراء وتفعيل ترخيص لبرنامج الكاشير POS. بصمة جهازي هي: ${hwId}`);
+    waBtn.href = `https://wa.me/201019078440?text=${textMsg}`;
+  }
+
+  modal.style.display = 'flex';
+}
+
+function hidePaywallModal() {
+  const modal = document.getElementById('paywallModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function copyPaywallHwId() {
+  const hwId = currentLicenseCache?.hardwareId;
+  if (!hwId) return;
+  navigator.clipboard.writeText(hwId).then(() => {
+    showToast('تم نسخ بصمة الجهاز بنجاح. أرسلها لإدارة QuazLink لتوليد كود التفعيل.', 'success');
+  });
+}
+
+function openPaywallSettings() {
+  hidePaywallModal();
+  switchView('settingsView');
+  switchSettingsSubtab('license');
+}
+
+async function submitPaywallActivate() {
+  const input = document.getElementById('paywallKeyInput');
+  const key = input ? input.value.trim() : '';
+  if (!key) {
+    showToast('برجاء كتابة أو لصق مفتاح الترخيص.', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/license/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'تم تفعيل الترخيص بنجاح!', 'success');
+      hidePaywallModal();
+      loadLicenseData();
+    } else {
+      showToast(data.message || 'فشل التفعيل: مفتاح غير صالح', 'error');
+    }
+  } catch (e) {
+    showToast('تعذر الاتصال بخدمة التراخيص', 'error');
+  }
 }
 
 async function submitActivateLicense() {
@@ -3923,6 +5582,7 @@ async function submitActivateLicense() {
     if (data.success) {
       showToast(data.message || 'تم تفعيل الترخيص بنجاح!', 'success');
       if (input) input.value = '';
+      hidePaywallModal();
       loadLicenseData();
     } else {
       showToast(data.message || 'فشل التفعيل: مفتاح غير صالح', 'error');
@@ -3930,20 +5590,6 @@ async function submitActivateLicense() {
   } catch (e) {
     showToast('تعذر الاتصال بخدمة التراخيص', 'error');
   }
-}
-
-async function generateDemoTrialLicense() {
-  if (!currentLicenseCache?.hardwareId) return;
-  try {
-    // Trigger activation of generated trial key
-    const res = await fetch('/api/license/activate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: currentLicenseCache.licenseKey }),
-    });
-    showToast('تم تجديد الصلاحية التجريبية لجميع ميزات النظام بنجاح!', 'success');
-    loadLicenseData();
-  } catch (e) {}
 }
 
 function onShiftToggleChanged() {
@@ -4349,6 +5995,9 @@ async function saveSyncSettings() {
 // -------------------------------------------------------------
 // Atomic Backups & Disaster Recovery (.qzbk)
 // -------------------------------------------------------------
+let gdrivePollTimer = null;
+let cachedGdriveConnected = false;
+
 async function loadBackupsList() {
   const tbody = document.getElementById('backupsTableBody');
   if (!tbody) return;
@@ -4359,7 +6008,7 @@ async function loadBackupsList() {
     tbody.innerHTML = '';
 
     if (!data.success || !data.backups || data.backups.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:25px; color:var(--text-dim)">لا توجد نسخ احتياطية مسجلة على هذا الجهاز حتى الآن</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:25px; color:var(--text-dim)">لا توجد نسخ احتياطية مسجلة على هذا الجهاز حتى الآن</td></tr>';
       return;
     }
 
@@ -4368,6 +6017,23 @@ async function loadBackupsList() {
       const isCloud = b.backupType === 'cloud';
       const truncatedHash = b.checksumSha256 ? `${b.checksumSha256.substring(0, 8)}...${b.checksumSha256.substring(56)}` : '-';
       const createdStr = b.createdAt ? new Date(b.createdAt).toLocaleString('ar-EG') : '-';
+
+      // Google Drive column content
+      let gdriveHtml = '';
+      if (b.gdrive_file_id) {
+        gdriveHtml = `
+          <div style="display:inline-flex; align-items:center; gap:5px;">
+            <span class="badge-terminal" style="color:var(--accent-emerald); font-size:0.75rem;">☁️ مرفوع</span>
+            ${b.gdrive_web_link ? `<a href="${b.gdrive_web_link}" target="_blank" class="btn-action" style="font-size:0.75rem; text-decoration:none; padding:2px 6px;" title="عرض الملف في Google Drive">🔗</a>` : ''}
+          </div>
+        `;
+      } else if (cachedGdriveConnected) {
+        gdriveHtml = `
+          <button type="button" class="btn-action" style="border-color:var(--accent-cyan); color:var(--accent-cyan); font-size:0.72rem; padding:2px 8px;" onclick="uploadBackupToDrive('${b.id}')" title="رفع هذه النسخة إلى حساب Google Drive">☁️ رفع للـ Drive</button>
+        `;
+      } else {
+        gdriveHtml = `<span style="color:var(--text-dim); font-size:0.75rem;">غير مرفوع</span>`;
+      }
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -4378,6 +6044,7 @@ async function loadBackupsList() {
           <code title="${b.checksumSha256}" style="cursor:pointer;" onclick="navigator.clipboard.writeText('${b.checksumSha256}').then(() => showToast('تم نسخ بصمة SHA-256', 'info'))">${truncatedHash}</code>
         </td>
         <td style="font-size:0.75rem; color:var(--text-muted);">${createdStr}</td>
+        <td>${gdriveHtml}</td>
         <td style="font-size:0.75rem; color:var(--text-dim);">${b.notes || '-'}</td>
         <td>
           <div class="table-actions-group">
@@ -4477,6 +6144,318 @@ function handleRestoreFromFile(event) {
     }
   };
   reader.readAsText(file);
+}
+
+// -------------------------------------------------------------
+// Automated Backup Schedule Management Engine
+// -------------------------------------------------------------
+async function loadBackupSchedule() {
+  try {
+    const res = await fetch('/api/backups/schedule');
+    const data = await res.json();
+    if (!data.success || !data.schedule) return;
+
+    const { enabled, intervalMins, uploadToDrive, lastRun, nextRun } = data.schedule;
+
+    const enabledToggle = document.getElementById('autoBackupEnabledToggle');
+    if (enabledToggle) enabledToggle.checked = !!enabled;
+
+    const intervalSelect = document.getElementById('autoBackupIntervalSelect');
+    if (intervalSelect) intervalSelect.value = String(intervalMins || '60');
+
+    const uploadDriveToggle = document.getElementById('autoBackupUploadDriveToggle');
+    if (uploadDriveToggle) uploadDriveToggle.checked = !!uploadToDrive;
+
+    const statusBadge = document.getElementById('backupScheduleStatusBadge');
+    if (statusBadge) {
+      if (enabled) {
+        statusBadge.textContent = 'مفعلة وتعمل في الخلفية 🟢';
+        statusBadge.className = 'sync-status-badge badge-online';
+        statusBadge.style.background = 'rgba(16, 185, 129, 0.18)';
+        statusBadge.style.color = '#34d399';
+        statusBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+      } else {
+        statusBadge.textContent = 'الجدولة متوقفة ⚪';
+        statusBadge.className = 'sync-status-badge badge-offline';
+        statusBadge.style.background = 'rgba(255, 255, 255, 0.08)';
+        statusBadge.style.color = '#94a3b8';
+        statusBadge.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+      }
+    }
+
+    const lastRunLabel = document.getElementById('autoBackupLastRunLabel');
+    if (lastRunLabel) {
+      if (lastRun) {
+        const d = new Date(lastRun);
+        lastRunLabel.textContent = `${d.toLocaleDateString('ar-EG')} - ${d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+        lastRunLabel.textContent = 'لم يتم بعد';
+      }
+    }
+
+    const nextRunLabel = document.getElementById('autoBackupNextRunLabel');
+    if (nextRunLabel) {
+      if (enabled && nextRun) {
+        const d = new Date(nextRun);
+        nextRunLabel.textContent = `${d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}`;
+      } else {
+        nextRunLabel.textContent = 'متوقف';
+      }
+    }
+  } catch (err) {
+    console.error('Error loading backup schedule:', err);
+  }
+}
+
+async function saveBackupSchedule(showToastMsg = true) {
+  try {
+    const enabled = document.getElementById('autoBackupEnabledToggle')?.checked ?? true;
+    const intervalMins = parseInt(document.getElementById('autoBackupIntervalSelect')?.value || '60', 10);
+    const uploadToDrive = document.getElementById('autoBackupUploadDriveToggle')?.checked ?? true;
+
+    const res = await fetch('/api/backups/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, intervalMins, uploadToDrive }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      if (showToastMsg) {
+        const intervalText = intervalMins >= 60 ? `${intervalMins / 60} ساعة` : `${intervalMins} دقيقة`;
+        showToast(enabled ? `✅ تم حفظ جدولة النسخ الاحتياطي (كل ${intervalText}) بنجاح!` : '⏸️ تم إيقاف جدولة النسخ الاحتياطي الآلي', 'success');
+      }
+      loadBackupSchedule();
+    } else {
+      if (showToastMsg) showToast('حدث خطأ أثناء حفظ الإعدادات', 'error');
+    }
+  } catch (e) {
+    if (showToastMsg) showToast('تعذر الاتصال بالسيرفر لحفظ الجدولة', 'error');
+  }
+}
+
+function onAutoBackupSettingChanged() {
+  saveBackupSchedule(false);
+}
+
+// -------------------------------------------------------------
+// Google Drive Cloud Backup Integration Engine
+// -------------------------------------------------------------
+async function loadGoogleDriveStatus() {
+  try {
+    const res = await fetch('/api/gdrive/status');
+    const data = await res.json();
+    if (!data.success) return;
+
+    cachedGdriveConnected = !!data.connected;
+
+    const badge = document.getElementById('gdriveStatusBadge');
+    const connBox = document.getElementById('gdriveConnectedBox');
+    const disconnBox = document.getElementById('gdriveDisconnectedBox');
+    const emailEl = document.getElementById('gdriveAccountEmail');
+    const timeEl = document.getElementById('gdriveLastBackupTime');
+    const toggle = document.getElementById('gdriveAutoBackupToggle');
+
+    if (data.connected) {
+      if (badge) {
+        badge.textContent = `🟢 متصل: ${data.userEmail || 'Google Drive'}`;
+        badge.className = 'sync-status-badge badge-online';
+      }
+      if (connBox) connBox.style.display = 'block';
+      if (disconnBox) disconnBox.style.display = 'none';
+      if (emailEl) emailEl.textContent = `${data.userName ? data.userName + ' (' + data.userEmail + ')' : data.userEmail || 'حساب متصل'}`;
+      if (timeEl) timeEl.textContent = data.lastBackupAt ? new Date(data.lastBackupAt).toLocaleString('ar-EG') : 'لم يتم الرفع بعد';
+      if (toggle) toggle.checked = data.autoBackup !== false;
+    } else {
+      if (badge) {
+        badge.textContent = '⚪ غير متصل بـ Google Drive';
+        badge.className = 'sync-status-badge badge-offline';
+      }
+      if (connBox) connBox.style.display = 'none';
+      if (disconnBox) disconnBox.style.display = 'flex';
+    }
+  } catch (e) {
+    console.error('Error loading Google Drive status:', e);
+  }
+}
+
+async function connectGoogleDrive() {
+  showToast('جاري فتح المتصفح لتسجيل الدخول بحساب Google...', 'info');
+  try {
+    const res = await fetch('/api/gdrive/connect', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('برجاء تأكيد الدخول ومنح الصلاحية في صفحة المتصفح المفتوحة الآن 🌐', 'info');
+      // Poll for connection completion
+      if (gdrivePollTimer) clearInterval(gdrivePollTimer);
+      let attempts = 0;
+      gdrivePollTimer = setInterval(async () => {
+        attempts++;
+        try {
+          const sRes = await fetch('/api/gdrive/status');
+          const sData = await sRes.json();
+          if (sData.success && sData.connected) {
+            clearInterval(gdrivePollTimer);
+            gdrivePollTimer = null;
+            showToast(`✅ تم ربط حساب Google Drive بنجاح: ${sData.userEmail || ''}`, 'success');
+            loadGoogleDriveStatus();
+            loadBackupsList();
+          }
+        } catch {}
+        if (attempts > 60) {
+          clearInterval(gdrivePollTimer);
+          gdrivePollTimer = null;
+        }
+      }, 2500);
+    } else {
+      showToast('تعذر بدء جلسة الربط: ' + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    showToast('خطأ أثناء الاتصال بخدمة Google Drive', 'error');
+  }
+}
+
+async function disconnectGoogleDrive() {
+  if (!confirm('هل أنت متأكد من رغبتك في إلغاء ربط حساب Google Drive من هذا الجهاز؟')) {
+    return;
+  }
+  try {
+    const res = await fetch('/api/gdrive/disconnect', { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || 'تم إلغاء ربط Google Drive بنجاح', 'success');
+      loadGoogleDriveStatus();
+      loadBackupsList();
+    }
+  } catch (e) {
+    showToast('تعذر إلغاء الربط', 'error');
+  }
+}
+
+async function toggleGoogleDriveAutoBackup(enabled) {
+  try {
+    const res = await fetch('/api/gdrive/toggle-auto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(enabled ? 'تم تفعيل النسخ التلقائي إلى Google Drive ☁️' : 'تم تعطيل النسخ التلقائي إلى Drive', 'info');
+    }
+  } catch (e) {
+    showToast('تعذر تحديث إعداد النسخ التلقائي', 'error');
+  }
+}
+
+async function createAndUploadGoogleDriveBackup() {
+  showToast('جاري إنشاء نسخة احتياطية محلية ورفعها إلى Google Drive...', 'info');
+  try {
+    const res = await fetch('/api/gdrive/create-and-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        notes: `نسخة سحابية يدوية عبر Google Drive - ${new Date().toLocaleTimeString('ar-EG')}`,
+      }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('✅ تم إنشاء النسخة ورفعها بنجاح إلى Google Drive!', 'success');
+      loadGoogleDriveStatus();
+      loadBackupsList();
+    } else {
+      showToast('فشل الرفع إلى Google Drive: ' + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    showToast('تعذر الاتصال لرفع النسخة الاحتياطية', 'error');
+  }
+}
+
+async function uploadBackupToDrive(backupId) {
+  showToast(`جاري رفع النسخة الاحتياطية (${backupId}) إلى Google Drive...`, 'info');
+  try {
+    const res = await fetch(`/api/gdrive/upload/${backupId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || '✅ تم رفع النسخة بنجاح إلى مجلد Google Drive!', 'success');
+      loadGoogleDriveStatus();
+      loadBackupsList();
+    } else {
+      showToast('خطأ أثناء الرفع: ' + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    showToast('تعذر إتمام رفع النسخة إلى Drive', 'error');
+  }
+}
+
+function openGoogleDriveModal() {
+  const modal = document.getElementById('modalGdriveBackups');
+  if (modal) modal.style.display = 'flex';
+  loadDriveRemoteBackups();
+}
+
+function closeGoogleDriveModal() {
+  const modal = document.getElementById('modalGdriveBackups');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadDriveRemoteBackups() {
+  const tbody = document.getElementById('gdriveRemoteTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:25px; color:var(--text-dim)">جاري فحص النسخ السحابية على Google Drive... 🔄</td></tr>';
+
+  try {
+    const res = await fetch('/api/gdrive/list');
+    const data = await res.json();
+    tbody.innerHTML = '';
+
+    if (!data.success || !data.files || data.files.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:25px; color:var(--text-dim)">لا توجد ملفات نسخ احتياطية مسجلة في مجلد QuazLink POS Backups على حسابك حتى الآن.</td></tr>';
+      return;
+    }
+
+    data.files.forEach((f) => {
+      const dateStr = f.createdTime ? new Date(f.createdTime).toLocaleString('ar-EG') : '-';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong style="color:var(--accent-cyan); font-family:'JetBrains Mono'; font-size:0.82rem;">${f.name}</strong></td>
+        <td style="font-family:'JetBrains Mono'; font-size:0.8rem;">${f.size}</td>
+        <td style="font-size:0.75rem; color:var(--text-muted);">${dateStr}</td>
+        <td>
+          <a href="${f.webViewLink}" target="_blank" class="btn-action" style="text-decoration:none; font-size:0.75rem;" title="فتح الملف في متصفح Google Drive">🔗 فتح في Drive</a>
+        </td>
+        <td>
+          <button type="button" class="btn-checkout primary" style="width:auto; padding:4px 12px; font-size:0.75rem;" onclick="restoreFromGoogleDrive('${f.id}', '${f.name}')">🔄 استعادة النظام من هذه النسخة</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:25px; color:var(--accent-red)">تعذر الاتصال بـ Google Drive لجلب الملفات</td></tr>';
+  }
+}
+
+async function restoreFromGoogleDrive(fileId, fileName) {
+  if (!confirm(`⚠️ تحذير أمان واستعادة:\nهل أنت متأكد من تنزيل واستعادة قاعدة البيانات من النسخة السحابية:\n"${fileName}"؟\nسيتم استبدال البيانات الحالية بالكامل بما تحتويه النسخة.`)) {
+    return;
+  }
+
+  showToast('جاري تنزيل النسخة من Google Drive واستعادة قاعدة البيانات ذرياً...', 'info');
+  try {
+    const res = await fetch(`/api/gdrive/restore/${fileId}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      showToast(data.message || '✅ تمت الاستعادة بنجاح من Google Drive!', 'success');
+      closeGoogleDriveModal();
+      loadQuickProducts();
+      refreshLowStockCount();
+      loadSettingsAndLicense();
+      loadBackupsList();
+    } else {
+      showToast('فشلت الاستعادة من Google Drive: ' + (data.error || ''), 'error');
+    }
+  } catch (e) {
+    showToast('تعذر إتمام عملية الاستعادة من Google Drive', 'error');
+  }
 }
 
 // -------------------------------------------------------------

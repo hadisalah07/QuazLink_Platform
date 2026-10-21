@@ -4,14 +4,16 @@ import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.2.7";
+export const POS_LATEST_VERSION = "1.3.6";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
-export const POS_RELEASE_DATE = "2026-10-15";
-export const POS_RELEASE_NOTES = `• إصلاح طبقات العرض والواجهة لقائمة البحث الذكي (Z-Index / Stacking Context Fix): حل مشكلة ظهور نتائج البحث الذكي خلف جدول الأصناف، لتطفو الآن بسلاسة تامة وبوضوح كامل فوق الجدول وكافة عناصر الفاتورة.
-• محرك البحث الذكي والفوري (Live Autocomplete): شريط بحث فوري ومرن بالكامل للمنتجات، يدعم تطبيع الحروف العربية والإنجليزية والرموز، والبحث بأجزاء متعددة من الاسم أو الباركود، مع التنقل السلس بالأسهم وزر Enter للإضافة الفورية للفاتورة.
-• خيارات الطباعة المباشرة من شاشة الفاتورة والكاشير: إمكانية اختيار القياس الافتراضي للطباعة (حراري 80mm / A4 / A5) بضغطة واحدة من واجهة الكاشير ومزامنة أزرار الحفظ والطباعة والدفع فورياً.
-• بطاقة تفاصيل وملخص الفاتورة أعلى الحساب: بطاقة أنيقة تعرض نوع الفاتورة (مبيعات / مشتريات / قطاعي / جملة) مع إظهار اسم العميل ورقم الهاتف مباشرة وبشكل مريح قبل الدفع.
-• دعم كامل وموحد لكافة نسخ ويندوز الحديثة (Windows 11 / 10) والقديمة (Windows 7 / 8 / POSReady 32-bit & 64-bit).`;
+export const POS_RELEASE_DATE = "2026-10-22";
+export const POS_RELEASE_NOTES = `• إصلاحات عامة وتحسينات شاملة في الأداء (Bug Fixes & System Improvements):
+• نظام الإشعارات الذكي الفوري (Single Overwrite Toast Engine): منع تراكم ورص رسائل الإشعارات رأسياً واستبدال الرسائل في نفس المكان فوراً مع أنيميشن تفاعلي سلس وحذف الأيقونات المكررة.
+• وضع الشاشة الكاملة (Full-Screen Mode): إضافة زر التكبير السريع (⛶) في شريط الكاشير العلوي مع دعم كامل للخروج السريع عبر زر ESC أو اختصار Ctrl + Q.
+• مؤشر عدسة التكبير الذكي (Zoom Lens Indicator): تمييز نسبة التكبير البصرية في الهيدر لسهولة القراءة والتحكم.
+• تحديث رقم التواصل والتفعيل المعتمد لخدمة العملاء والمبيعات: 01019078440.
+• حماية التجربة المجانية الصارمة (30-Day Anti-Tamper Trial) وحوكمة بصمة العتاد الدائمة (Motherboard HWID).
+• التوافق المزدوج بنسبة 100% مع أنظمة Windows 7 / 8 / POSReady وأنظمة Windows 10 / 11 Modern.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -70,8 +72,8 @@ export async function GET(request: Request) {
   }
 
   const releaseTitle = isLegacyWin
-    ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق مع Windows 7 / 8 / POSReady - مع البحث الذكي الفوري والطباعة)`
-    : `QuazLink POS & ERP v${POS_LATEST_VERSION} (محرك البحث الذكي الفوري، واختيار قياس الطباعة A4/A5، وتفاصيل الفاتورة)`;
+    ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق مع Windows 7 / 8 / POSReady - مع إصلاحات وتحسينات عامة)`
+    : `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصلاحات وتحسينات عامة، نظام الإشعارات الفوري، ووضع الشاشة الكاملة)`;
 
   return NextResponse.json({
     success: true,

@@ -109,6 +109,43 @@ export class ProductService {
     return this.getProductById(id)!;
   }
 
+  public deleteProduct(id: string, force = false): { success: boolean; productName: string } {
+    const existing = this.getProductById(id);
+    if (!existing) {
+      throw new Error(`الصنف غير موجود أو تم حذفه مسبقاً: ${id}`);
+    }
+
+    return this.db.transaction(() => {
+      // Check if product is referenced in invoice_items
+      const invoiceUsage = this.db.queryOne<{ count: number }>(
+        'SELECT COUNT(*) as count FROM invoice_items WHERE product_id = ?',
+        [id]
+      );
+
+      if (invoiceUsage && invoiceUsage.count > 0) {
+        if (!force) {
+          throw new Error(
+            `لا يمكن حذف هذا الصنف لوجود (${invoiceUsage.count}) حركة فواتير مسجلة به. يمكنك تعديل رصيده إلى 0 أو تأكيد الحذف الشامل.`
+          );
+        }
+        // Force delete: clean up invoice_items referencing this product
+        this.db.run('DELETE FROM invoice_items WHERE product_id = ?', [id]);
+      }
+
+      // Delete associated serials and stock movements
+      this.db.run('DELETE FROM product_serials WHERE product_id = ?', [id]);
+      this.db.run('DELETE FROM stock_movements WHERE product_id = ?', [id]);
+
+      // Delete the product record
+      this.db.run('DELETE FROM products WHERE id = ?', [id]);
+
+      return {
+        success: true,
+        productName: existing.name,
+      };
+    });
+  }
+
   public getProductMovements(productId: string): {
     id: string;
     type: string;

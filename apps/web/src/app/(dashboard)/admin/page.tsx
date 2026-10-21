@@ -31,10 +31,19 @@ import {
   HardDrive,
   Copy,
   Check,
+  CircuitBoard,
+  Hourglass,
+  Calendar,
+  Lock,
+  X,
+  Layers,
+  Info,
+  Trash2,
 } from "lucide-react";
 import {
   getAdminAnalytics,
   updateUserRole,
+  deletePosTerminal,
   type AdminAnalyticsData,
   type AdminUserItem,
   type AdminActiveSession,
@@ -82,8 +91,10 @@ export default function AdminDashboardPage() {
 
   // Standalone POS Terminals state
   const [posSearchQuery, setPosSearchQuery] = React.useState("");
-  const [posFilterTab, setPosFilterTab] = React.useState<"all" | "online" | "win7" | "win10">("all");
+  const [posFilterTab, setPosFilterTab] = React.useState<"all" | "online" | "trial" | "expired" | "lifetime" | "win7" | "win10">("all");
   const [copiedHwId, setCopiedHwId] = React.useState<string | null>(null);
+  const [selectedSpecsTerminal, setSelectedSpecsTerminal] = React.useState<PosTerminalItem | null>(null);
+  const [showRawSpecsJson, setShowRawSpecsJson] = React.useState(false);
 
   const copyToClipboard = (text: string) => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
@@ -165,6 +176,24 @@ export default function AdminDashboardPage() {
     }, 450);
   }
 
+  async function handleDeleteTerminal(terminal: PosTerminalItem) {
+    if (!confirm(`هل أنت متأكد من رغبتك في حذف جهاز "${terminal.businessName}" (${terminal.hardwareId}) من السجلات نهائياً؟`)) {
+      return;
+    }
+    try {
+      await deletePosTerminal(terminal.id);
+      setData((prev) => {
+        if (!prev || !prev.posTerminals) return prev;
+        return {
+          ...prev,
+          posTerminals: prev.posTerminals.filter((t) => t.id !== terminal.id && t.hardwareId !== terminal.hardwareId),
+        };
+      });
+    } catch (err: any) {
+      alert(err.message || "فشل حذف الجهاز من السجلات");
+    }
+  }
+
   // Trend curve generation for Section 4 (KPI Trend Chart)
   const trendPoints = React.useMemo(() => {
     const totalRuns = data?.kpis?.totalJobs || 24;
@@ -223,10 +252,20 @@ export default function AdminDashboardPage() {
   // Standalone POS Terminals computation
   const filteredPosTerminals = React.useMemo(() => {
     if (!data?.posTerminals) return [];
-    let list = data.posTerminals;
+    let list = data.posTerminals.filter(
+      (t) =>
+        t.hardwareId !== "QL-HW-TEST-VERIFY-123" &&
+        t.businessName !== "Supermarket Test"
+    );
 
     if (posFilterTab === "online") {
       list = list.filter((t) => t.isOnline);
+    } else if (posFilterTab === "trial") {
+      list = list.filter((t) => !t.isTrialExpired && (t.licenseType || "").toLowerCase() !== "lifetime");
+    } else if (posFilterTab === "expired") {
+      list = list.filter((t) => t.isTrialExpired);
+    } else if (posFilterTab === "lifetime") {
+      list = list.filter((t) => (t.licenseType || "").toLowerCase() === "lifetime");
     } else if (posFilterTab === "win7") {
       list = list.filter(
         (t) =>
@@ -247,6 +286,11 @@ export default function AdminDashboardPage() {
         (t) =>
           (t.businessName && t.businessName.toLowerCase().includes(q)) ||
           t.hardwareId.toLowerCase().includes(q) ||
+          (t.motherboardUuid && t.motherboardUuid.toLowerCase().includes(q)) ||
+          (t.motherboardSerial && t.motherboardSerial.toLowerCase().includes(q)) ||
+          (t.motherboardMfr && t.motherboardMfr.toLowerCase().includes(q)) ||
+          (t.motherboardModel && t.motherboardModel.toLowerCase().includes(q)) ||
+          (t.diskModel && t.diskModel.toLowerCase().includes(q)) ||
           t.hostname.toLowerCase().includes(q) ||
           t.username.toLowerCase().includes(q) ||
           t.location.country.toLowerCase().includes(q) ||
@@ -670,6 +714,36 @@ export default function AdminDashboardPage() {
             🟢 Online Cashiers Now ({data?.posTerminals?.filter((t) => t.isOnline).length || 0})
           </button>
           <button
+            onClick={() => setPosFilterTab("trial")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "trial"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            ⏳ Active Trials ({data?.posTerminals?.filter((t) => !t.isTrialExpired && (t.licenseType || "").toLowerCase() !== "lifetime").length || 0})
+          </button>
+          <button
+            onClick={() => setPosFilterTab("expired")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "expired"
+                ? "bg-rose-500/20 text-rose-400 border border-rose-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            🔒 Expired / Locked ({data?.posTerminals?.filter((t) => t.isTrialExpired).length || 0})
+          </button>
+          <button
+            onClick={() => setPosFilterTab("lifetime")}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              posFilterTab === "lifetime"
+                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                : "text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-transparent"
+            }`}
+          >
+            🌟 Lifetime Licenses ({data?.posTerminals?.filter((t) => (t.licenseType || "").toLowerCase() === "lifetime").length || 0})
+          </button>
+          <button
             onClick={() => setPosFilterTab("win7")}
             className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
               posFilterTab === "win7"
@@ -706,108 +780,231 @@ export default function AdminDashboardPage() {
               const isCopied = copiedHwId === terminal.hardwareId;
               const ramGB = terminal.totalMemoryMB ? Math.round(terminal.totalMemoryMB / 1024) : 4;
               const isWin7 = (terminal.osRelease || "").includes("6.1") || (terminal.osRelease || "").toLowerCase().includes("windows 7");
+              const mbUuid = terminal.motherboardUuid || terminal.hardwareId;
+              const isMbCopied = copiedHwId === mbUuid;
+              const isLifetime = (terminal.licenseType || "").toLowerCase() === "lifetime";
+              const daysLeft = terminal.daysRemaining ?? 30;
+              const isExpired = terminal.isTrialExpired;
 
               return (
                 <div
                   key={terminal.id}
-                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.05] transition-all space-y-4 group relative overflow-hidden"
+                  className="p-5 rounded-2xl bg-white/[0.03] border border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.05] transition-all space-y-4 group relative overflow-hidden flex flex-col justify-between shadow-lg backdrop-blur-md"
                 >
-                  {/* Top Business Name & Online Status */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <Store className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                        <h3 className="font-bold text-white text-sm truncate" title={terminal.businessName}>
-                          {terminal.businessName}
-                        </h3>
+                  <div className="space-y-3.5">
+                    {/* Top Business Name & Online Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <Store className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                          <h3 className="font-bold text-white text-sm truncate" title={terminal.businessName}>
+                            {terminal.businessName}
+                          </h3>
+                        </div>
+                        <div className="text-[11px] font-mono text-gray-400 truncate flex items-center space-x-1 pl-6">
+                          <span>{terminal.hostname}</span>
+                          <span>•</span>
+                          <span className="text-gray-500">{terminal.username}</span>
+                        </div>
                       </div>
-                      <div className="text-[11px] font-mono text-gray-400 truncate flex items-center space-x-1 pl-6">
-                        <span>{terminal.hostname}</span>
-                        <span>•</span>
-                        <span className="text-gray-500">{terminal.username}</span>
+
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        {terminal.isOnline ? (
+                          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span>ONLINE</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                            <span>OFFLINE</span>
+                          </span>
+                        )}
+                        <button
+                          onClick={() => handleDeleteTerminal(terminal)}
+                          title="حذف هذا الجهاز من السجلات"
+                          className="p-1 rounded-lg text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
 
-                    {terminal.isOnline ? (
-                      <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse flex-shrink-0">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span>ONLINE</span>
-                      </span>
+                    {/* Motherboard & Physical HWID Box */}
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-white/10 space-y-1.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center space-x-1.5 min-w-0">
+                          <CircuitBoard className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-gray-400 font-bold">
+                            Motherboard UUID / HWID
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(mbUuid)}
+                          className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/15 text-gray-400 hover:text-cyan-300 transition-all flex items-center space-x-1 text-[10px] flex-shrink-0 border border-white/5"
+                          title="Copy Motherboard ID"
+                        >
+                          {isMbCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          <span className="font-mono">{isMbCopied ? "Copied" : "Copy"}</span>
+                        </button>
+                      </div>
+
+                      <div className="font-mono text-xs font-bold text-cyan-300 truncate tracking-wide selection:bg-cyan-500/30">
+                        {mbUuid}
+                      </div>
+
+                      <div className="text-[10px] text-gray-400 flex items-center justify-between pt-1 border-t border-white/5">
+                        <span className="truncate text-gray-300 font-medium">
+                          {terminal.motherboardMfr || terminal.motherboardModel
+                            ? `${terminal.motherboardMfr || ""} ${terminal.motherboardModel || ""}`.trim()
+                            : "Physical System Motherboard"}
+                        </span>
+                        {terminal.motherboardSerial && terminal.motherboardSerial !== 'Standard Serial' && (
+                          <span className="font-mono text-[9px] text-gray-500 truncate pl-1">
+                            SN: {terminal.motherboardSerial}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 30-Day Free Trial & License Card Section */}
+                    {isLifetime ? (
+                      <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-500/10 via-purple-500/10 to-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                          <div>
+                            <div className="text-xs font-bold text-emerald-300">Lifetime License (ترخيص مدى الحياة)</div>
+                            <div className="text-[10px] text-gray-400">Activated &amp; Unlimited Enterprise POS</div>
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                          ACTIVE
+                        </span>
+                      </div>
                     ) : (
-                      <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 flex-shrink-0">
-                        <span>OFFLINE</span>
-                      </span>
-                    )}
-                  </div>
+                      <div className={`p-3 rounded-xl border space-y-2 ${
+                        isExpired
+                          ? "bg-rose-500/10 border-rose-500/30"
+                          : daysLeft <= 7
+                          ? "bg-amber-500/10 border-amber-500/30"
+                          : "bg-cyan-500/10 border-cyan-500/25"
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-1.5">
+                            <Hourglass className={`w-3.5 h-3.5 ${
+                              isExpired ? "text-rose-400" : daysLeft <= 7 ? "text-amber-400" : "text-cyan-400"
+                            }`} />
+                            <span className="text-[10px] font-semibold tracking-wide text-gray-200">
+                              30-Day Free Trial (فترة تجريبية)
+                            </span>
+                          </div>
+                          {isExpired ? (
+                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                              <Lock className="w-2.5 h-2.5" />
+                              <span>منتهية - مقفل (Expired)</span>
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                              daysLeft <= 7
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                            }`}>
+                              <span>باقي {daysLeft} يوم ({daysLeft}d Left)</span>
+                            </span>
+                          )}
+                        </div>
 
-                  {/* Hardware Fingerprint ID (with quick copy) */}
-                  <div className="p-2.5 rounded-xl bg-slate-950/70 border border-white/10 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-[9px] font-mono uppercase tracking-wider text-gray-500">Hardware ID Fingerprint</div>
-                      <div className="text-xs font-mono font-bold text-cyan-300 truncate">
-                        {terminal.hardwareId}
+                        {/* Dynamic Progress Bar */}
+                        <div className="w-full bg-slate-950/60 rounded-full h-1.5 overflow-hidden border border-white/5">
+                          <div
+                            className={`h-full transition-all duration-500 ${
+                              isExpired
+                                ? "bg-rose-500"
+                                : daysLeft <= 7
+                                ? "bg-amber-500"
+                                : "bg-gradient-to-r from-cyan-400 to-emerald-400"
+                            }`}
+                            style={{ width: `${Math.min(100, Math.max(5, terminal.trialProgressPercent ?? 0))}%` }}
+                          />
+                        </div>
+
+                        {/* Trial Dates Footer */}
+                        <div className="flex items-center justify-between text-[9px] font-mono text-gray-400 pt-0.5">
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="w-2.5 h-2.5 text-gray-500" />
+                            <span>Started: {new Date(terminal.trialStartedAt || terminal.firstSeenAt).toLocaleDateString()}</span>
+                          </div>
+                          <div>
+                            <span>Expires: {new Date(terminal.expiresAt || new Date(new Date(terminal.firstSeenAt).getTime() + 30*86400000)).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hardware & OS Specs Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      {/* OS Spec */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                        <div className="text-[9px] text-gray-500 font-mono uppercase">Operating System</div>
+                        <div className="font-semibold text-gray-200 truncate flex items-center space-x-1">
+                          <span>{isWin7 ? "Windows 7" : "Windows 10/11"}</span>
+                          <span className="text-[10px] text-gray-500">({terminal.osArch})</span>
+                        </div>
+                        <div className="text-[10px] font-mono text-gray-400 truncate">{terminal.osRelease}</div>
+                      </div>
+
+                      {/* RAM & CPU */}
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
+                        <div className="text-[9px] text-gray-500 font-mono uppercase">Memory &amp; CPU</div>
+                        <div className="font-semibold text-gray-200 truncate flex items-center space-x-1">
+                          <Cpu className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                          <span>{ramGB} GB RAM</span>
+                          {terminal.diskSizeGB ? (
+                            <span className="text-[10px] text-gray-400">• {terminal.diskSizeGB}GB</span>
+                          ) : null}
+                        </div>
+                        <div className="text-[10px] font-mono text-gray-400 truncate" title={terminal.cpuModel}>
+                          {terminal.cpuModel}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Location & IP Section */}
+                    <div className="p-2.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl select-none">{terminal.location.flag}</span>
+                        <div>
+                          <div className="font-semibold text-white">
+                            {terminal.location.city}, {terminal.location.country}
+                          </div>
+                          <div className="text-[10px] font-mono text-cyan-400/90">
+                            {terminal.ipAddress}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/5 text-gray-300 border border-white/10">
+                          v{terminal.appVersion}
+                        </span>
+                        <div className="text-[10px] text-gray-500 mt-1 capitalize font-medium">
+                          {terminal.licenseType}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Button: View Full Specs */}
                     <button
-                      onClick={() => copyToClipboard(terminal.hardwareId)}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all flex-shrink-0"
-                      title="Copy Hardware ID"
+                      onClick={() => setSelectedSpecsTerminal(terminal)}
+                      className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-cyan-500/15 border border-white/10 hover:border-cyan-500/40 text-gray-300 hover:text-cyan-200 text-xs font-medium flex items-center justify-center space-x-2 transition-all group/btn shadow-sm"
                     >
-                      {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <CircuitBoard className="w-3.5 h-3.5 text-cyan-400 group-hover/btn:rotate-12 transition-transform" />
+                      <span>تفاصيل العتاد بالكامل (Full Specs)</span>
+                      <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
                     </button>
                   </div>
 
-                  {/* Hardware & OS Specs Grid */}
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    {/* OS Spec */}
-                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
-                      <div className="text-[9px] text-gray-500 font-mono uppercase">Operating System</div>
-                      <div className="font-semibold text-gray-200 truncate flex items-center space-x-1">
-                        <span>{isWin7 ? "Windows 7" : "Windows 10/11"}</span>
-                        <span className="text-[10px] text-gray-500">({terminal.osArch})</span>
-                      </div>
-                      <div className="text-[10px] font-mono text-gray-400 truncate">{terminal.osRelease}</div>
-                    </div>
-
-                    {/* RAM & CPU */}
-                    <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-0.5">
-                      <div className="text-[9px] text-gray-500 font-mono uppercase">Memory &amp; CPU</div>
-                      <div className="font-semibold text-gray-200 truncate flex items-center space-x-1">
-                        <Cpu className="w-3 h-3 text-cyan-400 flex-shrink-0" />
-                        <span>{ramGB} GB RAM</span>
-                      </div>
-                      <div className="text-[10px] font-mono text-gray-400 truncate" title={terminal.cpuModel}>
-                        {terminal.cpuModel}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Location & IP Section */}
-                  <div className="p-2.5 rounded-xl bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-between text-xs">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl select-none">{terminal.location.flag}</span>
-                      <div>
-                        <div className="font-semibold text-white">
-                          {terminal.location.city}, {terminal.location.country}
-                        </div>
-                        <div className="text-[10px] font-mono text-cyan-400/90">
-                          {terminal.ipAddress}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/5 text-gray-300 border border-white/10">
-                        v{terminal.appVersion}
-                      </span>
-                      <div className="text-[10px] text-gray-500 mt-1 capitalize font-medium">
-                        {terminal.licenseType}
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Footer Timestamps */}
-                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500 font-mono">
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-gray-500 font-mono mt-3">
                     <div>
                       <span>Launches: </span>
                       <span className="text-gray-300 font-bold">{terminal.launchCount}</span>
@@ -1297,6 +1494,410 @@ export default function AdminDashboardPage() {
           </table>
         </div>
       </div>
+
+      {/* ── FULL DEVICE HARDWARE & TRIAL SPECS MODAL ───────────────────────── */}
+      {selectedSpecsTerminal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+          {/* Backdrop Click Dismiss */}
+          <div
+            className="fixed inset-0"
+            onClick={() => {
+              setSelectedSpecsTerminal(null);
+              setShowRawSpecsJson(false);
+            }}
+          />
+
+          {/* Modal Container */}
+          <div className="relative w-full max-w-4xl bg-slate-900 border border-cyan-500/30 rounded-2xl shadow-[0_0_60px_rgba(6,182,212,0.2)] overflow-hidden my-8 z-10 max-h-[90vh] flex flex-col">
+            {/* Top Glowing Gradient Bar */}
+            <div className="h-1.5 w-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-emerald-400 flex-shrink-0" />
+
+            {/* Modal Header */}
+            <div className="p-6 border-b border-white/10 flex items-start justify-between gap-4 flex-shrink-0 bg-slate-900/90">
+              <div className="flex items-start space-x-3.5 min-w-0">
+                <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex-shrink-0">
+                  <Store className="w-6 h-6" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl font-bold text-white tracking-tight truncate">
+                      {selectedSpecsTerminal.businessName}
+                    </h2>
+                    {selectedSpecsTerminal.isOnline ? (
+                      <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>ONLINE</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">
+                        <span>OFFLINE</span>
+                      </span>
+                    )}
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-white/5 text-gray-300 border border-white/10">
+                      v{selectedSpecsTerminal.appVersion}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1 font-mono truncate">
+                    Hostname: <span className="text-white font-semibold">{selectedSpecsTerminal.hostname}</span> • User: <span className="text-gray-300 font-semibold">{selectedSpecsTerminal.username}</span>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedSpecsTerminal(null);
+                  setShowRawSpecsJson(false);
+                }}
+                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white transition-all flex-shrink-0"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body - Scrollable */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
+              {/* 30-Day Free Trial & Anti-Tamper Status Banner */}
+              {((selectedSpecsTerminal.licenseType || "").toLowerCase() === "lifetime") ? (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/15 via-purple-500/15 to-emerald-500/15 border border-emerald-500/30 flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                    <div>
+                      <div className="text-sm font-bold text-emerald-300">Enterprise Lifetime License (ترخيص مدى الحياة نشط)</div>
+                      <div className="text-xs text-gray-300">البرنامج مفعل بشكل دائم وغير مقيد بأي فترة تجريبية.</div>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    ACTIVATED
+                  </span>
+                </div>
+              ) : (
+                <div className={`p-4 rounded-xl border space-y-3 ${
+                  selectedSpecsTerminal.isTrialExpired
+                    ? "bg-rose-500/10 border-rose-500/30"
+                    : (selectedSpecsTerminal.daysRemaining ?? 30) <= 7
+                    ? "bg-amber-500/10 border-amber-500/30"
+                    : "bg-cyan-500/10 border-cyan-500/25"
+                }`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Hourglass className={`w-4 h-4 ${
+                        selectedSpecsTerminal.isTrialExpired
+                          ? "text-rose-400"
+                          : (selectedSpecsTerminal.daysRemaining ?? 30) <= 7
+                          ? "text-amber-400"
+                          : "text-cyan-400"
+                      }`} />
+                      <span className="font-bold text-sm text-white">
+                        فترة الـ 30 يوماً التجريبية المجانية (Free Trial Status)
+                      </span>
+                    </div>
+
+                    {selectedSpecsTerminal.isTrialExpired ? (
+                      <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 w-fit">
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>انتهت الفترة التجريبية - النظام مقفل (Expired)</span>
+                      </span>
+                    ) : (
+                      <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold w-fit ${
+                        (selectedSpecsTerminal.daysRemaining ?? 30) <= 7
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                      }`}>
+                        <span>باقي {selectedSpecsTerminal.daysRemaining ?? 30} يوم عمل ({selectedSpecsTerminal.daysRemaining ?? 30} Days Left)</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="space-y-1">
+                    <div className="w-full bg-slate-950/70 rounded-full h-2 overflow-hidden border border-white/5">
+                      <div
+                        className={`h-full transition-all duration-500 ${
+                          selectedSpecsTerminal.isTrialExpired
+                            ? "bg-rose-500"
+                            : (selectedSpecsTerminal.daysRemaining ?? 30) <= 7
+                            ? "bg-amber-500"
+                            : "bg-gradient-to-r from-cyan-400 to-emerald-400"
+                        }`}
+                        style={{ width: `${Math.min(100, Math.max(5, selectedSpecsTerminal.trialProgressPercent ?? 0))}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 pt-1">
+                      <span>تاريخ البدء: {new Date(selectedSpecsTerminal.trialStartedAt || selectedSpecsTerminal.firstSeenAt).toLocaleDateString()}</span>
+                      <span>نسبة الاستهلاك: {selectedSpecsTerminal.trialProgressPercent ?? 0}%</span>
+                      <span>تاريخ الانتهاء: {new Date(selectedSpecsTerminal.expiresAt || new Date(new Date(selectedSpecsTerminal.firstSeenAt).getTime() + 30*86400000)).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Anti-Tamper Notice */}
+                  <div className="flex items-center space-x-2 text-[11px] text-cyan-300/80 bg-slate-950/50 p-2.5 rounded-lg border border-cyan-500/10">
+                    <ShieldCheck className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                    <span>
+                      نظام الحماية ضد التلاعب: الفترة التجريبية مربوطة بسيريال وبصمة اللوحة الأم (Motherboard UUID) بالسيرفر السحابي. لا يمكن تصفيرها بإعادة تثبيت الويندوز أو مسح الملفات.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 4 Core Hardware Specifications Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Motherboard & BIOS */}
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
+                  <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
+                    <CircuitBoard className="w-4 h-4 text-cyan-400" />
+                    <h3 className="font-bold text-white text-xs">Motherboard &amp; BIOS (اللوحة الأم والبيوس)</h3>
+                  </div>
+
+                  <div className="space-y-2 font-mono">
+                    <div>
+                      <div className="text-[10px] text-gray-500 flex items-center justify-between">
+                        <span>MOTHERBOARD UUID</span>
+                        <button
+                          onClick={() => copyToClipboard(selectedSpecsTerminal.motherboardUuid || selectedSpecsTerminal.hardwareId)}
+                          className="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1"
+                        >
+                          {copiedHwId === (selectedSpecsTerminal.motherboardUuid || selectedSpecsTerminal.hardwareId) ? (
+                            <Check className="w-2.5 h-2.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-2.5 h-2.5" />
+                          )}
+                          <span className="text-[9px]">Copy</span>
+                        </button>
+                      </div>
+                      <div className="text-cyan-300 font-bold break-all text-[11px] bg-white/5 p-1.5 rounded mt-0.5">
+                        {selectedSpecsTerminal.motherboardUuid || selectedSpecsTerminal.hardwareId}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <div className="text-[10px] text-gray-500">SERIAL NUMBER</div>
+                        <div className="text-gray-200 truncate font-semibold">
+                          {selectedSpecsTerminal.motherboardSerial || "N/A"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-500">MANUFACTURER</div>
+                        <div className="text-gray-200 truncate font-semibold">
+                          {selectedSpecsTerminal.motherboardMfr || "Standard Board"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <div className="text-[10px] text-gray-500">BOARD MODEL / PRODUCT</div>
+                        <div className="text-gray-200 truncate font-semibold">
+                          {selectedSpecsTerminal.motherboardModel || "System Product"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-500">BIOS VERSION</div>
+                        <div className="text-gray-200 truncate font-semibold">
+                          {selectedSpecsTerminal.biosVersion || "Standard BIOS"}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Processor & Architecture */}
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
+                  <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
+                    <Cpu className="w-4 h-4 text-cyan-400" />
+                    <h3 className="font-bold text-white text-xs">Processor &amp; Architecture (المعالج والنواة)</h3>
+                  </div>
+
+                  <div className="space-y-2 font-mono">
+                    <div>
+                      <div className="text-[10px] text-gray-500">CPU MODEL</div>
+                      <div className="text-gray-200 font-semibold text-[11px] bg-white/5 p-1.5 rounded mt-0.5" title={selectedSpecsTerminal.cpuModel}>
+                        {selectedSpecsTerminal.cpuModel || "Generic x86_64 CPU"}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <div className="text-[10px] text-gray-500">PROCESSOR ID</div>
+                        <div className="text-cyan-300 font-semibold truncate">
+                          {selectedSpecsTerminal.cpuProcessorId || "N/A"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-500">CORES / THREADS</div>
+                        <div className="text-gray-200 font-semibold">
+                          {selectedSpecsTerminal.cpuCores ? `${selectedSpecsTerminal.cpuCores} Cores` : "Multi-Core"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <div className="text-[10px] text-gray-500">CPU ARCHITECTURE</div>
+                        <div className="text-gray-200 font-semibold">
+                          {selectedSpecsTerminal.osArch}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-500">WINDOWS BUILD</div>
+                        <div className="text-gray-200 font-semibold truncate">
+                          {selectedSpecsTerminal.osRelease}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Memory & Internal Storage */}
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
+                  <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
+                    <HardDrive className="w-4 h-4 text-cyan-400" />
+                    <h3 className="font-bold text-white text-xs">Memory &amp; Storage (الذاكرة والتخزين)</h3>
+                  </div>
+
+                  <div className="space-y-2 font-mono">
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div>
+                        <div className="text-[10px] text-gray-500">TOTAL RAM</div>
+                        <div className="text-emerald-400 font-bold text-sm">
+                          {selectedSpecsTerminal.totalMemoryMB ? `${Math.round(selectedSpecsTerminal.totalMemoryMB / 1024)} GB` : "4 GB"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] text-gray-500">FREE RAM</div>
+                        <div className="text-gray-300 font-semibold">
+                          {selectedSpecsTerminal.freeMemoryMB ? `${Math.round(selectedSpecsTerminal.freeMemoryMB / 1024)} GB` : "Available"}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] text-gray-500">PRIMARY DISK MODEL</div>
+                      <div className="text-gray-200 font-semibold text-[11px] bg-white/5 p-1.5 rounded mt-0.5 truncate" title={selectedSpecsTerminal.diskModel || undefined}>
+                        {selectedSpecsTerminal.diskModel || "Primary System Storage"}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[10px] text-gray-500">STORAGE CAPACITY</div>
+                      <div className="text-gray-200 font-semibold">
+                        {selectedSpecsTerminal.diskSizeGB ? `${selectedSpecsTerminal.diskSizeGB} GB Capacity` : "Standard Drive"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Network & Geolocation Telemetry */}
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
+                  <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
+                    <Globe className="w-4 h-4 text-cyan-400" />
+                    <h3 className="font-bold text-white text-xs">Network &amp; Geolocation (الموقع والاتصال)</h3>
+                  </div>
+
+                  <div className="space-y-2 font-mono">
+                    <div>
+                      <div className="text-[10px] text-gray-500 flex items-center justify-between">
+                        <span>PUBLIC IP ADDRESS</span>
+                        <button
+                          onClick={() => copyToClipboard(selectedSpecsTerminal.ipAddress)}
+                          className="text-cyan-400 hover:text-cyan-300 flex items-center space-x-1"
+                        >
+                          {copiedHwId === selectedSpecsTerminal.ipAddress ? (
+                            <Check className="w-2.5 h-2.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-2.5 h-2.5" />
+                          )}
+                          <span className="text-[9px]">Copy IP</span>
+                        </button>
+                      </div>
+                      <div className="text-cyan-300 font-bold text-[11px] bg-white/5 p-1.5 rounded mt-0.5">
+                        {selectedSpecsTerminal.ipAddress}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2 text-[11px]">
+                      <span className="text-2xl select-none">{selectedSpecsTerminal.location.flag}</span>
+                      <div>
+                        <div className="text-white font-bold">{selectedSpecsTerminal.location.city}, {selectedSpecsTerminal.location.country}</div>
+                        <div className="text-[10px] text-gray-500 font-mono">Country Code: {selectedSpecsTerminal.location.countryCode}</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-400 pt-1 border-t border-white/5">
+                      <div>
+                        <span>Launches: </span>
+                        <span className="text-white font-bold">{selectedSpecsTerminal.launchCount} times</span>
+                      </div>
+                      <div>
+                        <span>First Seen: </span>
+                        <span className="text-gray-300">{new Date(selectedSpecsTerminal.firstSeenAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Collapsible Raw Hardware JSON Inspector */}
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    <span className="font-bold text-white text-xs">
+                      Raw Hardware &amp; Telemetry Payload (البيانات التقنية الكاملة)
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => setShowRawSpecsJson(!showRawSpecsJson)}
+                    className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 hover:text-white transition-all text-[11px]"
+                  >
+                    {showRawSpecsJson ? "Hide Raw JSON (إخفاء)" : "View Raw JSON (عرض الكود)"}
+                  </button>
+                </div>
+
+                {showRawSpecsJson && (
+                  <div className="space-y-2 pt-2">
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => copyToClipboard(JSON.stringify(selectedSpecsTerminal, null, 2))}
+                        className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-gray-300 hover:text-cyan-300 text-[10px] font-mono flex items-center space-x-1 border border-white/10"
+                      >
+                        {copiedHwId === JSON.stringify(selectedSpecsTerminal, null, 2) ? (
+                          <Check className="w-3 h-3 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                        <span>Copy All JSON</span>
+                      </button>
+                    </div>
+                    <pre className="p-4 rounded-xl bg-slate-950 border border-white/10 text-cyan-300 font-mono text-[10px] overflow-x-auto max-h-60 leading-relaxed">
+                      {JSON.stringify(selectedSpecsTerminal, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-white/10 bg-slate-900/90 flex items-center justify-between text-xs">
+              <div className="text-gray-400 flex items-center space-x-1.5">
+                <Info className="w-3.5 h-3.5 text-cyan-400" />
+                <span>QuazLink POS Telemetry Engine v1.3.6 • All Hardware Records Verified</span>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedSpecsTerminal(null);
+                  setShowRawSpecsJson(false);
+                }}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
+              >
+                إغلاق (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

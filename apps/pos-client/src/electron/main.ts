@@ -294,7 +294,17 @@ function createMainWindow(): void {
     app.quit();
   });
 
-  // Register Global Keyboard Accelerators (F11 Fullscreen, Zoom In/Out/Reset)
+  mainWindow.on('enter-full-screen', () => {
+    logToFile('🖥️ [Window] Entered Full Screen mode.');
+    mainWindow?.webContents.send('fullscreen-changed', true);
+  });
+
+  mainWindow.on('leave-full-screen', () => {
+    logToFile('🖥️ [Window] Exited Full Screen mode.');
+    mainWindow?.webContents.send('fullscreen-changed', false);
+  });
+
+  // Register Global Keyboard Accelerators (F11 Fullscreen, ESC / Ctrl+Q exit, Zoom In/Out/Reset)
   mainWindow.webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return;
 
@@ -304,6 +314,26 @@ function createMainWindow(): void {
       }
       event.preventDefault();
       return;
+    }
+
+    // Exit Fullscreen via ESC
+    if (input.key === 'Escape') {
+      if (mainWindow && mainWindow.isFullScreen()) {
+        mainWindow.setFullScreen(false);
+        logToFile('🖥️ [Window] Exited Full Screen via ESC.');
+        event.preventDefault();
+        return;
+      }
+    }
+
+    // Exit Fullscreen via Ctrl + Q
+    if (input.control && (input.key === 'q' || input.key === 'Q')) {
+      if (mainWindow && mainWindow.isFullScreen()) {
+        mainWindow.setFullScreen(false);
+        logToFile('🖥️ [Window] Exited Full Screen via Ctrl+Q.');
+        event.preventDefault();
+        return;
+      }
     }
 
     if (input.control) {
@@ -389,6 +419,16 @@ function setupIpcHandlers(): void {
     if (mainWindow) {
       mainWindow.setFullScreen(!mainWindow.isFullScreen());
     }
+  });
+
+  ipcMain.on('window-exit-fullscreen', () => {
+    if (mainWindow && mainWindow.isFullScreen()) {
+      mainWindow.setFullScreen(false);
+    }
+  });
+
+  ipcMain.handle('window-is-fullscreen', () => {
+    return mainWindow ? mainWindow.isFullScreen() : false;
   });
 
   ipcMain.on('window-set-zoom', (_event, factor: number) => {

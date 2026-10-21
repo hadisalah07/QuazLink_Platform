@@ -41,6 +41,16 @@ export interface CreateSalesReturnInput {
   posTerminalId?: string;
 }
 
+export interface UpdateSaleInvoiceInput {
+  contactId?: string | null;
+  paymentMethod?: PaymentMethod;
+  discountAmount?: number;
+  paidAmount?: number;
+  applyVat14?: boolean;
+  notes?: string | null;
+  items: CreateInvoiceItemInput[];
+}
+
 export class InvoiceService {
   private db: PosDatabase;
   private numberService: InvoiceNumberService;
@@ -317,6 +327,259 @@ export class InvoiceService {
       }
 
       return this.getInvoiceById(returnInvoiceId)!;
+    });
+  }
+
+  /**
+   * 3. حذف الفاتورة نهائياً مع استرجاع المخزون، وتحرير السيريالات، وتسوية حساب العميل
+   */
+  public deleteInvoice(id: string): { success: boolean; invoiceNumber: string; revertedItemsCount: number } {
+    return this.db.transaction(() => {
+      const invoice = this.getInvoiceById(id);
+      if (!invoice) {
+        throw new Error(`Invoice not found: ${id}`);
+      }
+
+      const items = this.getInvoiceItems(id);
+      let revertedItemsCount = 0;
+
+      if (invoice.type === 'sale') {
+        for (const item of items) {
+          // تحرير السيريال
+          if (item.serialNumber) {
+            this.db.run(
+              `UPDATE product_serials
+               SET status = 'in_stock', invoice_id = NULL, sold_at = NULL
+               WHERE serial_number = ?`,
+              [item.serialNumber]
+            );
+          }
+
+          // إعادة كمية الصنف إلى المخزن
+          this.productService.updateStockQuantity(item.productId, item.quantity);
+          const updatedProduct = this.productService.getProductById(item.productId);
+          const balanceAfter = updatedProduct ? updatedProduct.stockQuantity : 0;
+
+          // تسجيل حركة تعديل مخزون
+          const movementId = this.db.generateId();
+          this.db.run(
+            `INSERT INTO stock_movements (id, product_id, type, quantity, balance_after, reference_id)
+             VALUES (?, ?, 'adjustment', ?, ?, ?)`,
+            [movementId, item.productId, item.quantity, balanceAfter, id]
+          );
+
+          revertedItemsCount++;
+        }
+
+        // تسوية حساب العميل والمقبوضات
+        if (invoice.contactId) {
+          if (invoice.remainingAmount > 0) {
+            this.contactService.updateBalance(invoice.contactId, -invoice.remainingAmount);
+          }
+          this.db.run('DELETE FROM payments WHERE invoice_id = ?', [id]);
+        }
+      } else if (invoice.type === 'sale_return') {
+        for (const item of items) {
+          this.productService.updateStockQuantity(item.productId, -item.quantity);
+          const updatedProduct = this.productService.getProductById(item.productId);
+          const balanceAfter = updatedProduct ? updatedProduct.stockQuantity : 0;
+
+          if (item.serialNumber) {
+            this.db.run(
+              `UPDATE product_serials
+               SET status = 'sold', return_invoice_id = NULL, returned_at = NULL
+               WHERE serial_number = ?`,
+              [item.serialNumber]
+            );
+          }
+
+          const movementId = this.db.generateId();
+          this.db.run(
+            `INSERT INTO stock_movements (id, product_id, type, quantity, balance_after, reference_id)
+             VALUES (?, ?, 'adjustment', ?, ?, ?)`,
+            [movementId, item.productId, -item.quantity, balanceAfter, id]
+          );
+
+          revertedItemsCount++;
+        }
+
+        if (invoice.contactId && invoice.paidAmount > 0) {
+          this.contactService.updateBalance(invoice.contactId, invoice.paidAmount);
+          this.db.run('DELETE FROM payments WHERE invoice_id = ?', [id]);
+        }
+      }
+
+      // حذف بنود الفاتورة ثم الفاتورة نفسها
+      this.db.run('DELETE FROM invoice_items WHERE invoice_id = ?', [id]);
+      this.db.run('DELETE FROM invoices WHERE id = ?', [id]);
+
+      return {
+        success: true,
+        invoiceNumber: invoice.invoiceNumber,
+        revertedItemsCount,
+      };
+    });
+  }
+
+  /**
+   * 4. تعديل فاتورة بيع مع إعادة مواءمة المخزون والسيريالات وحسابات العميل
+   */
+  public updateSaleInvoice(id: string, input: UpdateSaleInvoiceInput): any {
+    if (!input.items || input.items.length === 0) {
+      throw new Error('Invoice must contain at least one item.');
+    }
+
+    return this.db.transaction(() => {
+      const oldInvoice = this.getInvoiceById(id);
+      if (!oldInvoice) {
+        throw new Error(`Invoice not found: ${id}`);
+      }
+      if (oldInvoice.type !== 'sale') {
+        throw new Error('Only sales invoices can be modified.');
+      }
+
+      // 1. إعادة حالة المخزون والسيريالات القديمة
+      const oldItems = this.getInvoiceItems(id);
+      for (const oldItem of oldItems) {
+        if (oldItem.serialNumber) {
+          this.db.run(
+            `UPDATE product_serials
+             SET status = 'in_stock', invoice_id = NULL, sold_at = NULL
+             WHERE serial_number = ?`,
+            [oldItem.serialNumber]
+          );
+        }
+        this.productService.updateStockQuantity(oldItem.productId, oldItem.quantity);
+      }
+
+      // إلغاء تأثير الفاتورة القديمة على حساب العميل والمدفوعات
+      if (oldInvoice.contactId && oldInvoice.remainingAmount > 0) {
+        this.contactService.updateBalance(oldInvoice.contactId, -oldInvoice.remainingAmount);
+      }
+      this.db.run('DELETE FROM payments WHERE invoice_id = ?', [id]);
+      this.db.run('DELETE FROM invoice_items WHERE invoice_id = ?', [id]);
+
+      // 2. التحقق من البنود الجديدة وحساب المجموع
+      let subtotal = 0;
+      const validatedItems: {
+        product: any;
+        quantity: number;
+        unitPrice: number;
+        totalPrice: number;
+        serialNumber?: string;
+      }[] = [];
+
+      for (const item of input.items) {
+        const product = this.productService.getProductById(item.productId);
+        if (!product) throw new Error(`Product not found: ${item.productId}`);
+
+        if (product.hasSerial) {
+          if (!item.serialNumber) {
+            throw new Error(`Product [${product.name}] requires a Serial Number.`);
+          }
+          const serial = this.productService.getSerialByNumber(item.serialNumber);
+          if (!serial) {
+            throw new Error(`Serial Number [${item.serialNumber}] not registered.`);
+          }
+          if (serial.status !== 'in_stock' && serial.invoiceId !== id) {
+            throw new Error(`Serial Number [${item.serialNumber}] is not available (Status: ${serial.status}).`);
+          }
+        }
+
+        const totalPrice = item.quantity * item.unitPrice;
+        subtotal += totalPrice;
+
+        validatedItems.push({
+          product,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice,
+          serialNumber: item.serialNumber,
+        });
+      }
+
+      const discount = input.discountAmount || 0.0;
+      const taxableAmount = Math.max(0, subtotal - discount);
+      const vat14 = input.applyVat14 ? Number((taxableAmount * 0.14).toFixed(2)) : 0.0;
+      const finalAmount = Number((taxableAmount + vat14).toFixed(2));
+      const paid = input.paidAmount ?? finalAmount;
+      const remaining = Number((finalAmount - paid).toFixed(2));
+      const paymentMethod = input.paymentMethod || (remaining > 0 ? 'credit' : 'cash');
+      const contactId = input.contactId || null;
+
+      // 3. إدراج بنود الفاتورة المحدثة وتحديث المخزن والسيريالات
+      for (const item of validatedItems) {
+        const itemId = this.db.generateId();
+        this.db.run(
+          `INSERT INTO invoice_items (id, invoice_id, product_id, quantity, unit_price, total_price, serial_number)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [itemId, id, item.product.id, item.quantity, item.unitPrice, item.totalPrice, item.serialNumber || null]
+        );
+
+        if (item.serialNumber) {
+          this.db.run(
+            `UPDATE product_serials
+             SET status = 'sold', invoice_id = ?, sold_at = datetime('now')
+             WHERE serial_number = ?`,
+            [id, item.serialNumber]
+          );
+        }
+
+        this.productService.updateStockQuantity(item.product.id, -item.quantity);
+        const updatedProduct = this.productService.getProductById(item.product.id)!;
+
+        const movementId = this.db.generateId();
+        this.db.run(
+          `INSERT INTO stock_movements (id, product_id, type, quantity, balance_after, reference_id)
+           VALUES (?, ?, 'sale', ?, ?, ?)`,
+          [movementId, item.product.id, -item.quantity, updatedProduct.stockQuantity, id]
+        );
+      }
+
+      // 4. تحديث حساب العميل والمدفوعات
+      if (contactId) {
+        if (remaining > 0) {
+          this.contactService.updateBalance(contactId, remaining);
+        }
+        if (paid > 0) {
+          const paymentId = this.db.generateId();
+          this.db.run(
+            `INSERT INTO payments (id, contact_id, invoice_id, amount, type, method, notes)
+             VALUES (?, ?, ?, ?, 'receipt', ?, 'سداد فاتورة مبيعات معدلة')`,
+            [paymentId, contactId, id, paid, paymentMethod]
+          );
+        }
+      }
+
+      // 5. تحديث جدول الفواتير
+      this.db.run(
+        `UPDATE invoices SET
+          contact_id = ?,
+          payment_method = ?,
+          subtotal = ?,
+          discount_amount = ?,
+          tax_vat_14 = ?,
+          final_amount = ?,
+          paid_amount = ?,
+          remaining_amount = ?,
+          notes = ?,
+          synced_to_cloud = 0
+         WHERE id = ?`,
+        [
+          contactId,
+          paymentMethod,
+          subtotal,
+          discount,
+          vat14,
+          finalAmount,
+          paid,
+          remaining,
+          input.notes || null,
+          id,
+        ]
+      );
+
+      return this.getInvoiceFullDetails(id);
     });
   }
 

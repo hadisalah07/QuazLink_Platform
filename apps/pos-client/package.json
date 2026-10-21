@@ -1,6 +1,6 @@
 {
   "name": "quazlink-pos-client",
-  "version": "1.2.7",
+  "version": "1.3.6",
   "description": "QuazLink Enterprise POS & Retail Engine (Offline-First)",
   "private": true,
   "main": "dist/electron/main.js",
@@ -14,7 +14,8 @@
     "test:inventory": "tsx src/tests/test-phase3-inventory.ts",
     "test:synergy": "tsx src/tests/test-phase4-synergy.ts",
     "test:phase5": "tsx src/tests/test-phase5-licensing-sync.ts",
-    "test:all": "tsx src/tests/test-core-db.ts && tsx src/tests/test-printer-raster.ts && tsx src/tests/test-phase3-inventory.ts && tsx src/tests/test-phase4-synergy.ts && tsx src/tests/test-phase5-licensing-sync.ts",
+    "test:gdrive": "tsx src/tests/test-google-drive-service.ts",
+    "test:all": "tsx src/tests/test-core-db.ts && tsx src/tests/test-printer-raster.ts && tsx src/tests/test-phase3-inventory.ts && tsx src/tests/test-phase4-synergy.ts && tsx src/tests/test-phase5-licensing-sync.ts && tsx src/tests/test-google-drive-service.ts",
     "build": "tsc && node -e \"const fs = require('fs'); fs.mkdirSync('dist/database', {recursive:true}); fs.copyFileSync('src/database/schema.sql', 'dist/database/schema.sql'); if(fs.existsSync('src/database/engine')) fs.cpSync('src/database/engine', 'dist/database/engine', {recursive:true}); fs.cpSync('src/ui', 'dist/ui', {recursive:true}); if(fs.existsSync('src/assets')) fs.cpSync('src/assets', 'dist/assets', {recursive:true});\"",
     "dist:dir": "npm run build && electron-builder --win --dir",
     "dist:exe": "npm run build && electron-builder --win",
