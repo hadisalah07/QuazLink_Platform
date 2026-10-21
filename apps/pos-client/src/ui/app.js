@@ -669,6 +669,8 @@ function initKeyboardShortcuts() {
       const openModal = document.querySelector('.modal[style*="display: flex"], .modal[style*="display: block"]');
       if (openModal) {
         closeAllModals();
+      } else if (isZoomControlsOpen()) {
+        closeZoomControls();
       } else if (isAppFullscreen()) {
         exitAppFullscreen();
       } else {
@@ -748,6 +750,35 @@ function initKeyboardShortcuts() {
 // -------------------------------------------------------------
 let currentAppZoom = 1.0;
 
+function toggleZoomControls(event) {
+  if (event && typeof event.stopPropagation === 'function') {
+    event.stopPropagation();
+  }
+  const container = document.getElementById('zoomControlsHeader');
+  if (!container) return;
+  const isOpen = container.classList.toggle('is-open');
+  const toggleBtn = document.getElementById('btnZoomToggle');
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+}
+
+function closeZoomControls() {
+  const container = document.getElementById('zoomControlsHeader');
+  if (container && container.classList.contains('is-open')) {
+    container.classList.remove('is-open');
+    const toggleBtn = document.getElementById('btnZoomToggle');
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', 'false');
+    }
+  }
+}
+
+function isZoomControlsOpen() {
+  const container = document.getElementById('zoomControlsHeader');
+  return !!(container && container.classList.contains('is-open'));
+}
+
 function initZoomControls() {
   // Always clear any legacy inline zoom
   document.body.style.zoom = '';
@@ -757,6 +788,16 @@ function initZoomControls() {
   if (savedZoom && !isNaN(savedZoom)) {
     applyZoom(savedZoom, false);
   }
+
+  // Auto-close zoom controls when clicking anywhere outside
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('zoomControlsHeader');
+    if (container && container.classList.contains('is-open')) {
+      if (!container.contains(e.target)) {
+        closeZoomControls();
+      }
+    }
+  });
 
   // Sync zoom events from Electron Native accelerators
   if (window.electronAPI && typeof window.electronAPI.onZoomChanged === 'function') {
@@ -795,6 +836,12 @@ function applyZoom(factor, notify = true) {
 
   const zoomBadge = document.getElementById('headerZoomLevel');
   if (zoomBadge) zoomBadge.textContent = `${Math.round(currentAppZoom * 100)}%`;
+
+  const toggleBtn = document.getElementById('btnZoomToggle');
+  if (toggleBtn) {
+    const pct = Math.round(currentAppZoom * 100);
+    toggleBtn.title = `حجم الشاشة (${pct}%) - اضغط للضبط`;
+  }
 
   if (notify) {
     const pct = Math.round(currentAppZoom * 100);

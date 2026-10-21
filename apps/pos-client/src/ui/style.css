@@ -284,13 +284,124 @@ body {
   color: #34d399;
 }
 
-.zoom-lens-indicator {
-  transition: transform 0.2s ease, color 0.2s ease;
+/* ==========================================================================
+   Header Zoom Controls (Collapsible Icon Trigger -> Expandable Controls)
+   ========================================================================== */
+.zoom-controls-header {
+  display: inline-flex;
+  align-items: center;
+  height: 25px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
-.zoom-lens-indicator:hover {
-  transform: scale(1.18);
-  color: #38bdf8 !important;
+.zoom-controls-header:hover {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.zoom-controls-header.is-open {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+  padding: 0 3px;
+}
+
+.btn-zoom-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 23px;
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 5px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+  outline: none;
+}
+
+.btn-zoom-toggle:hover {
+  transform: scale(1.15);
+  color: #7dd3fc;
+}
+
+.zoom-controls-header.is-open .btn-zoom-toggle {
+  color: #38bdf8;
+}
+
+.zoom-controls-body {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.zoom-controls-header.is-open .zoom-controls-body {
+  max-width: 140px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.btn-zoom {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 5px;
+  height: 21px;
+  line-height: 21px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.btn-zoom:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  transform: scale(1.15);
+}
+
+.btn-zoom:active {
+  transform: scale(0.92);
+}
+
+#headerZoomLevel {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  cursor: pointer;
+  min-width: 36px;
+  text-align: center;
+  padding: 1px 3px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+#headerZoomLevel:hover {
+  background: rgba(56, 189, 248, 0.15);
+  text-decoration: underline;
 }
 
 /* ==========================================================================
@@ -2815,10 +2926,25 @@ body.theme-light .zoom-controls-header,
   background: #f8fafc !important;
   border: 1.5px solid #cbd5e1 !important;
 }
+body.theme-light .zoom-controls-header.is-open,
+[data-theme="light"] .zoom-controls-header.is-open {
+  background: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+body.theme-light .btn-zoom-toggle,
+[data-theme="light"] .btn-zoom-toggle {
+  color: #0284c7 !important;
+}
 body.theme-light .btn-zoom,
 [data-theme="light"] .btn-zoom {
   color: #0f172a !important;
   font-weight: 900 !important;
+}
+body.theme-light .btn-zoom:hover,
+[data-theme="light"] .btn-zoom:hover {
+  background: #e2e8f0 !important;
+  color: #0284c7 !important;
 }
 body.theme-light #headerZoomLevel,
 [data-theme="light"] #headerZoomLevel {
