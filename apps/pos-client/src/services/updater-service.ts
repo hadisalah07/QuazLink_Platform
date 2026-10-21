@@ -13,6 +13,8 @@ export interface PosUpdateCheckResult {
   releaseName: string;
   releaseNotes: string;
   downloadUrl: string;
+  patchUrl?: string;
+  patchSize?: number;
   assetSize: number;
   publishedAt: string;
   source?: 'platform' | 'github' | 'cached';
@@ -176,6 +178,11 @@ export class PosUpdaterService {
                 downloadUrl = `${this.platformUrl}${downloadUrl}`;
               }
 
+              let patchUrl = data.patchUrl || '';
+              if (patchUrl && patchUrl.startsWith('/')) {
+                patchUrl = `${this.platformUrl}${patchUrl}`;
+              }
+
               const hasUpdate = this.isNewerVersion(data.latestVersion, this.currentVersion);
 
               resolve({
@@ -185,6 +192,8 @@ export class PosUpdaterService {
                 releaseName: data.releaseName || `QuazLink POS v${data.latestVersion}`,
                 releaseNotes: data.releaseNotes || 'تحسينات جديدة على النظام من منصة QuazLink.',
                 downloadUrl,
+                patchUrl: patchUrl || undefined,
+                patchSize: data.patchSize || 0,
                 assetSize: data.assetSize || 0,
                 publishedAt: data.publishedAt || new Date().toISOString(),
                 source: 'platform',
@@ -379,19 +388,51 @@ export class PosUpdaterService {
           }
 
           console.log(`🚀 [PosUpdater] Spawning update installer with auto-relaunch: ${installerPath}`);
-          // Run installer with /S (Silent Mode) and --force-run for automatic post-install relaunch
+          const currentExe = process.execPath;
+          const setupBase = path.basename(installerPath, path.extname(installerPath));
+          const versionTag = this.cachedUpdate?.latestVersion ? `v${this.cachedUpdate.latestVersion}` : `v${this.currentVersion}`;
+
+          // 1. Launch Visual Luxury Splash Progress Window so customer never faces a blank screen
+          try {
+            const splashAsset = path.join(__dirname, '..', 'assets', 'update-splash.ps1');
+            const fallbackSplash = path.join(tempDir, 'update-splash.ps1');
+
+            let finalSplashPath = '';
+            if (fs.existsSync(splashAsset)) {
+              finalSplashPath = splashAsset;
+            } else if (fs.existsSync(fallbackSplash)) {
+              finalSplashPath = fallbackSplash;
+            }
+
+            if (finalSplashPath) {
+              const splash = spawn('powershell.exe', [
+                '-ExecutionPolicy', 'Bypass',
+                '-NoProfile',
+                '-File', finalSplashPath,
+                '-SetupProcessName', setupBase,
+                '-TargetExe', currentExe || '',
+                '-Version', versionTag
+              ], {
+                detached: true,
+                stdio: 'ignore',
+              });
+              splash.unref();
+            }
+          } catch (e) {
+            console.warn('⚠️ [PosUpdater] Could not launch visual splash:', e);
+          }
+
+          // 2. Run installer in silent mode with auto-relaunch
           const child = spawn(installerPath, ['/S', '--force-run'], {
             detached: true,
             stdio: 'ignore',
           });
           child.unref();
 
-          // Dual-layer watchdog: Guarantees the application relaunches even if Windows session policies suppress NSIS ExecShell
+          // 3. Dual-layer watchdog: Guarantees application relaunches even if Windows session policies suppress NSIS ExecShell
           try {
-            const currentExe = process.execPath;
             if (currentExe && fs.existsSync(currentExe)) {
-              const setupBase = path.basename(installerPath, path.extname(installerPath));
-              const fallbackCmd = `Start-Sleep -Seconds 5; Wait-Process -Name "${setupBase}" -Timeout 60 -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; if (-not (Get-Process -Name "QuazLink POS*" -ErrorAction SilentlyContinue)) { Start-Process -FilePath "${currentExe}" }`;
+              const fallbackCmd = `Start-Sleep -Seconds 5; Wait-Process -Name "${setupBase}" -Timeout 90 -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2; if (-not (Get-Process -Name "QuazLink POS*" -ErrorAction SilentlyContinue)) { Start-Process -FilePath "${currentExe}" }`;
               const watchdog = spawn('powershell.exe', ['-WindowStyle', 'Hidden', '-NoProfile', '-Command', fallbackCmd], {
                 detached: true,
                 stdio: 'ignore',
@@ -404,10 +445,90 @@ export class PosUpdaterService {
 
           // Exit current POS process so the installer can replace files cleanly
           setTimeout(() => process.exit(0), 1000);
-        }, 1500);
+        }, 1200);
       }
 
       return installerPath;
+    } catch (err: any) {
+      this.isDownloading = false;
+      throw err;
+    }
+  }
+
+  /**
+   * Fast In-Place Code/UI Update (التحديث السريع في ثانيتين)
+   * Downloads lightweight patch bundle (~1.5MB) and extracts it directly into the app directory,
+   * then relaunches the application in 2-3 seconds without full NSIS reinstall.
+   */
+  public async applyFastPatch(
+    patchUrl?: string,
+    onProgress?: UpdateProgressCallback,
+    onBeforeExit?: () => Promise<void> | void
+  ): Promise<boolean> {
+    if (this.isDownloading) {
+      throw new Error('عملية تحميل التحديث جارية بالفعل في الخلفية.');
+    }
+
+    const url = patchUrl || this.cachedUpdate?.patchUrl;
+    if (!url) {
+      throw new Error('لم يتم العثور على حزمة تحديث سريع (Fast Patch).');
+    }
+
+    this.isDownloading = true;
+    this.downloadProgress = { percent: 0, downloadedMB: '0', totalMB: '0' };
+
+    try {
+      const tempDir = path.join(os.tmpdir(), 'quazlink-pos-update');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+
+      const patchZip = path.join(tempDir, 'quazlink-patch.zip');
+      if (fs.existsSync(patchZip)) {
+        try { fs.unlinkSync(patchZip); } catch {}
+      }
+
+      await this.downloadWithRedirects(url, patchZip, (percent, dlMB, totMB) => {
+        this.downloadProgress = { percent, downloadedMB: dlMB, totalMB: totMB };
+        onProgress?.(percent, dlMB, totMB);
+      });
+
+      this.isDownloading = false;
+
+      // Determine target app root directory
+      let targetAppDir = '';
+      const resourcesPath = (process as any).resourcesPath;
+      if (resourcesPath && typeof resourcesPath === 'string') {
+        const candidate = path.join(resourcesPath, 'app');
+        if (fs.existsSync(candidate)) {
+          targetAppDir = candidate;
+        }
+      }
+      if (!targetAppDir) {
+        targetAppDir = path.resolve(__dirname, '..', '..');
+      }
+
+      console.log(`⚡ [PosUpdater] Fast patch downloaded, extracting to: ${targetAppDir}`);
+
+      if (process.platform === 'win32') {
+        if (onBeforeExit) {
+          try { await onBeforeExit(); } catch {}
+        }
+
+        const currentExe = process.execPath;
+        const extractCmd = `Expand-Archive -Path "${patchZip}" -DestinationPath "${targetAppDir}" -Force; Start-Sleep -Milliseconds 600; if (Test-Path "${currentExe}") { Start-Process -FilePath "${currentExe}" }`;
+
+        const helper = spawn('powershell.exe', ['-WindowStyle', 'Hidden', '-NoProfile', '-Command', extractCmd], {
+          detached: true,
+          stdio: 'ignore',
+        });
+        helper.unref();
+
+        setTimeout(() => process.exit(0), 400);
+        return true;
+      } else {
+        throw new Error('Fast patch extraction is currently supported on Windows.');
+      }
     } catch (err: any) {
       this.isDownloading = false;
       throw err;

@@ -5255,9 +5255,20 @@ function renderUpdateCard(data) {
           </div>
         </div>
 
+        ${data.patchUrl ? `
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button type="button" class="btn-checkout primary" style="width: auto; padding: 12px 22px; font-weight: 800; font-size: 0.95rem; background: linear-gradient(135deg, #10b981, #06b6d4); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);" onclick="startFastPatchUpdate()">
+            ⚡ تحديث فوري سريع (ثانيتين فقط)
+          </button>
+          <button type="button" class="btn-secondary" style="width: auto; padding: 10px 18px; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" onclick="startUpdateDownload()">
+            📦 تثبيت الحزمة الكاملة (Full Setup)
+          </button>
+        </div>
+        ` : `
         <button type="button" class="btn-checkout primary" style="width: auto; padding: 12px 26px; font-weight: 800; font-size: 0.95rem; background: linear-gradient(135deg, #10b981, #06b6d4);" onclick="startUpdateDownload()">
           ⚡ تحميل وتثبيت التحديث الآن
         </button>
+        `}
       </div>
     `;
   } else {
@@ -5270,6 +5281,41 @@ function renderUpdateCard(data) {
         </div>
       </div>
     `;
+  }
+}
+
+async function startFastPatchUpdate() {
+  const statusCard = document.getElementById('updateStatusCard');
+  const progCard = document.getElementById('updateProgressCard');
+  const progStats = document.getElementById('updateProgressStats');
+  const progBar = document.getElementById('updateProgressBar');
+
+  if (statusCard) statusCard.style.display = 'none';
+  if (progCard) progCard.style.display = 'block';
+
+  showToast('⚡ جاري تطبيق التحديث السريع وإعادة التشغيل في ثانيتين...', 'info');
+
+  try {
+    const res = await fetch('/api/update/fast-patch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patchUrl: cachedUpdateInfo?.patchUrl || '' }),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      if (progBar) progBar.style.width = '100%';
+      if (progStats) progStats.textContent = '100% (اكتمل التحديث السريع بنجاح)';
+      showToast('✅ تم تطبيق التحديث في ثانيتين! جاري تشغيل البرنامج...', 'success');
+    } else {
+      showToast('خطأ: ' + (data.error || 'تعذر تطبيق التحديث السريع'), 'error');
+      if (statusCard) statusCard.style.display = 'block';
+      if (progCard) progCard.style.display = 'none';
+    }
+  } catch (err) {
+    showToast('تعذر تطبيق التحديث السريع', 'error');
+    if (statusCard) statusCard.style.display = 'block';
+    if (progCard) progCard.style.display = 'none';
   }
 }
 
@@ -5314,7 +5360,7 @@ async function startUpdateDownload() {
           if (pct >= 100 || !sData.isDownloading) {
             clearInterval(updateDownloadPollInterval);
             if (progStats) progStats.textContent = '100% (اكتمل التنزيل)';
-            showToast('✅ اكتمل تنزيل التحديث! جاري فتح المثبت وإعادة تشغيل البرنامج...', 'success');
+            showToast('✅ اكتمل التنزيل! جاري فتح شاشة التثبيت التفاعلية وإعادة تشغيل البرنامج...', 'success');
           }
         }
       } catch (pollErr) {

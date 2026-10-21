@@ -1001,6 +1001,26 @@ export class PosServer {
       return;
     }
 
+    // 45. POST /api/update/fast-patch (بدء التحديث السريع اللحظي في ثانيتين)
+    if (pathname === '/api/update/fast-patch' && req.method === 'POST') {
+      try {
+        const body = await this.readBody(req);
+        this.updaterService
+          .applyFastPatch(body.patchUrl, undefined, async () => {
+            await this.stop();
+          })
+          .catch((e) => console.error('[PosUpdater FastPatch Error]:', e));
+
+        this.sendJson(res, {
+          success: true,
+          message: 'بدأ تطبيق التحديث السريع اللحظي، سيتم إعادة التشغيل خلال ثانيتين.',
+        });
+      } catch (err: any) {
+        this.sendJson(res, { success: false, error: err.message }, 500);
+      }
+      return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: false, error: 'Endpoint Not Found' }));
 
