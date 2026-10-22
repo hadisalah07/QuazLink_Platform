@@ -1122,3 +1122,88 @@
 - **الترقية الرسمية إلى الإصدار الموحد `v1.2.9`:**
   - بناء وتغليف نسختي التثبيت والنسخ المحمولة بالكامل لنظامي Windows 10/11 x64 و Windows 7/8/POSReady ia32.
   - نشر وتحديث نقاط النهاية السحابية للتحقق التلقائي من التحديثات بنقرة واحدة.
+
+---
+
+## 📅 [22 أكتوبر 2026] - إطلاق تحديث QuazLink POS & ERP v1.3.7 وتطوير تحكم الزوم الذكي (Collapsible Zoom Control) والنشر السحابي الكامل
+
+### 1. تحليل المتطلبات والهدف من التحديث (User Request & Architecture Goals):
+- **إعادة تصميم واجهة التحكم في نسبة التكبير (Zoom Lens Redesign):**
+  - طلب المستخدم توفير مساحة شريط الكاشير العلوي بحيث تظهر أيقونة العدسة 🔍 فقط بشكل افتراضي بدلاً من إظهار أزرار التحكم والنسبة المئوية (`- 100% +`) بصورة دائمة.
+  - عند النقر على أيقونة العدسة، تنفتح لوحة التحكم بنعومة لتتيح زيادة وخفض نسبة العرض وإعادة الضبط إلى 100%.
+  - تطبيق سلوك الإغلاق التلقائي الذكي (Auto-Collapse): إغلاق اللوحة فوراً عند النقر في أي مساحة خارجها في الواجهة أو عند الضغط على زر `Escape`.
+- **نشر التحديث لجميع المستخدمين والعملاء (Universal Cloud Release):**
+  - تفعيل التحديث كإصدار رسمي معتمد `v1.3.7` عبر نظام التحديث التلقائي السحابي المدمج (In-App Auto-Updater Engine).
+  - بناء وتوقيع حزم التثبيت والنسخ المحمولة بالكامل ورفعها لسيرفرات التحميل المباشرة.
+  - تحديث حاويات الإنتاج في Coolify (`web` و `api`) والتأكد من إشعار جميع أجهزة العملاء فور تشغيلها.
+
+### 2. التعديلات الهندسية في واجهة العميل (POS Client Frontend & Interaction):
+- **تحديث متحكمات الواجهة في `apps/pos-client/src/ui/app.js`:**
+  - إضافة دالة `toggleZoomPopover(event)` للتبديل السلس لكلاس `.open` في حاوية الزوم.
+  - إضافة مستمعات للأحداث العامة على مستوى `document`:
+    - `document.addEventListener('click', ...)`: التحقق من النقر خارج عنصر `.zoom-popover-container` وإغلاقه فوراً.
+    - `document.addEventListener('keydown', ...)`: الاستجابة لزر `Escape` وإغلاق اللوحة التفاعلية.
+  - استخدام `e.stopPropagation()` على أزرار التكبير والتصغير لمنع إغلاق القائمة أثناء تفاعل المستخدم معها.
+- **إعادة هيكلة شريط الكاشير في `apps/pos-client/src/ui/index.html`:**
+  - تحويل شريط الزوم المفتوح إلى مكون أكورديون تفاعلي مغلق افتراضياً يحمل كلاس `zoom-popover-container` مع زر أيقونة `zoom-toggle-btn`.
+- **تصميم الزوم القابل للطي في `apps/pos-client/src/ui/style.css`:**
+  - استخدام أسلوب الزجاج الشفاف العصري (Glassmorphism): `rgba(30, 41, 59, 0.7)` مع `backdrop-filter: blur(12px)`.
+  - تحريك شريط التحكم الداخلي عبر `max-width` (من `0px` إلى `220px`) و `opacity` وتأثير انتقالي مرن `cubic-bezier(0.4, 0, 0.2, 1) 0.25s` لمنع أي تشوه أو قفزات بصرية في شريط الهيدر.
+
+### 3. ترقية منظومة الإصدارات والتوافق (Full Multi-Project Version Bump):
+- ترقية إصدار تطبيق الكاشير في `apps/pos-client/package.json` من `1.3.6` إلى `1.3.7`.
+- تحديث رقم الإصدار ورسائل التحديث في `apps/pos-client/src/services/updater-service.ts` و `licensing-service.ts`.
+- تحديث سكريبت سبلاش التحديث السريع `update-splash.ps1`.
+- ترقية وتوحيد شارات الإصدار وملاحظات الإصدار في [index.html](file:///d:/QuazLink_Platform/apps/pos-client/src/ui/index.html).
+- تحديث محركات التحديث في خادم الـ API عبر [pos.ts](file:///d:/QuazLink_Platform/apps/api/src/routes/pos.ts) و [downloads.ts](file:///d:/QuazLink_Platform/apps/api/src/routes/downloads.ts).
+- تحديث مسار التحقق السحابي في منصة الويب [route.ts](file:///d:/QuazLink_Platform/apps/web/src/app/api/pos/updates/route.ts) و [page.tsx](file:///d:/QuazLink_Platform/apps/web/src/app/pos/page.tsx) وملف الترجمة `translations.ts` وقائمة الأسعار `PRICING_LIST.md`.
+
+### 4. بناء الحزم التنفيذية والتوزيع الرسمي (Release Builds):
+- تنفيذ أمر التجميع والتحزيم النهائي لتطبيق سطح المكتب: `npm run dist:exe` داخل `apps/pos-client`.
+- إنتاج وتوقيع الملفات التنفيذية الرسمية بنجاح 100%:
+  - `QuazLink-POS-Setup.exe` (v1.3.7 - الحجم: `74,253,442` بايت / `70.81` ميجابايت).
+  - `QuazLink-POS-Portable.zip` (v1.3.7 - الحجم: `73,919,523` بايت / `70.49` ميجابايت).
+  - `QuazLink-POS-Portable.exe` (الحجم: `73,886,179` بايت).
+- تنظيف المخلفات البرمجية المؤقتة للحفاظ على سعة التخزين على القرص الصلب.
+
+### 5. حل مشكلات البناء السحابي الصارم (Turbopack Strict Tracing Fixes):
+- **إزالة استدعاءات نظام الملفات الديناميكية (`fs.statSync`, `path.join`)** من مسار التحقق `apps/web/src/app/api/pos/updates/route.ts` والتي كانت تسبب تحذيرات استقصاء صارمة توقف بناء Turbopack على الخادم، واستبدالها بالثوابت الحجمية الدقيقة.
+- **حل خطأ TypeScript TS1117 (Duplicate Object Keys):** إزالة تكرار المفاتيح داخل كائن الـ CDN المخصص بملف `apps/web/src/app/downloads/[filename]/route.ts` لضمان نظافة واجتياز مرحلة تدقيق الأنواع بنسبة 100%.
+
+### 6. الرفع والنشر السحابي الكامل (Production SFTP & Docker Pipeline):
+- **الرفع إلى خادم الإنتاج السحابي (`164.68.115.239`):**
+  - رفع نسختي الإعداد والنسخ المحمولة بالكامل عبر قنوات SFTP المشفرة إلى الدليل الحي `/data/downloads/`.
+  - إنشاء الروابط الرمزية والمطابقات التلقائية (`QuazLink-POS-Setup.exe` و `QuazLink-POS-Setup-v1.3.7.exe`).
+- **تحديث مستودع السيرفر:** إنشاء حزمة Git Bundle محلية مشفرة وسحبها وتطبيقها بسلاسة داخل `/data/quazlink-repo`.
+- **إعادة بناء وتشغيل الحاويات في Coolify:**
+  - إعادة بناء حاوية الباك إند: `n7serqao6hoykbzgragyiiif-api` (اكتمل بناء TypeScript في 9 ثوانٍ).
+  - إعادة بناء حاوية الويب: `n7serqao6hoykbzgragyiiif-web` (اكتمل بناء Turbopack وإنتاج 19 صفحة ثابتة بنجاح في 44.5 ثانية).
+  - إعادة تشغيل الحاويات واستقرار حالتها الصحية:
+    - `web-n7serqao6hoykbzgragyiiif` (Up on 3000).
+    - `api-n7serqao6hoykbzgragyiiif` (Up on 3001).
+    - `postgres` & `redis` (Healthy).
+
+### 7. الفحص المخبري وتأكيد جهوزية التحديث الحي (Production Verification):
+- **فحص استجابة محرك التحديثات السحابي عبر الإنترنت:**
+  ```bash
+  curl -s "https://app.quazlink.site/api/pos/updates?currentVersion=1.3.6"
+  ```
+  - **النتيجة الحية:**
+    ```json
+    {
+      "success": true,
+      "hasUpdate": true,
+      "currentVersion": "1.3.6",
+      "latestVersion": "1.3.7",
+      "releaseName": "QuazLink POS & ERP v1.3.7 (إصلاحات وتحسينات عامة، نظام الإشعارات الفوري، ووضع الشاشة الكاملة)",
+      "downloadUrl": "/downloads/QuazLink-POS-Setup.exe?v=1.3.7&t=1792627200000",
+      "assetSize": 74253442
+    }
+    ```
+- **فحص استجابة خادم التحميل المباشر:**
+  ```bash
+  curl -I "https://app.quazlink.site/downloads/QuazLink-POS-Setup.exe"
+  ```
+  - **النتيجة الحية:** استجابة فورية `HTTP/1.1 200 OK` بحجم `74253442` بايت مع `cf-cache-status: BYPASS` لضمان سحب الملف الجديد مباشرة دون كاش قديم.
+- **النتيجة النهائية:** وصول التحديث فوري وتلقائي بنسبة 100% لكافة العملاء والمستخدمين بمجرد تشغيل تطبيق نقطة البيع أو طلب التحقق من التحديثات.
+
