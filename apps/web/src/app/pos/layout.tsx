@@ -65,6 +65,12 @@ export default function PosLayout({
             <a href="#features" className="hover:text-emerald-400 transition-colors">
               {isAr ? "المميزات" : "Features"}
             </a>
+            <Link href="/pricing" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 font-semibold text-emerald-300">
+              <span>{isAr ? "الأسعار والباقات" : "Pricing"}</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                {isAr ? "جديد" : "New"}
+              </span>
+            </Link>
             <a href="#downloads" className="hover:text-emerald-400 transition-colors">
               {isAr ? "التحميل المباشر" : "Downloads"}
             </a>
@@ -133,6 +139,7 @@ export default function PosLayout({
                 {isAr ? "روابط سريعة" : "Quick Links"}
               </h4>
               <ul className="space-y-2 text-xs text-gray-400">
+                <li><Link href="/pricing" className="text-emerald-400 font-medium hover:underline flex items-center gap-1"><span>{isAr ? "💎 قائمة الأسعار والباقات الرسمية" : "💎 Official Pricing & Plans"}</span></Link></li>
                 <li><a href="#downloads" className="hover:text-emerald-400 transition-colors">{isAr ? "تحميل النسخة التنفيذية (.exe)" : "Download Installer (.exe)"}</a></li>
                 <li><a href="#downloads" className="hover:text-emerald-400 transition-colors">{isAr ? "تحميل النسخة المحمولة (.zip)" : "Download Portable (.zip)"}</a></li>
                 <li><a href="#activation" className="hover:text-emerald-400 transition-colors">{isAr ? "تفعيل ترخيص الجهاز الفوري" : "Instant License Activation"}</a></li>

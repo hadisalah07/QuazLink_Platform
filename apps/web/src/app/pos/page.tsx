@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Download,
@@ -173,6 +174,14 @@ export default function PosPortalPage() {
             <Key className="w-5 h-5 text-emerald-400" />
             <span>{t.posHeroActivateBtn}</span>
           </a>
+
+          <Link
+            href="/pricing"
+            className="flex items-center gap-2 px-7 py-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-emerald-300 font-semibold text-base border border-emerald-500/40 shadow-lg shadow-emerald-500/10 transition-all transform hover:-translate-y-0.5"
+          >
+            <Sparkles className="w-5 h-5 text-emerald-400" />
+            <span>{isAr ? "💎 الأسعار والباقات" : "💎 Pricing & Plans"}</span>
+          </Link>
 
           <a
             href="#features"
