@@ -25,7 +25,7 @@ export type UpdateProgressCallback = (percent: number, downloadedMB: string, tot
 const GITHUB_REPO_OWNER = 'hadisalah07';
 const GITHUB_REPO_NAME = 'QuazLink_Platform';
 const POS_ASSET_NAME = 'QuazLink-POS-Setup.exe';
-export const CURRENT_VERSION = '1.3.6';
+export const CURRENT_VERSION = '1.3.7';
 
 export class PosUpdaterService {
   private currentVersion: string = CURRENT_VERSION;

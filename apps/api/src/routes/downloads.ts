@@ -47,19 +47,19 @@ router.get('/info', (_req, res) => {
   res.json({
     posClient: {
       name: 'QuazLink POS & Retail Engine (Modern Edition)',
-      version: '1.3.6',
+      version: '1.3.7',
       description: 'نظام الكاشير ونقاط البيع وإدارة المخازن والفواتير (يعمل بدون إنترنت Offline-First)',
       recommended: true,
       installer: {
-        filename: 'QuazLink-POS-Setup-v1.3.6.exe',
-        downloadUrl: '/downloads/QuazLink-POS-Setup-v1.3.6.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Setup-v1.3.6.exe',
+        filename: 'QuazLink-POS-Setup-v1.3.7.exe',
+        downloadUrl: '/downloads/QuazLink-POS-Setup-v1.3.7.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Setup-v1.3.7.exe',
         ...posInstallerInfo,
       },
       portable: {
-        filename: 'QuazLink-POS-Portable-v1.3.6.zip',
-        downloadUrl: '/downloads/QuazLink-POS-Portable-v1.3.6.zip',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Portable-v1.3.6.zip',
+        filename: 'QuazLink-POS-Portable-v1.3.7.zip',
+        downloadUrl: '/downloads/QuazLink-POS-Portable-v1.3.7.zip',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Portable-v1.3.7.zip',
         ...posPortableInfo,
       },
       requirements: {
@@ -71,20 +71,20 @@ router.get('/info', (_req, res) => {
     },
     posLegacyClient: {
       name: 'QuazLink POS & Retail Engine (Legacy Win7 Edition)',
-      version: '1.3.6',
+      version: '1.3.7',
       description: 'نسخة مخصصة لأجهزة الكاشير ونقاط البيع القديمة والشاشات اللمسية التي تعمل بأنظمة Windows 7 / POSReady 7',
       recommended: false,
       isLegacy: true,
       installer: {
-        filename: 'QuazLink-POS-Legacy-Win7-Setup-v1.3.6.exe',
-        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.3.6.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup-v1.3.6.exe',
+        filename: 'QuazLink-POS-Legacy-Win7-Setup-v1.3.7.exe',
+        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.3.7.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Setup-v1.3.7.exe',
         ...posLegacySetupInfo,
       },
       portable: {
-        filename: 'QuazLink-POS-Legacy-Win7-Portable-v1.3.6.zip',
-        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.3.6.zip',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable-v1.3.6.zip',
+        filename: 'QuazLink-POS-Legacy-Win7-Portable-v1.3.7.zip',
+        downloadUrl: '/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.3.7.zip',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-POS-Legacy-Win7-Portable-v1.3.7.zip',
         ...posLegacyPortableInfo,
       },
       requirements: {
@@ -113,6 +113,7 @@ router.get('/info', (_req, res) => {
 router.get('/file/:filename', (req, res) => {
   const allowedFiles = [
     'QuazLink-POS-Setup.exe',
+    'QuazLink-POS-Setup-v1.3.7.exe',
     'QuazLink-POS-Setup-v1.3.6.exe',
     'QuazLink-POS-Setup-v1.3.5.exe',
     'QuazLink-POS-Setup-v1.3.4.exe',
@@ -131,6 +132,7 @@ router.get('/file/:filename', (req, res) => {
     'QuazLink-POS-Setup-v1.1.0.exe',
     'QuazLink-POS-Portable.exe',
     'QuazLink-POS-Portable.zip',
+    'QuazLink-POS-Portable-v1.3.7.zip',
     'QuazLink-POS-Portable-v1.3.6.zip',
     'QuazLink-POS-Portable-v1.3.5.zip',
     'QuazLink-POS-Portable-v1.3.4.zip',
@@ -148,6 +150,7 @@ router.get('/file/:filename', (req, res) => {
     'QuazLink-POS-Portable-v1.2.0.zip',
     'QuazLink-POS-Portable-v1.1.0.zip',
     'QuazLink-POS-Legacy-Win7-Setup.exe',
+    'QuazLink-POS-Legacy-Win7-Setup-v1.3.7.exe',
     'QuazLink-POS-Legacy-Win7-Setup-v1.3.6.exe',
     'QuazLink-POS-Legacy-Win7-Setup-v1.3.5.exe',
     'QuazLink-POS-Legacy-Win7-Setup-v1.3.4.exe',
@@ -166,6 +169,7 @@ router.get('/file/:filename', (req, res) => {
     'QuazLink-POS-Legacy-Win7-Setup-v1.1.0.exe',
     'QuazLink-POS-Legacy-Win7-Portable.exe',
     'QuazLink-POS-Legacy-Win7-Portable.zip',
+    'QuazLink-POS-Legacy-Win7-Portable-v1.3.7.zip',
     'QuazLink-POS-Legacy-Win7-Portable-v1.3.6.zip',
     'QuazLink-POS-Legacy-Win7-Portable-v1.3.5.zip',
     'QuazLink-POS-Legacy-Win7-Portable-v1.3.4.zip',

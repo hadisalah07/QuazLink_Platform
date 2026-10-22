@@ -7,15 +7,14 @@ const router = Router();
 
 const SECRET_SALT = 'QUAZLINK_ENTERPRISE_ERP_CORE_SALT_2026';
 
-export const POS_LATEST_VERSION = '1.3.6';
+export const POS_LATEST_VERSION = '1.3.7';
 export const POS_RELEASE_DATE = '2026-10-22';
-export const POS_RELEASE_NOTES = `• إصلاحات عامة وتحسينات شاملة في الأداء (Bug Fixes & System Improvements):
-• نظام الإشعارات الذكي الفوري (Single Overwrite Toast Engine): منع تراكم ورص رسائل الإشعارات رأسياً واستبدال الرسائل في نفس المكان فوراً مع أنيميشن تفاعلي سلس وحذف الأيقونات المكررة.
-• وضع الشاشة الكاملة (Full-Screen Mode): إضافة زر التكبير السريع (⛶) في شريط الكاشير العلوي مع دعم كامل للخروج السريع عبر زر ESC أو اختصار Ctrl + Q.
-• مؤشر عدسة التكبير الذكي (Zoom Lens Indicator): تمييز نسبة التكبير البصرية في الهيدر لسهولة القراءة والتحكم.
-• تحديث رقم التواصل والتفعيل المعتمد لخدمة العملاء والمبيعات: 01019078440.
-• حماية التجربة المجانية الصارمة (30-Day Anti-Tamper Trial) وحوكمة بصمة العتاد الدائمة (Motherboard HWID).
-• التوافق المزدوج بنسبة 100% مع أنظمة Windows 7 / 8 / POSReady وأنظمة Windows 10 / 11 Modern.`;
+export const POS_RELEASE_NOTES = `• تحديثات الواجهة وتجربة المستخدم الممتازة (UI & UX Improvements):
+• أيقونة زوم ذكية وقابلة للطي والتمدد (Collapsible Zoom Control): الأيقونة فقط تظهر في الهيدر العلوي لتوفير المساحة وتفتح بسلاسة عند الضغط عليها للتحكم بنسبة التكبير (+ 100% -).
+• إغلاق تلقائي ذكي لعناصر التحكم في الزوم عند الضغط خارجها أو عند الضغط على زر ESC.
+• نظام الإشعارات الفوري الذكي (Single Overwrite Toast Engine) لمنع تراكم الرسائل.
+• وضع ملء الشاشة الفوري (Full-Screen Mode) المخصص لشاشات اللمس ونقاط البيع.
+• إصلاحات عامة وتحسينات شاملة في سرعة واستقرار النظام.`;
 
 /**
  * Smart lookup to find an existing POS Terminal by Motherboard UUID, Hardware ID, or Hostname+Username,
