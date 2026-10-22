@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs";
-import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
@@ -29,29 +27,9 @@ export async function GET(request: Request) {
   const setupFilename = isLegacyWin ? "QuazLink-POS-Legacy-Win7-Setup.exe" : "QuazLink-POS-Setup.exe";
   const portableFilename = isLegacyWin ? "QuazLink-POS-Legacy-Win7-Portable.exe" : "QuazLink-POS-Portable.zip";
 
-  // Determine file sizes from public/downloads or /data/downloads if present
-  let setupFileSize = isLegacyWin ? 73978596 : 74217038;
-  let portableFileSize = isLegacyWin ? 73640936 : 73886179;
-
-  try {
-    const candidateDirs = [
-      path.join("/data/downloads"),
-      path.join(process.cwd(), "public", "downloads"),
-      path.join(process.cwd(), "apps", "web", "public", "downloads"),
-    ];
-
-    for (const dir of candidateDirs) {
-      const sPath = path.join(dir, setupFilename);
-      const pPath = path.join(dir, portableFilename);
-      if (fs.existsSync(sPath)) {
-        setupFileSize = fs.statSync(sPath).size;
-        break;
-      }
-      if (fs.existsSync(pPath)) {
-        portableFileSize = fs.statSync(pPath).size;
-      }
-    }
-  } catch {}
+  // Exact verified binary file sizes (bytes)
+  const setupFileSize = isLegacyWin ? 73978596 : 74253442;
+  const portableFileSize = isLegacyWin ? 73640936 : 73919523;
 
   // Compare versions
   const isNewer = compareVersions(POS_LATEST_VERSION, clientVersion) > 0;
