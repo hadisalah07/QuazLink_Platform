@@ -26,7 +26,8 @@ import {
   Clock,
   Laptop,
   CheckCircle2,
-  X
+  X,
+  Menu
 } from "lucide-react";
 import { StarField } from "@/components/effects/StarField";
 import { useLanguage } from "@/context/LanguageContext";
@@ -34,8 +35,11 @@ import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
 
 export default function PricingPage() {
   const { lang, isAr } = useLanguage();
-  const [billingCycle, setBillingCycle] = React.useState<"lifetime" | "annual">("lifetime");
   const [activeFaq, setActiveFaq] = React.useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+
+  // Toggle for hardware bundles section (hidden temporarily until inventory is ready)
+  const SHOW_HARDWARE_BUNDLES = false;
 
   const salesPhone = "01019078440";
   const whatsappUrl = (text: string) =>
@@ -51,7 +55,7 @@ export default function PricingPage() {
     {
       qAr: "ماذا يحدث إذا احترق الهارد ديسك أو قمت بتغيير جهاز الكمبيوتر؟",
       qEn: "What happens if my hard drive crashes or I replace my computer?",
-      aAr: "بياناتك بأمان تام بفضل النسخ الاحتياطي التلقائي المشفر إلى حسابك في Google Drive. كما يتيح لك الدعم الفني إعادة توليد ترخيص جهازك الجديد ونقل بياناتك بسهولة ودون أي رسوم إضافية.",
+      aAr: "بياناتك بأمان تام بفضل النسخ الاحتياطي التلقائي المشفر إلى حسابك في Google Drive. كما يتيح لك الدعم الفني إعادة ربط ترخيص جهازك الجديد ونقل بياناتك بسهولة ودون أي رسوم إضافية.",
       aEn: "Your data is completely safe thanks to automatic encrypted backups to your own Google Drive. Our support team will re-link your license to your new device smoothly at no extra cost."
     },
     {
@@ -63,8 +67,8 @@ export default function PricingPage() {
     {
       qAr: "ما هي طرق الدفع المتاحة لتفعيل التراخيص؟",
       qEn: "What payment methods are supported for license activation?",
-      aAr: "نوفر جميع وسائل الدفع المريحة داخل مصر: إنستاباي (InstaPay)، فودافون كاش، التحويل البنكي المباشر، والدفع النقدي مع المندوب الميداني عند تركيب الأجهزة.",
-      aEn: "We support all convenient Egyptian payment methods: InstaPay, Vodafone Cash, direct bank transfer, and cash upon delivery when installing hardware bundles."
+      aAr: "نوفر جميع وسائل الدفع المريحة داخل مصر: إنستاباي (InstaPay)، فودافون كاش، والتحويل البنكي المباشر مع تفعيل فوري خلال دقائق.",
+      aEn: "We support all convenient Egyptian payment methods: InstaPay, Vodafone Cash, and direct bank transfer with instant activation."
     },
     {
       qAr: "هل أستطيع تجربة البرنامج قبل دفع أي مبالغ مالية؟",
@@ -89,61 +93,64 @@ export default function PricingPage() {
         }}
       />
 
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full bg-[#070A12]/95 backdrop-blur-md border-b border-emerald-500/15">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/pos" className="flex items-center gap-3 group">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 p-0.5 shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-shadow">
-              <div className="w-full h-full bg-[#0B101D] rounded-[14px] flex items-center justify-center">
-                <Store className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" />
+      {/* Sleek, Professional, Proportional Header */}
+      <header className="sticky top-0 z-50 w-full bg-[#070A12]/90 backdrop-blur-xl border-b border-white/[0.08]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          
+          {/* Logo & Brand */}
+          <Link href="/pos" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 p-0.5 shadow-md shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-shadow">
+              <div className="w-full h-full bg-[#0B101D] rounded-[10px] flex items-center justify-center">
+                <Store className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
               </div>
             </div>
-            <div className={`flex flex-col ${isAr ? "text-right" : "text-left"}`}>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-gray-100 to-emerald-200 bg-clip-text text-transparent">
-                  QuazLink POS
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {isAr ? "قائمة الأسعار" : "Pricing"}
-                </span>
-              </div>
-              <span className="text-xs text-gray-400 font-medium">
-                {isAr ? "خطط وتراخيص نقاط البيع والمحلات" : "Retail Plans & Licenses"}
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-base tracking-tight bg-gradient-to-r from-white via-gray-100 to-emerald-200 bg-clip-text text-transparent">
+                QuazLink POS
+              </span>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                {isAr ? "الأسعار" : "Pricing"}
               </span>
             </div>
           </Link>
 
-          {/* Quick Nav */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
+          {/* Centered Desktop Navigation (Clean, Single Line, No Wrapping) */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium text-gray-300 whitespace-nowrap">
             <Link href="/pos" className="hover:text-emerald-400 transition-colors">
               {isAr ? "بوابة الكاشير" : "POS Portal"}
             </Link>
-            <Link href="/pos#downloads" className="hover:text-emerald-400 transition-colors">
-              {isAr ? "تحميل النسخة التجريبية" : "Free Trial"}
-            </Link>
-            <a href="#addons" className="hover:text-emerald-400 transition-colors">
-              {isAr ? "باقات الإضافات" : "Add-ons"}
+            <a href="#plans" className="hover:text-emerald-400 transition-colors">
+              {isAr ? "باقات الترخيص" : "License Plans"}
             </a>
-            <a href="#bundles" className="hover:text-emerald-400 transition-colors">
-              {isAr ? "عروض الأجهزة" : "Hardware"}
+            <a href="#addons" className="hover:text-emerald-400 transition-colors">
+              {isAr ? "شحن الرصيد" : "Add-ons"}
             </a>
             <a href="#faq" className="hover:text-emerald-400 transition-colors">
               {isAr ? "الأسئلة الشائعة" : "FAQ"}
             </a>
+            <Link 
+              href="/pos#downloads" 
+              className="text-xs text-gray-300 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all flex items-center gap-1.5"
+            >
+              <Download className="w-3 h-3 text-emerald-400" />
+              <span>{isAr ? "النسخة التجريبية" : "Free Trial"}</span>
+            </Link>
           </nav>
 
           {/* Action Hub */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
             <LanguageSwitcher variant="nav" />
+            
             <a
               id="header-call-btn"
               href={`tel:${salesPhone}`}
-              className="hidden sm:flex items-center gap-2 text-xs font-semibold px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-200 transition-all"
+              className="hidden xl:flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all whitespace-nowrap"
+              title={isAr ? "اتصال هاتفي مباشر" : "Direct Phone Call"}
             >
               <PhoneCall className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{salesPhone}</span>
+              <span className="font-mono text-[11px]">{salesPhone}</span>
             </a>
+
             <a
               id="header-whatsapp-btn"
               href={whatsappUrl(
@@ -153,17 +160,87 @@ export default function PricingPage() {
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black hover:from-emerald-400 hover:to-cyan-400 shadow-lg shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5"
+              className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black hover:from-emerald-400 hover:to-cyan-400 shadow-md shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 whitespace-nowrap"
             >
-              <MessageCircle className="w-4 h-4 fill-black" />
+              <MessageCircle className="w-3.5 h-3.5 fill-black" />
               <span>{isAr ? "طلب تفعيل فوري" : "Order License"}</span>
             </a>
+
+            {/* Mobile Menu Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-colors cursor-pointer"
+              aria-label="Toggle navigation"
+            >
+              {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
           </div>
+
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="lg:hidden bg-[#0B101D] border-b border-white/10 px-4 py-4 space-y-3"
+            >
+              <Link 
+                href="/pos" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-sm text-gray-300 hover:text-emerald-400 py-1"
+              >
+                {isAr ? "بوابة الكاشير" : "POS Portal"}
+              </Link>
+              <a 
+                href="#plans" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-sm text-gray-300 hover:text-emerald-400 py-1"
+              >
+                {isAr ? "باقات الترخيص" : "License Plans"}
+              </a>
+              <a 
+                href="#addons" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-sm text-gray-300 hover:text-emerald-400 py-1"
+              >
+                {isAr ? "شحن الرصيد" : "Add-ons"}
+              </a>
+              <a 
+                href="#faq" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="block text-sm text-gray-300 hover:text-emerald-400 py-1"
+              >
+                {isAr ? "الأسئلة الشائعة" : "FAQ"}
+              </a>
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                <Link 
+                  href="/pos#downloads" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>{isAr ? "تحميل النسخة التجريبية" : "Download Trial"}</span>
+                </Link>
+                <a 
+                  href={`tel:${salesPhone}`} 
+                  className="text-xs font-mono text-gray-400 flex items-center gap-1"
+                >
+                  <PhoneCall className="w-3 h-3 text-emerald-400" />
+                  <span>{salesPhone}</span>
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* Hero Section */}
-      <section className="relative pt-16 pb-12 px-4 sm:px-6 lg:px-8 text-center max-w-5xl mx-auto z-10">
+      <section className="relative pt-14 pb-10 px-4 sm:px-6 lg:px-8 text-center max-w-5xl mx-auto z-10">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-6">
           <Sparkles className="w-3.5 h-3.5" />
           <span>
@@ -218,12 +295,12 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Main Pricing Cards */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      {/* Main Pricing Cards Section */}
+      <section id="plans" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
           
           {/* Card 1: Starter Lifetime */}
-          <div className="relative rounded-3xl bg-[#0B101D]/90 border border-white/10 hover:border-emerald-500/40 p-8 flex flex-col justify-between transition-all duration-300 backdrop-blur-xl group hover:shadow-2xl hover:shadow-emerald-500/10">
+          <div className="relative rounded-3xl bg-[#0B101D]/90 border border-white/10 hover:border-emerald-500/40 p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 backdrop-blur-xl group hover:shadow-2xl hover:shadow-emerald-500/10">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-gray-300">
@@ -234,9 +311,16 @@ export default function PricingPage() {
                 </span>
               </div>
 
-              <h2 className="text-2xl font-bold text-white mb-2">
-                {isAr ? "باقة البداية (Starter)" : "Starter Lifetime"}
-              </h2>
+              {/* Title without awkward line wrap */}
+              <div className="mb-2">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                  {isAr ? "باقة البداية" : "Starter Retail"}
+                </h2>
+                <div className="text-xs font-mono font-semibold text-gray-400 mt-0.5">
+                  Starter Lifetime
+                </div>
+              </div>
+
               <p className="text-xs text-gray-400 mb-6 leading-relaxed">
                 {isAr
                   ? "مثالية للبقالة، الأكشاك، المغاسل، محلات العطارة والمكتبات الفردية."
@@ -304,7 +388,7 @@ export default function PricingPage() {
           </div>
 
           {/* Card 2: Business Pro Lifetime (Featured Hero) */}
-          <div className="relative rounded-3xl bg-gradient-to-b from-[#0F1B2C] to-[#0B101D] border-2 border-emerald-500/70 p-8 flex flex-col justify-between transition-all duration-300 shadow-2xl shadow-emerald-500/20 transform lg:-translate-y-4">
+          <div className="relative rounded-3xl bg-gradient-to-b from-[#0F1B2C] to-[#0B101D] border-2 border-emerald-500/70 p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 shadow-2xl shadow-emerald-500/20 transform lg:-translate-y-4">
             {/* Top Featured Ribbon */}
             <div className="absolute -top-4 right-1/2 translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-500 text-black text-xs font-extrabold uppercase tracking-widest shadow-md flex items-center gap-1.5 whitespace-nowrap">
               <Flame className="w-3.5 h-3.5 fill-black" />
@@ -321,9 +405,16 @@ export default function PricingPage() {
                 </span>
               </div>
 
-              <h2 className="text-2xl font-bold text-white mb-2">
-                {isAr ? "الباقة الاحترافية (Business Pro)" : "Business Pro Lifetime"}
-              </h2>
+              {/* Title without awkward line wrap */}
+              <div className="mb-2">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                  {isAr ? "الباقة الاحترافية" : "Business Pro"}
+                </h2>
+                <div className="text-xs font-mono font-semibold text-emerald-400 mt-0.5">
+                  Business Pro Lifetime
+                </div>
+              </div>
+
               <p className="text-xs text-gray-300 mb-6 leading-relaxed">
                 {isAr
                   ? "الخيار الأمثل لمحلات الموبايل، الكمبيوتر، الأجهزة، والأنشطة التي تحتاج تتبع السيريالات وحسابات الآجل."
@@ -417,7 +508,7 @@ export default function PricingPage() {
           </div>
 
           {/* Card 3: Enterprise Cloud */}
-          <div className="relative rounded-3xl bg-[#0B101D]/90 border border-white/10 hover:border-cyan-500/40 p-8 flex flex-col justify-between transition-all duration-300 backdrop-blur-xl group hover:shadow-2xl hover:shadow-cyan-500/10">
+          <div className="relative rounded-3xl bg-[#0B101D]/90 border border-white/10 hover:border-cyan-500/40 p-7 sm:p-8 flex flex-col justify-between transition-all duration-300 backdrop-blur-xl group hover:shadow-2xl hover:shadow-cyan-500/10">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-cyan-500/10 border border-cyan-500/20 text-cyan-300">
@@ -428,9 +519,16 @@ export default function PricingPage() {
                 </span>
               </div>
 
-              <h2 className="text-2xl font-bold text-white mb-2">
-                {isAr ? "باقة المؤسسات (Enterprise)" : "Enterprise Cloud"}
-              </h2>
+              {/* Title without awkward line wrap */}
+              <div className="mb-2">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                  {isAr ? "باقة المؤسسات" : "Enterprise Cloud"}
+                </h2>
+                <div className="text-xs font-mono font-semibold text-cyan-400 mt-0.5">
+                  Enterprise Multi-Branch
+                </div>
+              </div>
+
               <p className="text-xs text-gray-400 mb-6 leading-relaxed">
                 {isAr
                   ? "للشركات والسلاسل التي تمتلك أكثر من فرع وتريد متابعة المبيعات والأرباح من الهاتف."
@@ -604,147 +702,146 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Hardware Bundles Section */}
-      <section id="bundles" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="rounded-3xl bg-gradient-to-br from-[#0B101D] via-[#0E1526] to-[#0B101D] border border-white/10 p-8 sm:p-12">
-          <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-gray-300">
-              {isAr ? "حلول جاهزة متكاملة" : "Complete POS Bundles"}
-            </span>
-            <h2 className="text-3xl font-extrabold text-white mt-3 mb-3">
-              {isAr ? "عروض تجميعات الأجهزة مع البرنامج" : "Hardware + Software Bundles"}
-            </h2>
-            <p className="text-xs text-gray-400">
-              {isAr
-                ? "هل تريد استلام محطة كاشير كاملة جاهزة للعمل فوراً؟ نوفر أحدث أجهزة الكاشير مع البرنامج في باقة موحدة."
-                : "Need ready-to-run cashier hardware? We provide bundled hardware packages with the software pre-installed."}
-            </p>
+      {/* Hardware Bundles Section - Hidden temporarily until hardware inventory is ready */}
+      {SHOW_HARDWARE_BUNDLES && (
+        <section id="bundles" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+          <div className="rounded-3xl bg-gradient-to-br from-[#0B101D] via-[#0E1526] to-[#0B101D] border border-white/10 p-8 sm:p-12">
+            <div className="text-center max-w-2xl mx-auto mb-10">
+              <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/5 border border-white/10 text-gray-300">
+                {isAr ? "حلول جاهزة متكاملة" : "Complete POS Bundles"}
+              </span>
+              <h2 className="text-3xl font-extrabold text-white mt-3 mb-3">
+                {isAr ? "عروض تجميعات الأجهزة مع البرنامج" : "Hardware + Software Bundles"}
+              </h2>
+              <p className="text-xs text-gray-400">
+                {isAr
+                  ? "هل تريد استلام محطة كاشير كاملة جاهزة للعمل فوراً؟ نوفر أحدث أجهزة الكاشير مع البرنامج في باقة موحدة."
+                  : "Need ready-to-run cashier hardware? We provide bundled hardware packages with the software pre-installed."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-white mb-1">
+                    {isAr ? "عرض الكاشير الاقتصادي" : "Economy POS Bundle"}
+                  </h3>
+                  <div className="text-2xl font-extrabold text-emerald-400 my-3">
+                    5,999 ج
+                  </div>
+                  <ul className="text-xs text-gray-300 space-y-2 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "طابعة فواتير حرارية 57mm USB" : "57mm USB Thermal Printer"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "قارئ باركود ليزري سريع بقاعدة" : "Laser Barcode Scanner with Stand"}</span>
+                    </li>
+                    <li className="flex items-center gap-2 font-semibold text-white">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "رخصة برنامج QuazLink Starter مدى الحياة" : "QuazLink Starter Lifetime License"}</span>
+                    </li>
+                  </ul>
+                </div>
+                <a
+                  href={whatsappUrl(
+                    isAr
+                      ? "أود طلب عرض الكاشير الاقتصادي (5,999 ج) مع الأجهزة والبرنامج"
+                      : "I want to order the Economy POS Bundle (5,999 EGP)"
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold text-center transition-all"
+                >
+                  {isAr ? "طلب العرض الاقتصادي" : "Order Economy Bundle"}
+                </a>
+              </div>
+
+              <div className="rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/40 p-6 flex flex-col justify-between">
+                <div>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase">
+                    {isAr ? "الأفضل قيمة للمحلات" : "Best Value"}
+                  </span>
+                  <h3 className="font-bold text-base text-white mt-2 mb-1">
+                    {isAr ? "عرض الكاشير القياسي" : "Standard Retail Bundle"}
+                  </h3>
+                  <div className="text-2xl font-extrabold text-emerald-400 my-3">
+                    8,999 ج
+                  </div>
+                  <ul className="text-xs text-gray-200 space-y-2 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "طابعة حرارية 80mm أوتو كاتر سريعة" : "80mm Auto-Cutter Thermal Printer"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "قارئ باركود ليزري فائق الدقة" : "High-speed Barcode Scanner"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "درج نقدية معدني ثقيل 5 خانات" : "Heavy-Duty 5-slot Metal Cash Drawer"}</span>
+                    </li>
+                    <li className="flex items-center gap-2 font-semibold text-white">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{isAr ? "رخصة برنامج QuazLink Starter مدى الحياة" : "QuazLink Starter Lifetime License"}</span>
+                    </li>
+                  </ul>
+                </div>
+                <a
+                  href={whatsappUrl(
+                    isAr
+                      ? "أود طلب عرض الكاشير القياسي (8,999 ج) مع الطابعة والدرج والباركود والبرنامج"
+                      : "I want to order the Standard Retail Bundle (8,999 EGP)"
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs text-center transition-all"
+                >
+                  {isAr ? "طلب العرض القياسي" : "Order Standard Bundle"}
+                </a>
+              </div>
+
+              <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-base text-white mb-1">
+                    {isAr ? "محطة اللمس الشاملة (Touch POS)" : "All-in-One Touch Terminal"}
+                  </h3>
+                  <div className="text-xl font-bold text-cyan-400 my-3">
+                    17,500 - 22,000 ج
+                  </div>
+                  <ul className="text-xs text-gray-300 space-y-2 mb-6">
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{isAr ? "شاشة لمس تجارية متطورة (Touch Terminal)" : "Commercial POS Touch Screen Terminal"}</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{isAr ? "طابعة 80mm + درج نقدية + باركود" : "80mm Printer + Cash Drawer + Scanner"}</span>
+                    </li>
+                    <li className="flex items-center gap-2 font-semibold text-white">
+                      <Check className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{isAr ? "رخصة Business Pro الاحترافية مدى الحياة" : "QuazLink Business Pro Lifetime License"}</span>
+                    </li>
+                  </ul>
+                </div>
+                <a
+                  href={whatsappUrl(
+                    isAr
+                      ? "أود الاستفسار عن محطة الكاشير الشاملة بشاشة اللمس والبرنامج"
+                      : "I want to inquire about the All-in-One Touch POS Terminal bundle"
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold text-center transition-all"
+                >
+                  {isAr ? "طلب معاينة المحطة الشاملة" : "Inquire for Touch Terminal"}
+                </a>
+              </div>
+            </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Bundle 1 */}
-            <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-base text-white mb-1">
-                  {isAr ? "عرض الكاشير الاقتصادي" : "Economy POS Bundle"}
-                </h3>
-                <div className="text-2xl font-extrabold text-emerald-400 my-3">
-                  5,999 ج
-                </div>
-                <ul className="text-xs text-gray-300 space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "طابعة فواتير حرارية 57mm USB" : "57mm USB Thermal Printer"}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "قارئ باركود ليزري سريع بقاعدة" : "Laser Barcode Scanner with Stand"}</span>
-                  </li>
-                  <li className="flex items-center gap-2 font-semibold text-white">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "رخصة برنامج QuazLink Starter مدى الحياة" : "QuazLink Starter Lifetime License"}</span>
-                  </li>
-                </ul>
-              </div>
-              <a
-                href={whatsappUrl(
-                  isAr
-                    ? "أود طلب عرض الكاشير الاقتصادي (5,999 ج) مع الأجهزة والبرنامج"
-                    : "I want to order the Economy POS Bundle (5,999 EGP)"
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold text-center transition-all"
-              >
-                {isAr ? "طلب العرض الاقتصادي" : "Order Economy Bundle"}
-              </a>
-            </div>
-
-            {/* Bundle 2 (Featured) */}
-            <div className="rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/40 p-6 flex flex-col justify-between">
-              <div>
-                <span className="px-2 py-0.5 rounded bg-emerald-500/30 text-emerald-300 text-[10px] font-bold uppercase">
-                  {isAr ? "الأفضل قيمة للمحلات" : "Best Value"}
-                </span>
-                <h3 className="font-bold text-base text-white mt-2 mb-1">
-                  {isAr ? "عرض الكاشير القياسي" : "Standard Retail Bundle"}
-                </h3>
-                <div className="text-2xl font-extrabold text-emerald-400 my-3">
-                  8,999 ج
-                </div>
-                <ul className="text-xs text-gray-200 space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "طابعة حرارية 80mm أوتو كاتر سريعة" : "80mm Auto-Cutter Thermal Printer"}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "قارئ باركود ليزري فائق الدقة" : "High-speed Barcode Scanner"}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "درج نقدية معدني ثقيل 5 خانات" : "Heavy-Duty 5-slot Metal Cash Drawer"}</span>
-                  </li>
-                  <li className="flex items-center gap-2 font-semibold text-white">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{isAr ? "رخصة برنامج QuazLink Starter مدى الحياة" : "QuazLink Starter Lifetime License"}</span>
-                  </li>
-                </ul>
-              </div>
-              <a
-                href={whatsappUrl(
-                  isAr
-                    ? "أود طلب عرض الكاشير القياسي (8,999 ج) مع الطابعة والدرج والباركود والبرنامج"
-                    : "I want to order the Standard Retail Bundle (8,999 EGP)"
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs text-center transition-all"
-              >
-                {isAr ? "طلب العرض القياسي" : "Order Standard Bundle"}
-              </a>
-            </div>
-
-            {/* Bundle 3 */}
-            <div className="rounded-2xl bg-white/[0.02] border border-white/5 p-6 flex flex-col justify-between">
-              <div>
-                <h3 className="font-bold text-base text-white mb-1">
-                  {isAr ? "محطة اللمس الشاملة (Touch POS)" : "All-in-One Touch Terminal"}
-                </h3>
-                <div className="text-xl font-bold text-cyan-400 my-3">
-                  17,500 - 22,000 ج
-                </div>
-                <ul className="text-xs text-gray-300 space-y-2 mb-6">
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{isAr ? "شاشة لمس تجارية متطورة (Touch Terminal)" : "Commercial POS Touch Screen Terminal"}</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{isAr ? "طابعة 80mm + درج نقدية + باركود" : "80mm Printer + Cash Drawer + Scanner"}</span>
-                  </li>
-                  <li className="flex items-center gap-2 font-semibold text-white">
-                    <Check className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>{isAr ? "رخصة Business Pro الاحترافية مدى الحياة" : "QuazLink Business Pro Lifetime License"}</span>
-                  </li>
-                </ul>
-              </div>
-              <a
-                href={whatsappUrl(
-                  isAr
-                    ? "أود الاستفسار عن محطة الكاشير الشاملة بشاشة اللمس والبرنامج"
-                    : "I want to inquire about the All-in-One Touch POS Terminal bundle"
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold text-center transition-all"
-              >
-                {isAr ? "طلب معاينة المحطة الشاملة" : "Inquire for Touch Terminal"}
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Feature Comparison Table */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
