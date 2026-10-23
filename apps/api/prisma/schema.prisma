@@ -171,4 +171,92 @@ model PosTerminal {
   updatedAt         DateTime  @updatedAt
 }
 
+model PosBranch {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("default_tenant")
+  branchCode  String
+  name        String
+  city        String?
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, branchCode])
+  @@index([tenantId])
+}
+
+model PosInvoiceSync {
+  id              String    @id @default(uuid())
+  tenantId        String    @default("default_tenant")
+  branchCode      String    @default("main")
+  hardwareId      String?
+  localInvoiceId  String
+  invoiceNumber   String
+  customerName    String?
+  customerPhone   String?
+  totalAmount     Float     @default(0)
+  paidAmount      Float     @default(0)
+  remainingAmount Float     @default(0)
+  paymentMethod   String    @default("cash") // 'cash', 'card', 'split', 'credit'
+  status          String    @default("completed") // 'completed', 'refunded', 'voided'
+  cashierName     String?
+  itemsCount      Int       @default(1)
+  rawItems        Json?
+  localCreatedAt  DateTime?
+  syncedAt        DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+
+  @@unique([tenantId, branchCode, localInvoiceId])
+  @@index([tenantId, branchCode, createdAt(sort: Desc)])
+  @@index([tenantId, createdAt(sort: Desc)])
+}
+
+model PosShiftSync {
+  id             String    @id @default(uuid())
+  tenantId       String    @default("default_tenant")
+  branchCode     String    @default("main")
+  hardwareId     String?
+  localShiftId   String
+  cashierName    String
+  status         String    @default("open") // 'open', 'closed'
+  openedAt       DateTime  @default(now())
+  closedAt       DateTime?
+  startingCash   Float     @default(0)
+  expectedCash   Float     @default(0)
+  actualCash     Float     @default(0)
+  difference     Float     @default(0)
+  totalSales     Float     @default(0)
+  invoicesCount  Int       @default(0)
+  rawZReport     Json?
+  syncedAt       DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([tenantId, branchCode, localShiftId])
+  @@index([tenantId, status])
+  @@index([tenantId, branchCode, status])
+}
+
+model PosBranchDailyStats {
+  id           String   @id @default(uuid())
+  tenantId     String   @default("default_tenant")
+  branchCode   String
+  date         String   // 'YYYY-MM-DD'
+  totalSales   Float    @default(0)
+  totalInvoices Int     @default(0)
+  totalCash    Float    @default(0)
+  totalCard    Float    @default(0)
+  totalCredit  Float    @default(0)
+  netProfit    Float    @default(0)
+  activeShifts Int      @default(0)
+  lastSyncAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([tenantId, branchCode, date])
+  @@index([tenantId, date])
+}
+
 

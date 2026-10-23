@@ -181,7 +181,7 @@ export class SyncService {
   }
 
   public async getSyncStatus(): Promise<SyncStatus> {
-    const cloudEndpoint = this.settingsService.getSetting('cloud_api_endpoint', 'https://api.quazlink.com/v1/pos');
+    const cloudEndpoint = this.settingsService.getSetting('cloud_api_endpoint', 'https://app.quazlink.site/api/pos');
     const autoSyncEnabled = this.settingsService.getSetting('cloud_sync_enabled', 'true') === 'true';
     const intervalMins = parseInt(this.settingsService.getSetting('cloud_sync_interval_mins', '15'), 10) || 15;
 
@@ -233,7 +233,7 @@ export class SyncService {
   public async triggerSync(options?: { force?: boolean }): Promise<SyncResult> {
     const startMs = Date.now();
     const syncLogId = this.db.generateId();
-    const cloudEndpoint = this.settingsService.getSetting('cloud_api_endpoint', 'https://api.quazlink.com/v1/pos');
+    const cloudEndpoint = this.settingsService.getSetting('cloud_api_endpoint', 'https://app.quazlink.site/api/pos');
 
     // 1. فحص الاتصال أولاً
     const conn = await this.checkCloudConnectivity(cloudEndpoint);
@@ -430,7 +430,7 @@ export class SyncService {
     // إذا كانت النسخة سحابية أو هجينة، نقوم برفع الباك اب إلى السحابة
     if (backupType === 'cloud' || backupType === 'hybrid') {
       try {
-        const cloudEndpoint = this.settingsService.getSetting('cloud_api_endpoint', 'https://api.quazlink.com/v1/pos');
+        const cloudEndpoint = this.settingsService.getSetting('cloud_api_endpoint', 'https://app.quazlink.site/api/pos');
         const backupUrl = `${cloudEndpoint.replace(/\/+$/, '')}/backups/upload`;
         await fetch(backupUrl, {
           method: 'POST',

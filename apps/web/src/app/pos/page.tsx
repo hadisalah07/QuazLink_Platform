@@ -36,7 +36,8 @@ import {
   BadgePercent,
   Terminal,
   ArrowRight,
-  Monitor
+  Monitor,
+  Activity,
 } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import {
@@ -181,6 +182,14 @@ export default function PosPortalPage() {
           >
             <Sparkles className="w-5 h-5 text-emerald-400" />
             <span>{isAr ? "💎 الأسعار والباقات" : "💎 Pricing & Plans"}</span>
+          </Link>
+
+          <Link
+            href="/monitor"
+            className="flex items-center gap-2 px-7 py-4 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-semibold text-base border border-cyan-500/40 shadow-lg shadow-cyan-500/10 transition-all transform hover:-translate-y-0.5"
+          >
+            <Activity className="w-5 h-5 text-cyan-400 animate-pulse" />
+            <span>{isAr ? "⚡ مراقبة المبيعات الحية" : "⚡ Live POS Monitor"}</span>
           </Link>
 
           <a

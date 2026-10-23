@@ -601,4 +601,93 @@ export async function deletePosTerminal(
   return jsonOrThrow(res);
 }
 
+// --- POS Live Monitor & Multi-Branch Enterprise ERP ---
+
+export interface PosBranchItem {
+  id: string;
+  branchCode: string;
+  name: string;
+  city?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PosLiveKPIs {
+  todaySales: number;
+  todayInvoices: number;
+  averageTicket: number;
+  todayCash: number;
+  todayCard: number;
+  todayCredit: number;
+  cashInDrawers: number;
+  estimatedNetProfit: number;
+  activeShiftsCount: number;
+}
+
+export interface PosActiveShiftItem {
+  id: string;
+  branchCode: string;
+  branchName: string;
+  cashierName: string;
+  openedAt: string;
+  startingCash: number;
+  currentSales: number;
+  currentInvoices: number;
+  estimatedDrawerCash: number;
+  status: string;
+}
+
+export interface PosRecentSaleItem {
+  id: string;
+  localInvoiceId: string;
+  invoiceNumber: string;
+  branchCode: string;
+  branchName: string;
+  customerName: string;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  paymentMethod: string;
+  cashierName: string;
+  itemsCount: number;
+  createdAt: string;
+  timeAgoMinutes: number;
+  rawItems?: any;
+}
+
+export interface PosBranchComparisonItem {
+  branchCode: string;
+  name: string;
+  city?: string | null;
+  sales: number;
+  invoices: number;
+  percentage: number;
+  activeShifts: number;
+}
+
+export interface PosLiveMonitorResponse {
+  success: boolean;
+  selectedBranch: string;
+  date: string;
+  serverTime: string;
+  branches: PosBranchItem[];
+  kpis: PosLiveKPIs;
+  activeShifts: PosActiveShiftItem[];
+  recentSales: PosRecentSaleItem[];
+  branchComparison: PosBranchComparisonItem[];
+}
+
+export async function getPosLiveMonitor(branchCode: string = "all"): Promise<PosLiveMonitorResponse> {
+  const query = branchCode && branchCode !== "all" ? `?branchCode=${encodeURIComponent(branchCode)}` : "";
+  const res = await apiFetch(`/api/pos/monitor/live${query}`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function getPosBranches(): Promise<{ success: boolean; branches: PosBranchItem[] }> {
+  const res = await apiFetch(`/api/pos/branches`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
 
