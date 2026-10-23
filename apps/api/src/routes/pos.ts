@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import * as crypto from 'node:crypto';
 import prisma from '../prisma';
 import { extractClientIp, resolveGeoLocation } from '../lib/geoip';
+import { optionalAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -448,7 +449,7 @@ function getTodayDateString(): string {
  * Ingests offline-first invoices, items, and cashier shifts from desktop POS terminals.
  * High-speed atomic aggregation for real-time owner command center.
  */
-router.post('/sync/push', async (req: Request, res: Response) => {
+router.post('/sync/push', optionalAuth, async (req: Request, res: Response) => {
   try {
     const {
       branchCode: rawBranchCode,
@@ -460,8 +461,49 @@ router.post('/sync/push', async (req: Request, res: Response) => {
     } = req.body ?? {};
 
     const branchCode = (rawBranchCode || 'main').toString().trim().toLowerCase();
-    const tenantId = (rawTenantId || 'default_tenant').toString().trim();
     const cleanHwId = hardwareId ? hardwareId.toString().trim() : null;
+
+    // Resolve tenantId: (1) licenseKey decoded payload, (2) authenticated session, (3) hardware pairing, (4) explicit param, (5) default fallback
+    let tenantId = (rawTenantId || '').toString().trim();
+
+    if (licenseKey && typeof licenseKey === 'string' && licenseKey.includes('-')) {
+      try {
+        const parts = licenseKey.split('-');
+        if (parts.length >= 3) {
+          const b64 = parts[2];
+          const decoded = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
+          if (decoded.tenantId && decoded.tenantId !== 'default_tenant') {
+            tenantId = decoded.tenantId;
+          } else if (decoded.userId) {
+            tenantId = decoded.userId;
+          }
+        }
+      } catch (licErr) {
+        // Fallback gracefully
+      }
+    }
+
+    if ((!tenantId || tenantId === 'default_tenant') && req.userId) {
+      tenantId = req.userId;
+    }
+
+    if ((!tenantId || tenantId === 'default_tenant') && cleanHwId) {
+      try {
+        const dev = await prisma.device.findFirst({
+          where: { pairingToken: cleanHwId },
+          select: { userId: true },
+        });
+        if (dev?.userId) {
+          tenantId = dev.userId;
+        }
+      } catch (devErr) {
+        // Fallback gracefully
+      }
+    }
+
+    if (!tenantId) {
+      tenantId = 'default_tenant';
+    }
 
     // 1. Auto-register or ensure branch exists
     await prisma.posBranch.upsert({
@@ -700,36 +742,48 @@ router.get('/sync/pull', async (req: Request, res: Response) => {
 
 /**
  * GET /api/pos/branches
- * Returns all registered branches for the enterprise tenant.
+ * Returns all registered branches for the enterprise tenant or authenticated account.
  */
-router.get('/branches', async (req: Request, res: Response) => {
+router.get('/branches', optionalAuth, async (req: Request, res: Response) => {
   try {
-    const { tenantId = 'default_tenant' } = req.query as Record<string, string>;
-    const branches = await prisma.posBranch.findMany({
-      where: { tenantId },
+    const tenantId = req.userId || (req.query.tenantId as string) || 'default_tenant';
+    let branches = await prisma.posBranch.findMany({
+      where: { tenantId, isActive: true },
       orderBy: { createdAt: 'asc' },
     });
 
     // If no branches exist yet, provide default branches
     if (branches.length === 0) {
-      const defaultBranches = [
-        { branchCode: 'main', name: 'الفرع الرئيسي (المعادي)', city: 'القاهرة' },
-        { branchCode: 'branch_nasr', name: 'فرع مدينة نصر', city: 'القاهرة' },
-        { branchCode: 'branch_tagamoa', name: 'فرع التجمع الخامس', city: 'القاهرة الجديدة' },
-      ];
-      for (const b of defaultBranches) {
+      if (req.userId) {
+        // Create initial primary branch for new user account
         await prisma.posBranch.create({
           data: {
             tenantId,
-            branchCode: b.branchCode,
-            name: b.name,
-            city: b.city,
+            branchCode: 'main',
+            name: 'الفرع الرئيسي (HQ)',
+            city: 'القاهرة',
             isActive: true,
           },
         });
+      } else {
+        const defaultBranches = [
+          { branchCode: 'main', name: 'الفرع الرئيسي (المعادي)', city: 'القاهرة' },
+          { branchCode: 'branch_nasr', name: 'فرع مدينة نصر', city: 'القاهرة' },
+          { branchCode: 'branch_tagamoa', name: 'فرع التجمع الخامس', city: 'القاهرة الجديدة' },
+        ];
+        for (const b of defaultBranches) {
+          await prisma.posBranch.create({
+            data: {
+              tenantId,
+              branchCode: b.branchCode,
+              name: b.name,
+              city: b.city,
+              isActive: true,
+            },
+          });
+        }
       }
-      const updated = await prisma.posBranch.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' } });
-      return res.json({ success: true, branches: updated });
+      branches = await prisma.posBranch.findMany({ where: { tenantId, isActive: true }, orderBy: { createdAt: 'asc' } });
     }
 
     res.json({ success: true, branches });
@@ -739,37 +793,143 @@ router.get('/branches', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/pos/branches
+ * Creates or updates a branch linked to the owner's enterprise account.
+ */
+router.post('/branches', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const tenantId = req.userId || (req.body.tenantId as string) || 'default_tenant';
+    const { branchCode: rawCode, name, city, phone, address } = req.body ?? {};
+
+    if (!rawCode || typeof rawCode !== 'string' || !rawCode.trim()) {
+      return res.status(400).json({ error: 'كود الفرع (Branch Code) مطلوب.' });
+    }
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: 'اسم الفرع (Branch Name) مطلوب.' });
+    }
+
+    const branchCode = rawCode.trim().toLowerCase().replace(/\s+/g, '_');
+
+    const branch = await prisma.posBranch.upsert({
+      where: {
+        tenantId_branchCode: {
+          tenantId,
+          branchCode,
+        },
+      },
+      create: {
+        tenantId,
+        branchCode,
+        name: name.trim(),
+        city: city?.trim() || null,
+        phone: phone?.trim() || null,
+        address: address?.trim() || null,
+        isActive: true,
+      },
+      update: {
+        name: name.trim(),
+        city: city?.trim() || undefined,
+        phone: phone?.trim() || undefined,
+        address: address?.trim() || undefined,
+        isActive: true,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({ success: true, branch });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to save branch' });
+  }
+});
+
+/**
  * GET /api/pos/monitor/live
  * The Live Command Center Endpoint: Fetches real-time KPIs, active shifts, and live sales stream.
  */
-router.get('/monitor/live', async (req: Request, res: Response) => {
+router.get('/monitor/live', optionalAuth, async (req: Request, res: Response) => {
   try {
     const {
       branchCode = 'all',
       date = getTodayDateString(),
-      tenantId = 'default_tenant',
+      tenantId: rawTenantId,
     } = req.query as Record<string, string>;
+
+    // Strict Account / Tenant resolution
+    let tenantId = (rawTenantId || '').toString().trim();
+    if (req.userId) {
+      tenantId = req.userId;
+    }
+    if (!tenantId) {
+      tenantId = 'default_tenant';
+    }
 
     const isAllBranches = !branchCode || branchCode === 'all';
     const dayStart = new Date(`${date}T00:00:00.000Z`);
     const dayEnd = new Date(`${date}T23:59:59.999Z`);
 
-    // 1. Fetch Branches
+    // Fetch Account / Organization Info if authenticated
+    let accountInfo: {
+      userId: string | null;
+      email: string | null;
+      name: string | null;
+      businessName: string;
+      planName: string;
+      isEnterprise: boolean;
+      totalBranches: number;
+    } | null = null;
+
+    if (req.userId) {
+      const user = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { id: true, email: true, name: true, role: true },
+      });
+      if (user) {
+        accountInfo = {
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          businessName: user.name ? `${user.name} Retail OS` : 'مؤسسة التجزئة الذكية',
+          planName: 'Enterprise Multi-Branch License',
+          isEnterprise: true,
+          totalBranches: 0,
+        };
+      }
+    }
+
+    // 1. Fetch Branches for this Tenant
     let branches = await prisma.posBranch.findMany({
       where: { tenantId, isActive: true },
       orderBy: { createdAt: 'asc' },
     });
 
     if (branches.length === 0) {
-      // Seed default branches
-      await prisma.posBranch.createMany({
-        data: [
-          { tenantId, branchCode: 'main', name: 'الفرع الرئيسي (المعادي)', city: 'القاهرة', isActive: true },
-          { tenantId, branchCode: 'branch_nasr', name: 'فرع مدينة نصر', city: 'القاهرة', isActive: true },
-          { tenantId, branchCode: 'branch_tagamoa', name: 'فرع التجمع الخامس', city: 'القاهرة الجديدة', isActive: true },
-        ],
-      });
-      branches = await prisma.posBranch.findMany({ where: { tenantId }, orderBy: { createdAt: 'asc' } });
+      if (req.userId) {
+        // Create initial primary branch for new user account
+        await prisma.posBranch.create({
+          data: {
+            tenantId,
+            branchCode: 'main',
+            name: accountInfo?.businessName ? `الفرع الرئيسي - ${accountInfo.businessName}` : 'الفرع الرئيسي (HQ)',
+            city: 'القاهرة',
+            isActive: true,
+          },
+        });
+        branches = await prisma.posBranch.findMany({ where: { tenantId, isActive: true }, orderBy: { createdAt: 'asc' } });
+      } else {
+        // Seed default branches for public showcase
+        await prisma.posBranch.createMany({
+          data: [
+            { tenantId, branchCode: 'main', name: 'الفرع الرئيسي (المعادي)', city: 'القاهرة', isActive: true },
+            { tenantId, branchCode: 'branch_nasr', name: 'فرع مدينة نصر', city: 'القاهرة', isActive: true },
+            { tenantId, branchCode: 'branch_tagamoa', name: 'فرع التجمع الخامس', city: 'القاهرة الجديدة', isActive: true },
+          ],
+        });
+        branches = await prisma.posBranch.findMany({ where: { tenantId, isActive: true }, orderBy: { createdAt: 'asc' } });
+      }
+    }
+
+    if (accountInfo) {
+      accountInfo.totalBranches = branches.length;
     }
 
     // 2. Query Invoices for KPI & Stream
@@ -878,6 +1038,7 @@ router.get('/monitor/live', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
+      accountInfo,
       selectedBranch: isAllBranches ? 'all' : branchCode,
       date,
       serverTime: new Date().toISOString(),

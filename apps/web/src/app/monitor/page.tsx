@@ -30,14 +30,22 @@ import {
   Sparkles,
   Layers,
   Receipt,
+  Plus,
+  Building2,
+  BadgeCheck,
+  MapPin,
+  Phone,
+  Key,
 } from "lucide-react";
 import {
   getPosLiveMonitor,
+  createPosBranch,
   type PosLiveMonitorResponse,
   type PosRecentSaleItem,
   type PosActiveShiftItem,
   type PosBranchComparisonItem,
   type PosBranchItem,
+  type PosAccountInfo,
 } from "@/lib/api";
 
 export default function PosOwnerMonitorPage() {
@@ -53,6 +61,16 @@ export default function PosOwnerMonitorPage() {
   const [monitorData, setMonitorData] = React.useState<PosLiveMonitorResponse | null>(null);
   const [selectedInvoice, setSelectedInvoice] = React.useState<PosRecentSaleItem | null>(null);
   const [isBranchDropdownOpen, setIsBranchDropdownOpen] = React.useState(false);
+
+  // Add Branch Modal State
+  const [isAddBranchModalOpen, setIsAddBranchModalOpen] = React.useState(false);
+  const [newBranchName, setNewBranchName] = React.useState("");
+  const [newBranchCode, setNewBranchCode] = React.useState("");
+  const [newBranchCity, setNewBranchCity] = React.useState("");
+  const [newBranchPhone, setNewBranchPhone] = React.useState("");
+  const [isSubmittingBranch, setIsSubmittingBranch] = React.useState(false);
+  const [branchSuccessMsg, setBranchSuccessMsg] = React.useState<string | null>(null);
+  const [branchErrorMsg, setBranchErrorMsg] = React.useState<string | null>(null);
 
   // Fetch Live Data
   const fetchData = React.useCallback(async (silent = false) => {
@@ -84,6 +102,43 @@ export default function PosOwnerMonitorPage() {
     }, 5000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchData]);
+
+  // Add & Link New Branch to Enterprise Account
+  const handleAddBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBranchName.trim() || !newBranchCode.trim()) {
+      setBranchErrorMsg(isAr ? "يرجى كتابة اسم الفرع وكود الفرع." : "Please enter branch name and code.");
+      return;
+    }
+    setBranchErrorMsg(null);
+    setIsSubmittingBranch(true);
+    try {
+      const cleanCode = newBranchCode.trim().toLowerCase().replace(/\s+/g, "_");
+      const res = await createPosBranch({
+        branchCode: cleanCode,
+        name: newBranchName.trim(),
+        city: newBranchCity.trim() || undefined,
+        phone: newBranchPhone.trim() || undefined,
+      });
+      if (res.success) {
+        setBranchSuccessMsg(isAr ? "تم إنشاء وربط الفرع بالحساب بنجاح!" : "Branch created and linked successfully!");
+        setNewBranchName("");
+        setNewBranchCode("");
+        setNewBranchCity("");
+        setNewBranchPhone("");
+        await fetchData(true);
+        setSelectedBranch(res.branch.branchCode);
+        setTimeout(() => {
+          setIsAddBranchModalOpen(false);
+          setBranchSuccessMsg(null);
+        }, 1200);
+      }
+    } catch (err: any) {
+      setBranchErrorMsg(err.message || (isAr ? "فشل إنشاء الفرع" : "Failed to create branch"));
+    } finally {
+      setIsSubmittingBranch(false);
+    }
+  };
 
   // Push Mock Sale for instant live demonstration
   const handleSimulateSale = () => {
@@ -232,6 +287,17 @@ export default function PosOwnerMonitorPage() {
                     {selectedBranch === b.branchCode && <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />}
                   </button>
                 ))}
+
+                {/* Add Branch Button in Dropdown */}
+                <div className="pt-2 mt-2 border-t border-white/10">
+                  <button
+                    onClick={() => { setIsBranchDropdownOpen(false); setIsAddBranchModalOpen(true); }}
+                    className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />
+                    <span>{isAr ? "+ إضافة وربط فرع جديد" : "+ Add & Link Branch"}</span>
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -271,33 +337,58 @@ export default function PosOwnerMonitorPage() {
       {/* 2. MAIN CONTENT BODY */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* Banner: Simulation / Info */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-cyan-500/5 to-transparent border border-emerald-500/20 gap-3">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-              <ShieldCheck className="w-5 h-5" />
+        {/* Banner: Account & Multi-Branch Enterprise Status */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-cyan-500/10 to-slate-900/60 border border-emerald-500/30 gap-4 shadow-xl">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 p-0.5 shadow-lg shadow-emerald-500/20 flex-shrink-0">
+              <div className="w-full h-full bg-[#0B101D] rounded-[14px] flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-emerald-400" />
+              </div>
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">
-                {isAr ? "لوحة مراقبة المالك والمؤسسة المباشرة" : "Executive Live Command & Branch Monitor"}
-              </h2>
-              <p className="text-xs text-slate-400">
-                {isAr
-                  ? `آخر مزامنة: ${lastUpdated.toLocaleTimeString("ar-EG")} • تعمل المزامنة ذاتياً كل 5 ثوانٍ مع أجهزة الكاشير بالمحلات.`
-                  : `Last synced at: ${lastUpdated.toLocaleTimeString()} • Auto-syncing every 5s across all retail terminals.`}
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-extrabold text-white">
+                  {monitorData?.accountInfo?.businessName || monitorData?.accountInfo?.name || (isAr ? "مؤسسة التجزئة الذكية (عرض حي)" : "Smart Retail Group (Live Demo)")}
+                </h2>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                  <BadgeCheck className="w-3 h-3 text-emerald-400" />
+                  <span>{monitorData?.accountInfo?.planName || (isAr ? "رخصة Enterprise متعددة الفروع" : "Enterprise Multi-Branch License")}</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-1 flex items-center gap-2 flex-wrap">
+                <span className="text-emerald-400 font-semibold">
+                  {isAr ? `🏢 ${branches.length} فروع مربوطة بالحساب` : `🏢 ${branches.length} Linked Branches`}
+                </span>
+                <span>•</span>
+                <span className="text-slate-400">
+                  {monitorData?.accountInfo?.email ? monitorData.accountInfo.email : (isAr ? "مزامنة لحظية مباشرة مع أجهزة الكاشير" : "Real-time POS sync")}
+                </span>
+                <span>•</span>
+                <span className="text-slate-400">
+                  {isAr ? `آخر مزامنة: ${lastUpdated.toLocaleTimeString("ar-EG")}` : `Last synced: ${lastUpdated.toLocaleTimeString()}`}
+                </span>
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 self-end sm:self-center">
+
+          <div className="flex items-center gap-2.5 self-stretch md:self-center justify-between md:justify-end">
+            <button
+              onClick={() => setIsAddBranchModalOpen(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black text-xs font-bold shadow-md shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 whitespace-nowrap cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>{isAr ? "+ ربط فرع جديد" : "+ Add Branch"}</span>
+            </button>
+
             <button
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+              className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors whitespace-nowrap ${
                 autoRefresh
                   ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                   : "bg-slate-800 text-slate-400 border-slate-700"
               }`}
             >
-              {autoRefresh ? (isAr ? "التحديث التلقائي مفعّل" : "Auto-Refresh ON") : (isAr ? "التحديث التلقائي متوقف" : "Auto-Refresh OFF")}
+              {autoRefresh ? (isAr ? "⚡ التحديث التلقائي نشط" : "⚡ Auto-Refresh ON") : (isAr ? "التحديث متوقف" : "Paused")}
             </button>
           </div>
         </div>
@@ -722,9 +813,23 @@ export default function PosOwnerMonitorPage() {
         {/* --- TAB 4: BRANCH LEADERBOARD --- */}
         {activeTab === "branches" && (
           <div className="space-y-4">
-            <h3 className="text-base font-bold text-white">
-              {isAr ? "لوحة أداء ومقارنة الفروع (Branch Performance Leaderboard)" : "Branch Performance Leaderboard"}
-            </h3>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="text-base font-bold text-white">
+                  {isAr ? "لوحة أداء ومقارنة الفروع (Branch Performance Leaderboard)" : "Branch Performance Leaderboard"}
+                </h3>
+                <p className="text-xs text-slate-400">
+                  {isAr ? `إجمالي الفروع المسجلة بالحساب: ${branches.length} فروع` : `Total registered branches in account: ${branches.length}`}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAddBranchModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />
+                <span>{isAr ? "+ ربط فرع جديد" : "+ Add Branch"}</span>
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {monitorData?.branchComparison.map((b, idx) => (
@@ -829,6 +934,135 @@ export default function PosOwnerMonitorPage() {
               >
                 {isAr ? "إغلاق المعاينة" : "Close"}
               </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* 9. ADD & LINK NEW BRANCH MODAL */}
+      <AnimatePresence>
+        {isAddBranchModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-md bg-[#0B101D] border border-emerald-500/40 rounded-3xl p-6 shadow-2xl space-y-5"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Store className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-white text-base">
+                      {isAr ? "ربط فرع جديد بالحساب" : "Link New Branch to Account"}
+                    </h3>
+                    <p className="text-[11px] text-slate-400">
+                      {isAr ? "إضافة فرع جديد تحت رخصة المؤسسة السحابية" : "Provision a new branch under your Enterprise license"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsAddBranchModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleAddBranch} className="space-y-4">
+                {branchSuccessMsg && (
+                  <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{branchSuccessMsg}</span>
+                  </div>
+                )}
+                {branchErrorMsg && (
+                  <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                    <span>{branchErrorMsg}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    {isAr ? "اسم الفرع باللغة العربية" : "Branch Display Name"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={isAr ? "مثال: فرع سموحة - الإسكندرية" : "e.g. Smouha Branch - Alexandria"}
+                    value={newBranchName}
+                    onChange={(e) => setNewBranchName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder:text-slate-500 text-xs focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    {isAr ? "كود الفرع الفريد (Branch Code)" : "Branch Code (Unique Identifier)"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder={isAr ? "مثال: alex_smouha أو branch_04" : "e.g. alex_smouha or b04"}
+                    value={newBranchCode}
+                    onChange={(e) => setNewBranchCode(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder:text-slate-500 text-xs font-mono focus:outline-none focus:border-emerald-500"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    {isAr ? "الكود الذي سيتم إدخاله في إعدادات جهاز الكاشير بالفرع." : "Code entered on the POS terminal in this branch."}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      {isAr ? "المدينة" : "City"}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={isAr ? "الإسكندرية" : "Alexandria"}
+                      value={newBranchCity}
+                      onChange={(e) => setNewBranchCity(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder:text-slate-500 text-xs focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      {isAr ? "هاتف الفرع" : "Phone"}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="010XXXXXXXX"
+                      value={newBranchPhone}
+                      onChange={(e) => setNewBranchPhone(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-white/10 text-white placeholder:text-slate-500 text-xs focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddBranchModalOpen(false)}
+                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold transition-colors"
+                  >
+                    {isAr ? "إلغاء" : "Cancel"}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingBranch}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black text-xs font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4 stroke-[2.5]" />
+                    <span>{isSubmittingBranch ? (isAr ? "جاري الحفظ..." : "Saving...") : (isAr ? "حفظ وتفعيل الفرع" : "Create & Link Branch")}</span>
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

@@ -278,22 +278,50 @@ router.post('/pos/license', optionalAuth, async (req, res) => {
     }
 
     const cleanHwId = hardwareId.trim().toUpperCase();
+    const branchCode = (req.body.branchCode || 'main').toString().trim().toLowerCase();
+    const branchName = req.body.branchName || (branchCode === 'main' ? (businessName ? `الفرع الرئيسي - ${businessName}` : 'الفرع الرئيسي') : `فرع ${branchCode.toUpperCase()}`);
 
-    // Generate cryptographic license key
+    // Generate cryptographic license key bound to user account / tenant
     const payload = {
-      tier: tier === 'lifetime' ? 'lifetime' : 'saas_subscription',
+      tenantId: userId || 'default_tenant',
+      userId: userId || null,
+      tier: tier === 'lifetime' ? 'lifetime' : tier === 'enterprise' ? 'enterprise' : 'saas_subscription',
       hw: cleanHwId,
+      branchCode,
       exp: tier === 'lifetime' ? null : new Date(Date.now() + expDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      modules: ['core_pos', 'shifts_zreport', 'serial_warranty', 'ai_marketing', 'whatsapp_receipts', 'crm_ledgers', 'cloud_sync'],
+      modules: ['core_pos', 'shifts_zreport', 'serial_warranty', 'ai_marketing', 'whatsapp_receipts', 'crm_ledgers', 'cloud_sync', 'multi_branch_monitor'],
     };
 
-    const prefix = tier === 'lifetime' ? 'LIFE' : 'SAAS';
+    const prefix = tier === 'lifetime' ? 'LIFE' : tier === 'enterprise' ? 'ENT' : 'SAAS';
     const b64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
     const sig = crypto.createHmac('sha256', SECRET_SALT).update(b64).digest('hex').slice(0, 8).toUpperCase();
     const licenseKey = `QLPOS-${prefix}-${b64}-${sig}`;
 
-    // If user is authenticated, register this device in user's devices table
+    // If user is authenticated, register this device and branch in user's account
     if (userId) {
+      try {
+        await prisma.posBranch.upsert({
+          where: {
+            tenantId_branchCode: {
+              tenantId: userId,
+              branchCode,
+            },
+          },
+          create: {
+            tenantId: userId,
+            branchCode,
+            name: branchName,
+            city: req.body.city || 'القاهرة',
+            isActive: true,
+          },
+          update: {
+            isActive: true,
+          },
+        });
+      } catch (branchErr) {
+        console.warn('Auto branch creation warning:', branchErr);
+      }
+
       try {
         const existing = await prisma.device.findFirst({
           where: { userId, pairingToken: cleanHwId },

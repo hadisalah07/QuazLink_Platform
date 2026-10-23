@@ -667,8 +667,19 @@ export interface PosBranchComparisonItem {
   activeShifts: number;
 }
 
+export interface PosAccountInfo {
+  userId: string | null;
+  email: string | null;
+  name: string | null;
+  businessName: string;
+  planName: string;
+  isEnterprise: boolean;
+  totalBranches: number;
+}
+
 export interface PosLiveMonitorResponse {
   success: boolean;
+  accountInfo?: PosAccountInfo | null;
   selectedBranch: string;
   date: string;
   serverTime: string;
@@ -687,6 +698,21 @@ export async function getPosLiveMonitor(branchCode: string = "all"): Promise<Pos
 
 export async function getPosBranches(): Promise<{ success: boolean; branches: PosBranchItem[] }> {
   const res = await apiFetch(`/api/pos/branches`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function createPosBranch(input: {
+  branchCode: string;
+  name: string;
+  city?: string;
+  phone?: string;
+  address?: string;
+}): Promise<{ success: boolean; branch: PosBranchItem }> {
+  const res = await apiFetch(`/api/pos/branches`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
   return jsonOrThrow(res);
 }
 
