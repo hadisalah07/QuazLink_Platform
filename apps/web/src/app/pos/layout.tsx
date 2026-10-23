@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Activity
+  Activity,
+  Smartphone
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { StarField } from "@/components/effects/StarField";
@@ -61,10 +62,17 @@ export default function PosLayout({
           </Link>
 
           {/* Navigation Links (Desktop) */}
-          <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-medium text-gray-300 whitespace-nowrap">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-medium text-gray-300 whitespace-nowrap">
             <a href="#features" className="hover:text-emerald-400 transition-colors">
               {isAr ? "المميزات" : "Features"}
             </a>
+            <Link href="/pos/mobile" className="hover:text-emerald-300 text-emerald-400 transition-colors flex items-center gap-1.5 font-semibold group">
+              <Smartphone className="w-3.5 h-3.5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span>{isAr ? "كاشير الموبايل" : "Mobile POS"}</span>
+              <span className="text-[9px] uppercase px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                PWA
+              </span>
+            </Link>
             <Link href="/pricing" className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 font-semibold text-emerald-300">
               <span>{isAr ? "الأسعار والباقات" : "Pricing"}</span>
               <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
@@ -137,6 +145,19 @@ export default function PosLayout({
               className="lg:hidden bg-[#070A12]/98 backdrop-blur-2xl border-b border-white/10 px-4 py-4 space-y-3"
             >
               <nav className="flex flex-col space-y-2.5 text-sm font-medium">
+                <Link 
+                  href="/pos/mobile" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-between text-emerald-400 font-bold py-2 px-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-emerald-400" />
+                    <span>{isAr ? "📱 كاشير الموبايل السحابي (Mobile POS)" : "📱 Mobile Cloud POS"}</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 font-bold">
+                    PWA
+                  </span>
+                </Link>
                 <a 
                   href="#features" 
                   onClick={() => setMobileMenuOpen(false)}

@@ -371,7 +371,17 @@ export default function PosOwnerMonitorPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 self-stretch md:self-center justify-between md:justify-end">
+          <div className="flex items-center gap-2.5 self-stretch md:self-center justify-between md:justify-end flex-wrap">
+            <Link
+              href="/pos/mobile"
+              target="_blank"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-bold transition-all shadow-sm"
+              title={isAr ? "فتح كاشير الموبايل الذكي" : "Open Mobile POS"}
+            >
+              <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{isAr ? "📱 كاشير الموبايل" : "📱 Mobile POS"}</span>
+            </Link>
+
             <button
               onClick={() => setIsAddBranchModalOpen(true)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-black text-xs font-bold shadow-md shadow-emerald-500/20 transition-all transform hover:-translate-y-0.5 whitespace-nowrap cursor-pointer"

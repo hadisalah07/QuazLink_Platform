@@ -716,4 +716,61 @@ export async function createPosBranch(input: {
   return jsonOrThrow(res);
 }
 
+export interface PosSyncInvoicePayload {
+  id: string;
+  invoiceNumber: string;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  totalAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  paymentMethod: "cash" | "card" | "credit" | "split" | string;
+  cashierName?: string | null;
+  itemsCount: number;
+  rawItems?: any;
+  created_at?: string;
+  status?: string;
+}
+
+export interface PosSyncShiftPayload {
+  id: string;
+  cashierName: string;
+  status: "open" | "closed" | string;
+  openedAt?: string;
+  closedAt?: string | null;
+  startingCash: number;
+  expectedCash?: number;
+  actualCash?: number;
+  difference?: number;
+  totalSales: number;
+  invoicesCount: number;
+  rawZReport?: any;
+}
+
+export interface PosPushSyncInput {
+  branchCode: string;
+  hardwareId?: string;
+  licenseKey?: string;
+  invoices?: PosSyncInvoicePayload[];
+  shifts?: PosSyncShiftPayload[];
+  tenantId?: string;
+}
+
+export async function pushPosSync(input: PosPushSyncInput): Promise<{
+  success: boolean;
+  message?: string;
+  pushedInvoices?: number;
+  pushedShifts?: number;
+  branchCode?: string;
+  serverTimestamp?: string;
+}> {
+  const res = await apiFetch(`/api/pos/sync/push`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+
+
 
