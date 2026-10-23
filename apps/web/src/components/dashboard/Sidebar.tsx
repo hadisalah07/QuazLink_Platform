@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt, Download, Store, ShieldCheck, Activity } from "lucide-react";
+import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt, Download, Store, ShieldCheck, Activity, Smartphone } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logout, type AuthUser } from "@/lib/api";
@@ -17,6 +17,7 @@ interface NavItem {
 const baseNavItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Live POS Monitor", href: "/monitor", icon: Activity, badge: "LIVE" },
+  { name: "Mobile POS & Terminals", href: "/terminals", icon: Smartphone, badge: "PWA" },
   { name: "Workflows", href: "/workflows", icon: Workflow },
   { name: "Accounts", href: "/accounts", icon: Users },
   { name: "Catalogs", href: "/catalogs", icon: ShoppingBag },
