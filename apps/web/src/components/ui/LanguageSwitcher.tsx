@@ -18,15 +18,11 @@ export function LanguageSwitcher({ className = "", variant = "floating" }: Langu
         onClick={toggleLang}
         type="button"
         title={isAr ? "Switch to English" : "التبديل إلى العربية"}
-        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 cursor-pointer ${
-          isAr
-            ? "bg-purple-950/60 border-purple-500/40 text-purple-200 hover:bg-purple-900/60 hover:border-purple-400"
-            : "bg-cyan-950/60 border-cyan-500/40 text-cyan-200 hover:bg-cyan-900/60 hover:border-cyan-400"
-        } ${className}`}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-emerald-500/40 transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 shadow-sm ${className}`}
       >
-        <Globe className="w-3.5 h-3.5 text-current animate-pulse" />
-        <span className="font-mono tracking-wider font-bold">
-          {isAr ? "EN • English" : "AR • العربية"}
+        <Globe className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        <span className="font-sans font-medium tracking-wide">
+          {isAr ? "English" : "العربية"}
         </span>
       </button>
     );
