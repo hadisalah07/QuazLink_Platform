@@ -59,6 +59,8 @@ export async function GET(request: Request) {
     releaseNotes: POS_RELEASE_NOTES,
     downloadUrl: `/downloads/${setupFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
     portableUrl: `/downloads/${portableFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
+    patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.8.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
+    patchSize: 1155688,
     assetSize: setupFileSize,
     portableSize: portableFileSize,
     publishedAt: new Date(POS_RELEASE_DATE).toISOString(),

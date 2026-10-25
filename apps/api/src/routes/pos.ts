@@ -264,6 +264,8 @@ router.get('/updates', async (req: Request, res: Response) => {
       releaseNotes: POS_RELEASE_NOTES,
       downloadUrl: `/downloads/${setupFilename}`,
       portableUrl: `/downloads/${portableFilename}`,
+      patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.8.zip`,
+      patchSize: 1155688,
       assetSize: isLegacyWin ? 73974272 : 74212111,
       portableSize: isLegacyWin ? 73640804 : 73878193,
       publishedAt: new Date(POS_RELEASE_DATE).toISOString(),
