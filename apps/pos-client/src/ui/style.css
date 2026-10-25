@@ -4765,38 +4765,60 @@ body.theme-light .settings-subtabs-nav,
   max-height: calc(100vh - var(--header-height)) !important;
   min-height: 0 !important;
   overflow: hidden !important;
-  padding: 8px 14px 6px 14px !important;
+  padding: 8px 14px 12px 14px !important;
   box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .settings-pane {
-  flex: 1 1 0% !important;
+  flex: 1 1 auto !important;
   min-height: 0 !important;
-  max-height: 100% !important;
+  height: auto !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: 6px 8px 120px 8px !important;
+  padding: 6px 10px 40px 10px !important;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
+/* Chromium Flexbox scroll-padding clearance fix (guarantees bottom card never clips) */
+.settings-pane::after {
+  content: '';
+  display: block !important;
+  min-height: 180px !important;
+  height: 180px !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  pointer-events: none !important;
+}
+
 .settings-pane::-webkit-scrollbar {
-  width: 8px !important;
+  width: 9px !important;
 }
 
 .settings-pane::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.25) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
   border-radius: 6px !important;
 }
 
 .settings-pane::-webkit-scrollbar-thumb {
-  background: rgba(6, 182, 212, 0.45) !important;
+  background: rgba(6, 182, 212, 0.55) !important;
   border-radius: 6px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
 }
 
 .settings-pane::-webkit-scrollbar-thumb:hover {
-  background: rgba(6, 182, 212, 0.8) !important;
+  background: rgba(6, 182, 212, 0.9) !important;
+}
+
+body.theme-preset-golden-hyalos .settings-pane::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.55) !important;
+  border: 1px solid rgba(255, 224, 130, 0.25) !important;
+}
+
+body.theme-preset-golden-hyalos .settings-pane::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.9) !important;
 }
 
 /* ==========================================================================
@@ -5551,6 +5573,68 @@ body.theme-glass-prism textarea:focus {
   padding: 2px 7px;
   border-radius: 5px;
   font-weight: 700;
+}
+
+/* ============================================================
+   👑 GOLDEN HYALOS (LUXURY GOLD & OBSIDIAN GLASS THEME)
+   ============================================================ */
+body.theme-preset-golden-hyalos .settings-card,
+body.theme-preset-golden-hyalos .mgmt-header,
+body.theme-preset-golden-hyalos .checkout-panel,
+body.theme-preset-golden-hyalos .summary-panel,
+body.theme-preset-golden-hyalos .pos-summary-card,
+body.theme-preset-golden-hyalos .quick-item-card,
+body.theme-preset-golden-hyalos .pos-modal {
+  border-color: rgba(212, 175, 55, 0.35) !important;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55), 0 0 16px rgba(212, 175, 55, 0.12) !important;
+}
+
+body.theme-preset-golden-hyalos .settings-card:hover,
+body.theme-preset-golden-hyalos .quick-item-card:hover {
+  border-color: rgba(255, 224, 130, 0.65) !important;
+  box-shadow: 0 12px 38px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.28) !important;
+}
+
+/* Golden Hyalos Active Preset Card */
+.preset-card.preset-golden-hyalos.active {
+  border-color: #d4af37 !important;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.65), inset 0 0 12px rgba(245, 158, 11, 0.25) !important;
+}
+
+.preset-card.preset-golden-hyalos .preset-card-check {
+  background: linear-gradient(135deg, #ffd700, #b8860b) !important;
+  color: #000 !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.8) !important;
+}
+
+body.theme-preset-golden-hyalos .theme-range-slider::-webkit-slider-thumb {
+  background: linear-gradient(135deg, #f59e0b, #d4af37) !important;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.7) !important;
+  border-color: #ffe082 !important;
+}
+
+body.theme-preset-golden-hyalos .slider-badge {
+  background: rgba(212, 175, 55, 0.18) !important;
+  color: #fde047 !important;
+  border-color: rgba(212, 175, 55, 0.45) !important;
+}
+
+body.theme-preset-golden-hyalos .preview-badge {
+  background: rgba(212, 175, 55, 0.2) !important;
+  color: #fde047 !important;
+  border-color: rgba(212, 175, 55, 0.5) !important;
+}
+
+body.theme-preset-golden-hyalos .theme-live-preview-box {
+  border-color: rgba(212, 175, 55, 0.4) !important;
+}
+
+body.theme-preset-golden-hyalos .preview-mini-card .btn-emerald {
+  background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+  color: #050507 !important;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35) !important;
+  font-weight: 800 !important;
+  border: 1px solid #ffd700 !important;
 }
 
 /* ============================================================

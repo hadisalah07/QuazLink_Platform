@@ -2,15 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.3.7";
+export const POS_LATEST_VERSION = "1.3.8";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
-export const POS_RELEASE_DATE = "2026-10-22";
-export const POS_RELEASE_NOTES = `• تحديثات الواجهة وتجربة المستخدم الممتازة (UI & UX Improvements):
-• أيقونة زوم ذكية وقابلة للطي والتمدد (Collapsible Zoom Control): الأيقونة فقط تظهر في الهيدر العلوي لتوفير المساحة وتفتح بسلاسة عند الضغط عليها للتحكم بنسبة التكبير (+ 100% -).
-• إغلاق تلقائي ذكي لعناصر التحكم في الزوم عند الضغط خارجها أو عند الضغط على زر ESC.
-• نظام الإشعارات الفوري الذكي (Single Overwrite Toast Engine) لمنع تراكم الرسائل.
-• وضع ملء الشاشة الفوري (Full-Screen Mode) المخصص لشاشات اللمس ونقاط البيع.
-• إصلاحات عامة وتحسينات شاملة في سرعة واستقرار النظام.`;
+export const POS_RELEASE_DATE = "2026-10-25";
+export const POS_RELEASE_NOTES = `• إضافة ثيم "Golden Hyalos" (جولدن هيالوس 👑) الفاخر بلون الذهب المعدني الخالص وحجر السج الأسود وانعكاسات الزجاج المنشوري الملكي.
+• حل مشكلة قص الهوامش السفلية في تبويب المظهر والإعدادات (Scroll Clearance Fix) مع ضمان ظهور بطاقة المعاينة الحية كاملة.
+• تحسينات عامة في أداء التمرير واستقرار واجهة نقطة البيع.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -49,8 +46,8 @@ export async function GET(request: Request) {
   }
 
   const releaseTitle = isLegacyWin
-    ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق مع Windows 7 / 8 / POSReady - مع إصلاحات وتحسينات عامة)`
-    : `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصلاحات وتحسينات عامة، نظام الإشعارات الفوري، ووضع الشاشة الكاملة)`;
+    ? `QuazLink POS & ERP v${POS_LATEST_VERSION} (إصدار Legacy مخصص ومتوافق مع Windows 7 / 8 / POSReady - مع ثيم جولدن هيالوس وإصلاح الهوامش)`
+    : `QuazLink POS & ERP v${POS_LATEST_VERSION} (ثيم جولدن هيالوس الفاخر، حل مشكلة قص الهوامش السفلية، وتحسينات الأداء)`;
 
   return NextResponse.json({
     success: true,

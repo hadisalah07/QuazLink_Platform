@@ -227,6 +227,10 @@ async function saveThemeSetting(theme) {
 // -------------------------------------------------------------
 
 const THEME_PRESETS = {
+  'golden-hyalos': {
+    name: 'جولدن هيالوس (Golden Hyalos) 👑',
+    style: 'radial-gradient(ellipse at 25% 20%, rgba(212, 175, 55, 0.45) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(245, 158, 11, 0.35) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(184, 134, 11, 0.22) 0%, transparent 60%), radial-gradient(ellipse at 50% 0%, rgba(255, 224, 130, 0.25) 0%, transparent 45%), linear-gradient(145deg, #070709 0%, #121217 40%, #1a1712 70%, #050507 100%)'
+  },
   'cosmic-aurora': {
     name: 'سديم الشفق الأرجواني',
     style: 'radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.5) 0%, transparent 50%), radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.45) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(168, 85, 247, 0.35) 0%, transparent 60%), linear-gradient(135deg, #050711 0%, #0d1224 50%, #080c18 100%)'
@@ -253,7 +257,7 @@ function getThemeConfig() {
   return {
     bgEnabled: localStorage.getItem('quazlink_custom_bg_enabled') === 'true',
     glassPrism: localStorage.getItem('quazlink_glass_prism_enabled') !== 'false',
-    preset: localStorage.getItem('quazlink_custom_bg_preset') || 'cosmic-aurora',
+    preset: localStorage.getItem('quazlink_custom_bg_preset') || 'golden-hyalos',
     customDataUrl: localStorage.getItem('quazlink_custom_bg_data') || '',
     customFileName: localStorage.getItem('quazlink_custom_bg_filename') || '',
     blur: parseInt(localStorage.getItem('quazlink_custom_bg_blur') || '10', 10),
@@ -275,8 +279,6 @@ function applyCustomBackgroundStyles(cfg) {
 
   root.style.setProperty('--custom-bg-blur', `${cfg.blur}px`);
   root.style.setProperty('--custom-bg-dim', (cfg.dim / 100).toFixed(2));
-  root.style.setProperty('--glass-surface', `rgba(15, 23, 42, ${(cfg.glassOpacity / 100).toFixed(2)})`);
-  root.style.setProperty('--glass-surface-hover', `rgba(22, 33, 56, ${Math.min(0.95, (cfg.glassOpacity / 100) + 0.12).toFixed(2)})`);
   root.style.setProperty('--glass-blur', `${cfg.glassBlur}px`);
 
   if (cfg.bgEnabled) {
@@ -292,7 +294,7 @@ function applyCustomBackgroundStyles(cfg) {
         bgLayer.style.background = THEME_PRESETS[cfg.preset].style;
       } else {
         bgLayer.style.backgroundImage = '';
-        bgLayer.style.background = THEME_PRESETS['cosmic-aurora'].style;
+        bgLayer.style.background = THEME_PRESETS['golden-hyalos'] ? THEME_PRESETS['golden-hyalos'].style : THEME_PRESETS['cosmic-aurora'].style;
       }
     }
   } else {
@@ -304,6 +306,25 @@ function applyCustomBackgroundStyles(cfg) {
     document.body.classList.add('theme-glass-prism');
   } else {
     document.body.classList.remove('theme-glass-prism');
+  }
+
+  // Golden Hyalos Luxury Glass & Gold Accents
+  if (cfg.bgEnabled && !cfg.customDataUrl && cfg.preset === 'golden-hyalos') {
+    document.body.classList.add('theme-preset-golden-hyalos');
+    root.style.setProperty('--glass-surface', `rgba(18, 16, 12, ${(cfg.glassOpacity / 100).toFixed(2)})`);
+    root.style.setProperty('--glass-surface-hover', `rgba(28, 25, 19, ${Math.min(0.95, (cfg.glassOpacity / 100) + 0.12).toFixed(2)})`);
+    root.style.setProperty('--glass-border', 'rgba(212, 175, 55, 0.38)');
+    root.style.setProperty('--glass-border-specular', 'rgba(255, 224, 130, 0.7)');
+    root.style.setProperty('--glass-prism-shadow', '0 12px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 224, 130, 0.2)');
+    root.style.setProperty('--glass-prism-glow', '0 0 24px rgba(212, 175, 55, 0.25)');
+  } else {
+    document.body.classList.remove('theme-preset-golden-hyalos');
+    root.style.setProperty('--glass-surface', `rgba(15, 23, 42, ${(cfg.glassOpacity / 100).toFixed(2)})`);
+    root.style.setProperty('--glass-surface-hover', `rgba(22, 33, 56, ${Math.min(0.95, (cfg.glassOpacity / 100) + 0.12).toFixed(2)})`);
+    root.style.setProperty('--glass-border', 'rgba(255, 255, 255, 0.12)');
+    root.style.setProperty('--glass-border-specular', 'rgba(255, 255, 255, 0.3)');
+    root.style.setProperty('--glass-prism-shadow', '0 8px 32px rgba(0, 0, 0, 0.37)');
+    root.style.setProperty('--glass-prism-glow', '0 0 20px rgba(6, 182, 212, 0.25)');
   }
 
   updateLivePreviewShim(cfg);
@@ -320,7 +341,7 @@ function initThemeSettingsTab() {
       const p = THEME_PRESETS[k];
       const isSelected = !cfg.customDataUrl && cfg.preset === k;
       const card = document.createElement('div');
-      card.className = `preset-card ${isSelected ? 'active' : ''}`;
+      card.className = `preset-card ${k === 'golden-hyalos' ? 'preset-golden-hyalos' : ''} ${isSelected ? 'active' : ''}`;
       card.style.background = p.style;
       card.onclick = () => selectThemePreset(k);
       card.innerHTML = `
@@ -556,7 +577,9 @@ function updateLivePreviewShim(cfg) {
   }
 
   bgShim.style.filter = `blur(${cfg.blur}px)`;
-  overlayShim.style.background = `rgba(10, 14, 23, ${(cfg.dim / 100).toFixed(2)})`;
+  overlayShim.style.background = cfg.preset === 'golden-hyalos' 
+    ? `rgba(8, 7, 6, ${(cfg.dim / 100).toFixed(2)})` 
+    : `rgba(10, 14, 23, ${(cfg.dim / 100).toFixed(2)})`;
 
   if (cfg.customDataUrl) {
     bgShim.style.background = '';
@@ -566,7 +589,19 @@ function updateLivePreviewShim(cfg) {
     bgShim.style.background = THEME_PRESETS[cfg.preset].style;
   } else {
     bgShim.style.backgroundImage = '';
-    bgShim.style.background = THEME_PRESETS['cosmic-aurora'].style;
+    bgShim.style.background = THEME_PRESETS['golden-hyalos'] ? THEME_PRESETS['golden-hyalos'].style : THEME_PRESETS['cosmic-aurora'].style;
+  }
+
+  // Update mini preview card borders dynamically
+  const miniCard = previewBox.querySelector('.preview-mini-card');
+  if (miniCard) {
+    if (cfg.preset === 'golden-hyalos' && !cfg.customDataUrl) {
+      miniCard.style.borderColor = 'rgba(212, 175, 55, 0.45)';
+      miniCard.style.boxShadow = '0 12px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(212, 175, 55, 0.2)';
+    } else {
+      miniCard.style.borderColor = '';
+      miniCard.style.boxShadow = '';
+    }
   }
 }
 

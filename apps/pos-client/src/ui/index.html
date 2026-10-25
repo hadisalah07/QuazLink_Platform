@@ -1337,7 +1337,7 @@
     </div>
 
     <!-- PANE 9: Theme, Custom Backgrounds & Glass Prism Engine -->
-    <div id="paneSettingsTheme" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; flex: 1 1 0%; min-height: 0; overflow-y: auto; padding: 6px 8px 120px 8px;">
+    <div id="paneSettingsTheme" class="settings-pane" style="display: none; flex-direction: column; gap: 14px; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 6px 10px 40px 10px;">
       <!-- Banner Card -->
       <div class="settings-card settings-info-banner" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(6, 182, 212, 0.15)); border: 1px solid rgba(99, 102, 241, 0.3);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -1488,7 +1488,7 @@
       </div>
 
       <!-- Live Interactive Preview Card -->
-      <div class="settings-card" style="position: relative; overflow: hidden;">
+      <div class="settings-card" style="position: relative; overflow: hidden; margin-bottom: 24px;">
         <h4 style="margin: 0 0 10px 0; color: #fff; font-size: 0.88rem; font-weight: 800;">
           👁️ معاينة حية لشكل الزجاج المنشوري على الخلفية الحالية:
         </h4>
@@ -1507,6 +1507,9 @@
           </div>
         </div>
       </div>
+
+      <!-- Bottom Clearance Spacer (Guaranteed scroll padding so no bottom elements clip) -->
+      <div class="settings-pane-bottom-spacer" style="height: 160px; min-height: 160px; flex-shrink: 0; width: 100%; pointer-events: none;" aria-hidden="true"></div>
 
     </div>
   </section>
