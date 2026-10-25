@@ -69,3 +69,32 @@ This rule governs ALL work, improvements, bug fixes, and feature additions acros
     2. **Notification Badges**: Green indicator on the "Settings & Licensing" tab and the "Updates" subtab.
     3. **Actionable Toast Notification**: Prompting the cashier/owner to update.
   - The update process must preserve all local sales, offline invoices, and user configurations without data loss.
+
+---
+
+## 6. Mandatory Binary Packaging & Atomic Release Pipeline (بروتوكول تجميع ورفع الحزم قبل إعلان التحديث)
+
+> [!CAUTION]
+> **قاعدة ذهبية صارمة (Strict Release Invariant)**:
+> يُحظر تماماً وبشكل قاطع رفع وتفعيل رقم إصدار جديد على خوادم المنصة (`apps/web` و `apps/api`) قبل بناء وتأكيد رفع حزم التثبيت التنفيذية وحزم الباتش إلى مجلد التنزيلات على السيرفر `/data/downloads/`. خرق هذه القاعدة يتسبب في حلقة تحديث لا نهائية للعملاء (Infinite Stale Update Loop).
+
+### خطوات الإطلاق الإلزامية بالترتيب الزمني الصارم:
+
+1. **الخطوة 1: فحص وبناء الكود محلياً (Local Compile)**:
+   - تشغيل `npm run build` في `apps/pos-client`.
+   - التأكد من تحديث مجلد `dist/` بالكامل وتطابق `package.json`.
+
+2. **الخطوة 2: بناء ملفات التثبيت التنفيذية والباتش (Binary Packaging)**:
+   - تشغيل `npm run dist:exe` لتوليد `dist/release/QuazLink-POS-Setup.exe` و `QuazLink-POS-Portable.exe`.
+   - ضغط ملفات `dist/` مع `package.json` لتوليد حزمة التحديث السريع: `QuazLink-POS-Patch-vX.Y.Z.zip` و `QuazLink-POS-Patch.zip`.
+
+3. **الخطوة 3: الرفع والتحقق على السيرفر أولاً (Upload & Verify First)**:
+   - رفع كافة الملفات التنفيذية والباتشات إلى سيرفر الإنتاج في المسار `/data/downloads/`.
+   - عمل فحص فوري عبر `curl.exe -I https://app.quazlink.site/downloads/QuazLink-POS-Setup.exe` والتأكد من:
+     - كود الحالة `200 OK`.
+     - الـ `Content-Length` يطابق حجم الملف المبني حديثاً بالبايت.
+
+4. **الخطوة 4: تفعيل الإصدار في الـ API والمنصة (Atomic Switch)**:
+   - بعد التأكد من اكتمال الخطوة 3 بنجاح بنسبة 100%، يتم تحديث متغيرات `POS_LATEST_VERSION` و `patchUrl` ونشر حاويات المنصة (`api` و `web`).
+   - بمجرد اكتمال هذه الخطوة، سيتلقى العملاء إشعار التحديث وعند ضغط التثبيت سيحصلون فوراً على الإصدار الجديد الحقيقي.
+
