@@ -516,7 +516,9 @@ export class PosUpdaterService {
         }
 
         const currentExe = process.execPath;
-        const extractCmd = `Expand-Archive -Path "${patchZip}" -DestinationPath "${targetAppDir}" -Force; Start-Sleep -Milliseconds 600; if (Test-Path "${currentExe}") { Start-Process -FilePath "${currentExe}" }`;
+        const currentPid = process.pid;
+        const exeDir = path.dirname(currentExe);
+        const extractCmd = `Wait-Process -Id ${currentPid} -Timeout 10 -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; Expand-Archive -Path "${patchZip}" -DestinationPath "${targetAppDir}" -Force; Start-Sleep -Milliseconds 500; if (Test-Path "${currentExe}") { Start-Process -FilePath "${currentExe}" -WorkingDirectory "${exeDir}" }`;
 
         const helper = spawn('powershell.exe', ['-WindowStyle', 'Hidden', '-NoProfile', '-Command', extractCmd], {
           detached: true,
