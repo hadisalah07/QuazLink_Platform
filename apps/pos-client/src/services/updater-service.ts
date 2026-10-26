@@ -25,7 +25,7 @@ export type UpdateProgressCallback = (percent: number, downloadedMB: string, tot
 const GITHUB_REPO_OWNER = 'hadisalah07';
 const GITHUB_REPO_NAME = 'QuazLink_Platform';
 const POS_ASSET_NAME = 'QuazLink-POS-Setup.exe';
-export const CURRENT_VERSION = '1.3.8';
+export const CURRENT_VERSION = '1.3.9';
 
 export class PosUpdaterService {
   private currentVersion: string = CURRENT_VERSION;
@@ -518,9 +518,73 @@ export class PosUpdaterService {
         const currentExe = process.execPath;
         const currentPid = process.pid;
         const exeDir = path.dirname(currentExe);
-        const extractCmd = `Wait-Process -Id ${currentPid} -Timeout 10 -ErrorAction SilentlyContinue; Start-Sleep -Milliseconds 800; Expand-Archive -Path "${patchZip}" -DestinationPath "${targetAppDir}" -Force; Start-Sleep -Milliseconds 500; if (Test-Path "${currentExe}") { Start-Process -FilePath "${currentExe}" -WorkingDirectory "${exeDir}" }`;
+        const scriptPath = path.join(tempDir, 'quazlink-fast-patch.ps1');
 
-        const helper = spawn('powershell.exe', ['-WindowStyle', 'Hidden', '-NoProfile', '-Command', extractCmd], {
+        const psScript = `
+$ErrorActionPreference = "Continue"
+$logPath = "$env:USERPROFILE\\.quazlink\\patch_updater.log"
+
+function Write-PatchLog($msg) {
+    $time = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    Add-Content -Path $logPath -Value "[$time] $msg" -ErrorAction SilentlyContinue
+}
+
+Write-PatchLog "=== Fast Patch Started (Target PID: ${currentPid}) ==="
+
+# 1. Wait for the primary Electron process to exit
+Write-PatchLog "Waiting for PID ${currentPid} to exit..."
+Wait-Process -Id ${currentPid} -Timeout 15 -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 600
+
+# 2. Terminate any lingering child worker processes holding resources
+Get-Process -Name "QuazLink POS*" -ErrorAction SilentlyContinue | ForEach-Object {
+    if ($_.Id -ne $PID) {
+        Write-PatchLog "Stopping lingering process ID: $($_.Id)"
+        Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+    }
+}
+Start-Sleep -Milliseconds 400
+
+# 3. Extract patch with retry mechanism (handles transient file locks)
+$extracted = $false
+for ($i = 1; $i -le 6; $i++) {
+    Write-PatchLog "Extracting patch (attempt $i/6)..."
+    try {
+        Expand-Archive -Path "${patchZip}" -DestinationPath "${targetAppDir}" -Force -ErrorAction Stop
+        $extracted = $true
+        Write-PatchLog "Extraction successful on attempt $i."
+        break
+    } catch {
+        Write-PatchLog "Attempt $i failed: $($_.Exception.Message)"
+        Start-Sleep -Milliseconds 800
+    }
+}
+
+if (-not $extracted) {
+    Write-PatchLog "ERROR: Failed to extract patch after 6 attempts."
+}
+
+# 4. Relaunch the application
+Start-Sleep -Milliseconds 500
+if (Test-Path "${currentExe}") {
+    Write-PatchLog "Relaunching: ${currentExe} in ${exeDir}"
+    Start-Process -FilePath "${currentExe}" -WorkingDirectory "${exeDir}"
+    Write-PatchLog "Application relaunch command dispatched."
+} else {
+    Write-PatchLog "ERROR: Cannot find executable at: ${currentExe}"
+}
+
+Write-PatchLog "=== Fast Patch Process Complete ==="
+`;
+
+        fs.writeFileSync(scriptPath, psScript, 'utf8');
+
+        const helper = spawn('powershell.exe', [
+          '-ExecutionPolicy', 'Bypass',
+          '-WindowStyle', 'Hidden',
+          '-NoProfile',
+          '-File', scriptPath,
+        ], {
           detached: true,
           stdio: 'ignore',
         });

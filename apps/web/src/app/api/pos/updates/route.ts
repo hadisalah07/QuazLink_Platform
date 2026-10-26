@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.3.8";
+export const POS_LATEST_VERSION = "1.3.9";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
-export const POS_RELEASE_DATE = "2026-10-25";
-export const POS_RELEASE_NOTES = `• إضافة ثيم "Golden Hyalos" (جولدن هيالوس 👑) الفاخر بلون الذهب المعدني الخالص وحجر السج الأسود وانعكاسات الزجاج المنشوري الملكي.
-• حل مشكلة قص الهوامش السفلية في تبويب المظهر والإعدادات (Scroll Clearance Fix) مع ضمان ظهور بطاقة المعاينة الحية كاملة.
-• تحسينات عامة في أداء التمرير واستقرار واجهة نقطة البيع.`;
+export const POS_RELEASE_DATE = "2026-10-26";
+export const POS_RELEASE_NOTES = `• حل مشكلة تداخل شاشة الإعدادات والترخيص تحت شاشة الكاشير (View Isolation & Specificity Fix).
+• ترقية محرك التحديث السريع والذاتي (Self-Healing Fast Patch Engine) مع إعادة التشغيل التلقائي المضمون في ثانيتين.
+• استقرار كامل لأداء الواجهة والتمرير بدون أي تعليق أو تداخل في العناصر.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -59,8 +59,8 @@ export async function GET(request: Request) {
     releaseNotes: POS_RELEASE_NOTES,
     downloadUrl: `/downloads/${setupFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
     portableUrl: `/downloads/${portableFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
-    patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.8.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
-    patchSize: 1155688,
+    patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.9.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
+    patchSize: 1156470,
     assetSize: setupFileSize,
     portableSize: portableFileSize,
     publishedAt: new Date(POS_RELEASE_DATE).toISOString(),

@@ -8,11 +8,11 @@ const router = Router();
 
 const SECRET_SALT = 'QUAZLINK_ENTERPRISE_ERP_CORE_SALT_2026';
 
-export const POS_LATEST_VERSION = '1.3.8';
-export const POS_RELEASE_DATE = '2026-10-25';
-export const POS_RELEASE_NOTES = `• إضافة ثيم "Golden Hyalos" (جولدن هيالوس 👑) الفاخر بلون الذهب المعدني الخالص وحجر السج الأسود وانعكاسات الزجاج المنشوري الملكي.
-• حل مشكلة قص الهوامش السفلية في تبويب المظهر والإعدادات (Scroll Clearance Fix) مع ضمان ظهور بطاقة المعاينة الحية كاملة.
-• تحسينات عامة في أداء التمرير واستقرار واجهة نقطة البيع.`;
+export const POS_LATEST_VERSION = '1.3.9';
+export const POS_RELEASE_DATE = '2026-10-26';
+export const POS_RELEASE_NOTES = `• حل مشكلة تداخل شاشة الإعدادات والترخيص تحت شاشة الكاشير (View Isolation & Specificity Fix).
+• ترقية محرك التحديث السريع والذاتي (Self-Healing Fast Patch Engine) مع إعادة التشغيل التلقائي المضمون في ثانيتين.
+• استقرار كامل لأداء الواجهة والتمرير بدون أي تعليق أو تداخل في العناصر.`;
 
 /**
  * Smart lookup to find an existing POS Terminal by Motherboard UUID, Hardware ID, or Hostname+Username,
@@ -264,8 +264,8 @@ router.get('/updates', async (req: Request, res: Response) => {
       releaseNotes: POS_RELEASE_NOTES,
       downloadUrl: `/downloads/${setupFilename}`,
       portableUrl: `/downloads/${portableFilename}`,
-      patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.8.zip`,
-      patchSize: 1155688,
+      patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.9.zip`,
+      patchSize: 1156470,
       assetSize: isLegacyWin ? 73974272 : 74212111,
       portableSize: isLegacyWin ? 73640804 : 73878193,
       publishedAt: new Date(POS_RELEASE_DATE).toISOString(),

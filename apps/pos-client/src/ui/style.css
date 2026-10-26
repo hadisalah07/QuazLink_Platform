@@ -1606,7 +1606,8 @@ body.theme-light .suggestion-price .currency,
    Management Hub Views (Inventory, Purchases, CRM, Low Stock)
    ========================================================================== */
 
-.app-view {
+.app-view,
+.app-view:not(.active) {
   display: none !important;
 }
 
@@ -4759,7 +4760,11 @@ body.theme-light .settings-subtabs-nav,
 /* ==========================================================================
    SETTINGS VIEW SCROLL & VIEWPORT FIX (All Subtabs + Theme Preview)
    ========================================================================== */
-#settingsView.mgmt-view {
+#settingsView.mgmt-view:not(.active) {
+  display: none !important;
+}
+
+#settingsView.mgmt-view.active {
   flex: 1 1 0% !important;
   height: calc(100vh - var(--header-height)) !important;
   max-height: calc(100vh - var(--header-height)) !important;
