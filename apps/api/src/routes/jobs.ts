@@ -61,7 +61,26 @@ router.get('/', async (req, res) => {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
-    res.json(jobs);
+
+    // Strip out heavy raw base64 screenshots from list payload!
+    // Replaces megabytes of base64 data with a fast streaming endpoint URL.
+    const sanitizedJobs = jobs.map((job) => {
+      let lightScreenshotUrl: string | null = null;
+      if (job.screenshotUrl && job.screenshotUrl.trim().length > 0) {
+        const raw = job.screenshotUrl.trim();
+        if (raw.startsWith('http://') || raw.startsWith('https://')) {
+          lightScreenshotUrl = raw;
+        } else {
+          lightScreenshotUrl = `/api/jobs/${job.id}/screenshot`;
+        }
+      }
+      return {
+        ...job,
+        screenshotUrl: lightScreenshotUrl,
+      };
+    });
+
+    res.json(sanitizedJobs);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

@@ -41,7 +41,12 @@ function toUiStatus(status: string): UiStatus {
 function getProofImageSrc(job: Job): string {
   if (!job.screenshotUrl) return screenshotUrl(job.id);
   const src = job.screenshotUrl.trim();
-  if (src.startsWith("data:") || src.startsWith("http://") || src.startsWith("https://")) {
+  if (
+    src.startsWith("data:") ||
+    src.startsWith("http://") ||
+    src.startsWith("https://") ||
+    src.startsWith("/")
+  ) {
     return src;
   }
   if (src.startsWith("/9j/")) {
@@ -92,6 +97,8 @@ function formatJobDate(dateStr: string): string {
 
 export default function RunsPage() {
   const [jobs, setJobs] = React.useState<Job[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [filter, setFilter] = React.useState<"all" | "completed" | "running" | "failed">("all");
   const [selectedDate, setSelectedDate] = React.useState<string>("");
@@ -117,13 +124,18 @@ export default function RunsPage() {
     });
   }, []);
 
-  const refresh = React.useCallback(async () => {
+  const refresh = React.useCallback(async (silent = false) => {
+    if (!silent) setIsRefreshing(true);
     try {
       const data = await getJobs(200);
       data.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
       setJobs(data);
+      setError(null);
     } catch (e: any) {
-      setError(e.message);
+      if (!silent) setError(e.message);
+    } finally {
+      setIsLoading(false);
+      if (!silent) setIsRefreshing(false);
     }
   }, []);
 
@@ -136,7 +148,7 @@ export default function RunsPage() {
       await retryJob(jobId);
       setRetrySuccessMsg(`تمت جدولة إعادة إرسال المهمة #${jobId.slice(0, 8)} فوراً للرانر!`);
       setTimeout(() => setRetrySuccessMsg(null), 4000);
-      await refresh();
+      await refresh(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -151,7 +163,7 @@ export default function RunsPage() {
       const res = await retryAllFailedJobs();
       setRetrySuccessMsg(`تمت إعادة جدولة ${res.count} مهمة فاشلة للإرسال فوراً!`);
       setTimeout(() => setRetrySuccessMsg(null), 4000);
-      await refresh();
+      await refresh(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -165,37 +177,61 @@ export default function RunsPage() {
 
     async function cycle() {
       if (typeof document !== "undefined" && !document.hidden) {
-        await refresh();
+        await refresh(true);
       }
       if (isCancelled) return;
 
+      const now = Date.now();
       const hasActiveJob = jobsRef.current.some((j) => {
         const s = toUiStatus(j.status);
-        return s === "running" || j.status === "connecting" || j.status === "prepared";
+        const isRunning =
+          s === "running" ||
+          j.status === "connecting" ||
+          j.status === "prepared" ||
+          j.status === "pending" ||
+          j.status === "dispatched";
+        const isRecent = now - new Date(j.createdAt).getTime() < 120_000;
+        return isRunning || isRecent;
       });
 
-      const delay = hasActiveJob ? 5000 : 25000;
+      // Ultra-fast 1.5s real-time pulse when jobs are running or recently started; 5s gentle pulse otherwise
+      const delay = hasActiveJob ? 1500 : 5000;
       timer = setTimeout(cycle, delay);
     }
 
     cycle();
 
-    const onVisibilityChange = () => {
-      if (!document.hidden) {
+    const onWakeup = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
         clearTimeout(timer);
         cycle();
       }
     };
-    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    document.addEventListener("visibilitychange", onWakeup);
+    window.addEventListener("focus", onWakeup);
+    window.addEventListener("online", onWakeup);
 
     return () => {
       isCancelled = true;
       clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
+      document.removeEventListener("visibilitychange", onWakeup);
+      window.removeEventListener("focus", onWakeup);
+      window.removeEventListener("online", onWakeup);
     };
   }, [refresh]);
 
   const failedCount = jobs.filter((j) => toUiStatus(j.status) === "error").length;
+  const hasActiveJobNow = jobs.some((j) => {
+    const s = toUiStatus(j.status);
+    return (
+      s === "running" ||
+      j.status === "connecting" ||
+      j.status === "prepared" ||
+      j.status === "pending" ||
+      j.status === "dispatched"
+    );
+  });
 
   const filteredJobs = jobs.filter((j) => {
     const status = toUiStatus(j.status);
@@ -241,6 +277,26 @@ export default function RunsPage() {
         </div>
         
         <div className="flex items-center flex-wrap gap-3">
+          {/* Live Real-time Status Badge */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs shadow-inner">
+            {hasActiveJobNow ? (
+              <>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
+                </span>
+                <span className="text-cyan-300 font-semibold flex items-center gap-1">
+                  مزامنة لحظية فورية (1.5s)
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
+                <span className="text-gray-400 font-medium">مراقبة حية نشطة (5s)</span>
+              </>
+            )}
+          </div>
+
           {failedCount > 0 && (
             <button
               onClick={handleRetryAll}
@@ -253,11 +309,13 @@ export default function RunsPage() {
           )}
 
           <button
-            onClick={refresh}
-            className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 text-sm font-medium cursor-pointer"
+            onClick={() => refresh(false)}
+            disabled={isRefreshing}
+            className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-60"
+            title="تحديث قائمة السجلات فوراً"
           >
-            <RefreshCw className="w-4 h-4 text-cyan-400" />
-            <span>Refresh Logs</span>
+            <RefreshCw className={cn("w-4 h-4 text-cyan-400", isRefreshing && "animate-spin")} />
+            <span>{isRefreshing ? "جاري التحديث..." : "Refresh Logs"}</span>
           </button>
         </div>
       </div>
@@ -383,7 +441,30 @@ export default function RunsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
-              {filteredJobs.length === 0 ? (
+              {isLoading && jobs.length === 0 ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx} className="animate-pulse border-b border-white/5">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-lg bg-white/10 shrink-0"></div>
+                        <div className="space-y-2 flex-1">
+                          <div className="h-4 bg-white/10 rounded w-3/4"></div>
+                          <div className="h-3 bg-white/5 rounded w-1/3"></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="h-5 bg-white/10 rounded-full w-24"></div>
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="h-4 bg-white/5 rounded w-28"></div>
+                    </td>
+                    <td className="px-6 py-5 text-right">
+                      <div className="h-8 bg-white/10 rounded-lg w-24 inline-block"></div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredJobs.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                     {selectedDate ? (
