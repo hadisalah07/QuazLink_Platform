@@ -1,7 +1,7 @@
 param(
     [string]$SetupProcessName = "QuazLink-POS-Setup",
     [string]$TargetExe = "",
-    [string]$Version = "v1.3.7"
+    [string]$Version = "v1.4.0"
 )
 
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase

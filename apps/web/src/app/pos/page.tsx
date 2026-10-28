@@ -530,9 +530,9 @@ export default function PosPortalPage() {
 
                 <div>
                   <a
-                    href="/downloads/QuazLink-POS-Setup-v1.3.7.exe"
+                    href={downloadsInfo?.posClient?.installer?.downloadUrl || "/downloads/QuazLink-POS-Setup-v1.4.0.exe"}
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/20 hover:from-emerald-400 hover:to-cyan-400 transition-all transform hover:-translate-y-0.5"
-                    download="QuazLink-POS-Setup-v1.3.7.exe"
+                    download={downloadsInfo?.posClient?.installer?.filename || "QuazLink-POS-Setup-v1.4.0.exe"}
                   >
                     <Download className="w-5 h-5" />
                     <span>{t.posCard1Btn}</span>
@@ -584,9 +584,9 @@ export default function PosPortalPage() {
 
                 <div>
                   <a
-                    href="/downloads/QuazLink-POS-Portable-v1.3.7.zip"
+                    href={downloadsInfo?.posClient?.portable?.downloadUrl || "/downloads/QuazLink-POS-Portable-v1.4.0.zip"}
                     className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-cyan-500/50 transition-all"
-                    download="QuazLink-POS-Portable-v1.3.7.zip"
+                    download={downloadsInfo?.posClient?.portable?.filename || "QuazLink-POS-Portable-v1.4.0.zip"}
                   >
                     <FolderArchive className="w-5 h-5 text-cyan-400" />
                     <span>{t.posCard2Btn}</span>
@@ -647,9 +647,9 @@ export default function PosPortalPage() {
 
                 <div>
                   <a
-                    href="/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.3.7.exe"
+                    href={downloadsInfo?.posLegacyClient?.installer?.downloadUrl || "/downloads/QuazLink-POS-Legacy-Win7-Setup-v1.4.0.exe"}
                     className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 shadow-lg shadow-amber-500/20 hover:from-amber-400 hover:to-orange-400 transition-all transform hover:-translate-y-0.5"
-                    download="QuazLink-POS-Legacy-Win7-Setup-v1.3.7.exe"
+                    download={downloadsInfo?.posLegacyClient?.installer?.filename || "QuazLink-POS-Legacy-Win7-Setup-v1.4.0.exe"}
                   >
                     <Download className="w-5 h-5" />
                     <span>{t.posCard3Btn}</span>
@@ -701,9 +701,9 @@ export default function PosPortalPage() {
 
                 <div>
                   <a
-                    href="/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.3.7.zip"
+                    href={downloadsInfo?.posLegacyClient?.portable?.downloadUrl || "/downloads/QuazLink-POS-Legacy-Win7-Portable-v1.4.0.zip"}
                     className="w-full py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-center text-sm sm:text-base flex items-center justify-center gap-2.5 border border-white/10 hover:border-amber-500/50 transition-all"
-                    download="QuazLink-POS-Legacy-Win7-Portable-v1.3.7.zip"
+                    download={downloadsInfo?.posLegacyClient?.portable?.filename || "QuazLink-POS-Legacy-Win7-Portable-v1.4.0.zip"}
                   >
                     <FolderArchive className="w-5 h-5 text-amber-400" />
                     <span>{t.posCard4Btn}</span>

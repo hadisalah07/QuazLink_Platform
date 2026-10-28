@@ -595,7 +595,7 @@ export class LicensingService {
             hardwareId: hwId,
             businessName: profile.business_name || 'Retail Store',
             hostname: os.hostname(),
-            appVersion: '1.3.7',
+            appVersion: '1.4.0',
             osRelease: os.release(),
             motherboardUuid: specs.motherboardUuid,
             motherboardSerial: specs.motherboardSerial,

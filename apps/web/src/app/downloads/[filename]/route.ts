@@ -74,6 +74,12 @@ export async function GET(
 
   // Fallback to GitHub Release CDN
   const cdnMap: Record<string, string> = {
+    "QuazLink-POS-Setup-v1.4.0.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Setup-v1.4.0.exe",
+    "QuazLink-POS-Portable-v1.4.0.zip": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Portable-v1.4.0.zip",
+    "QuazLink-POS-Legacy-Win7-Setup-v1.4.0.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Legacy-Win7-Setup-v1.4.0.exe",
+    "QuazLink-POS-Legacy-Win7-Portable-v1.4.0.zip": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Legacy-Win7-Portable-v1.4.0.zip",
+    "QuazLink-POS-Patch-v1.4.0.zip": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Patch-v1.4.0.zip",
+    "QuazLink-POS-Patch.zip": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Patch-v1.4.0.zip",
     "QuazLink-Runner-Setup-v26.10.14.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.14/QuazLink-Runner-Setup-v26.10.14.exe",
     "QuazLink-Runner-Setup-v26.10.13.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.13/QuazLink-Runner-Setup-v26.10.13.exe",
     "QuazLink-Runner-Setup.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.14/QuazLink-Runner-Setup-v26.10.14.exe",

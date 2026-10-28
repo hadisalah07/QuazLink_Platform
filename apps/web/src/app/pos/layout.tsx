@@ -216,7 +216,7 @@ export default function PosLayout({
                     <span>{isAr ? "المنصة السحابية الرئيسية" : "Main Cloud Platform"}</span>
                     <ExternalLink className="w-3 h-3 text-gray-400" />
                   </Link>
-                  <span className="text-[10px] text-gray-500 font-mono">v1.3.7</span>
+                  <span className="text-[10px] text-gray-500 font-mono">v1.4.0</span>
                 </div>
               </nav>
             </motion.div>
