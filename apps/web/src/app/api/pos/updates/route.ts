@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const portableFilename = isLegacyWin ? "QuazLink-POS-Legacy-Win7-Portable.exe" : "QuazLink-POS-Portable.zip";
 
   // Exact verified binary file sizes (bytes)
-  const setupFileSize = isLegacyWin ? 73978596 : 74253442;
+  const setupFileSize = isLegacyWin ? 73978596 : 74257523;
   const portableFileSize = isLegacyWin ? 73640936 : 73919523;
 
   // Compare versions

@@ -3,7 +3,7 @@ import * as http from 'node:http';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { spawn } from 'node:child_process';
+import { spawn, exec } from 'node:child_process';
 import { URL } from 'node:url';
 
 export interface PosUpdateCheckResult {
@@ -579,18 +579,23 @@ Write-PatchLog "=== Fast Patch Process Complete ==="
 
         fs.writeFileSync(scriptPath, psScript, 'utf8');
 
-        const helper = spawn('powershell.exe', [
-          '-ExecutionPolicy', 'Bypass',
-          '-WindowStyle', 'Hidden',
-          '-NoProfile',
-          '-File', scriptPath,
-        ], {
-          detached: true,
-          stdio: 'ignore',
+        const wmicCmd = `wmic process call create "powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File \\"${scriptPath}\\""`;
+        exec(wmicCmd, (err) => {
+          if (err) {
+            console.error('⚠️ [PosUpdater] WMIC process spawn failed, fallback to direct spawn:', err);
+            const helper = spawn('powershell.exe', [
+              '-ExecutionPolicy', 'Bypass',
+              '-WindowStyle', 'Hidden',
+              '-NoProfile',
+              '-File', scriptPath,
+            ], {
+              detached: true,
+              stdio: 'ignore',
+            });
+            helper.unref();
+          }
+          setTimeout(() => process.exit(0), 600);
         });
-        helper.unref();
-
-        setTimeout(() => process.exit(0), 400);
         return true;
       } else {
         throw new Error('Fast patch extraction is currently supported on Windows.');
