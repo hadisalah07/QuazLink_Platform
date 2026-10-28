@@ -244,6 +244,116 @@ body {
   font-weight: 600;
 }
 
+/* =============================================================
+   Top Header Auto-Update Micro Indicator
+   ============================================================= */
+.header-update-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(6, 182, 212, 0.2));
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  color: #34d399;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  animation: pulseUpdatePill 2.5s infinite;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+  margin-right: 6px;
+  max-width: 280px;
+  white-space: nowrap;
+}
+
+.header-update-pill:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(6, 182, 212, 0.32));
+  border-color: #34d399;
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35);
+}
+
+.header-update-pill.ready {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.28), rgba(34, 197, 94, 0.35));
+  border-color: #22c55e;
+  color: #a7f3d0;
+  animation: bounceUpdatePill 2s infinite;
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.3);
+}
+
+.header-update-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.header-update-icon.spin-update svg {
+  animation: spinHeaderIcon 1.2s linear infinite;
+}
+
+@keyframes spinHeaderIcon {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.header-update-track {
+  width: 42px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.header-update-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #06b6d4);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.header-update-pill.ready .header-update-track {
+  display: none;
+}
+
+@keyframes pulseUpdatePill {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+  }
+}
+
+@keyframes bounceUpdatePill {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+
+/* Light Mode Overrides */
+body.theme-light .header-update-pill,
+[data-theme="light"] .header-update-pill {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 182, 212, 0.15));
+  border-color: rgba(5, 150, 105, 0.5);
+  color: #047857;
+  box-shadow: 0 1px 6px rgba(5, 150, 105, 0.15);
+}
+
+body.theme-light .header-update-track,
+[data-theme="light"] .header-update-track {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .time-clock {
   font-family: 'Cairo', system-ui, -apple-system, sans-serif; font-variant-numeric: tabular-nums; font-feature-settings: 'tnum';
   font-size: 0.9rem;

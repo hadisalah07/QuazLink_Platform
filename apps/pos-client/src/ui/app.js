@@ -1770,6 +1770,10 @@ function renderCart() {
   });
 
   recalculateTotals();
+
+  if (state.cart.length === 0 && typeof checkPendingAutoUpdateRestart === 'function') {
+    checkPendingAutoUpdateRestart();
+  }
 }
 
 function changeQty(index, delta) {
@@ -5201,6 +5205,11 @@ function switchSettingsSubtab(tabName) {
 // -------------------------------------------------------------
 let cachedUpdateInfo = null;
 let updateDownloadPollInterval = null;
+let isSilentAutoUpdating = false;
+let silentUpdatePollInterval = null;
+let pendingAutoRelaunch = false;
+let updateCountdownTimer = null;
+let updateCountdownSeconds = 5;
 
 async function autoCheckForUpdatesOnStartup() {
   try {
@@ -5217,12 +5226,21 @@ async function autoCheckForUpdatesOnStartup() {
     if (data.success && data.hasUpdate) {
       cachedUpdateInfo = data;
 
-      // 1. Show Top Floating Update Alert Banner
-      const banner = document.getElementById('updateAlertBanner');
-      const bannerVer = document.getElementById('bannerLatestVer');
-      if (banner && bannerVer) {
-        bannerVer.textContent = 'v' + data.latestVersion;
-        banner.style.display = 'flex';
+      // Check if Silent Auto-Update is enabled (Default: true)
+      const silentEnabled = localStorage.getItem('quazlink_silent_auto_update') !== 'false';
+
+      if (silentEnabled) {
+        // 1. Automatically trigger background download and show top pill indicator
+        startSilentAutoUpdate(data);
+      } else {
+        // Fallback: Show Top Floating Update Alert Banner
+        const banner = document.getElementById('updateAlertBanner');
+        const bannerVer = document.getElementById('bannerLatestVer');
+        if (banner && bannerVer) {
+          bannerVer.textContent = 'v' + data.latestVersion;
+          banner.style.display = 'flex';
+        }
+        showToast(`🚀 يتوفر إصدار جديد لبرنامج الكاشير (v${data.latestVersion})! تفضل بزيارة الإعدادات للتحديث.`, 'info');
       }
 
       // 2. Show Update Badges on Navigation & Settings
@@ -5231,13 +5249,175 @@ async function autoCheckForUpdatesOnStartup() {
 
       const dot = document.getElementById('subtabUpdateDot');
       if (dot) dot.style.display = 'inline-block';
-
-      // 3. Show Toast Notice
-      showToast(`🚀 يتوفر إصدار جديد لبرنامج الكاشير (v${data.latestVersion})! تفضل بزيارة الإعدادات للتحديث.`, 'info');
     }
   } catch (err) {
     console.warn('[AutoUpdater] Silent background check skipped:', err);
   }
+}
+
+async function startSilentAutoUpdate(data) {
+  if (isSilentAutoUpdating) return;
+  isSilentAutoUpdating = true;
+
+  const pill = document.getElementById('headerAutoUpdateIndicator');
+  const txt = document.getElementById('headerUpdateText');
+  const bar = document.getElementById('headerUpdateBar');
+  const icon = document.getElementById('headerUpdateIcon');
+
+  if (pill) {
+    pill.classList.remove('ready');
+    pill.style.display = 'inline-flex';
+  }
+  if (icon) {
+    icon.className = 'header-update-icon spin-update';
+    icon.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+      </svg>
+    `;
+  }
+  if (txt) txt.textContent = `تحديث v${data.latestVersion} (جاري التحميل 0%)`;
+  if (bar) bar.style.width = '3%';
+
+  showToast(`⚡ يتوفر تحديث جديد (v${data.latestVersion})! جاري التنزيل تلقائياً في الخلفية بدون تعطيل عملك...`, 'info');
+
+  try {
+    // Choose fast patch if available, otherwise setup installer download
+    if (data.patchUrl) {
+      fetch('/api/update/fast-patch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patchUrl: data.patchUrl }),
+      }).catch((e) => console.warn('[AutoUpdater] FastPatch request dispatched:', e));
+    } else if (data.downloadUrl) {
+      fetch('/api/update/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ downloadUrl: data.downloadUrl }),
+      }).catch((e) => console.warn('[AutoUpdater] Download request dispatched:', e));
+    }
+
+    // Poll download progress
+    if (silentUpdatePollInterval) clearInterval(silentUpdatePollInterval);
+    silentUpdatePollInterval = setInterval(async () => {
+      try {
+        const sRes = await fetch('/api/update/status');
+        const sData = await sRes.json();
+
+        if (sData.success) {
+          const pct = sData.percent || 0;
+          if (bar) bar.style.width = `${pct}%`;
+          if (txt) txt.textContent = `تحديث v${data.latestVersion} (${pct}%)`;
+
+          // Also mirror to settings tab progress bar if visible
+          const progBar = document.getElementById('updateProgressBar');
+          const progStats = document.getElementById('updateProgressStats');
+          if (progBar) progBar.style.width = `${pct}%`;
+          if (progStats) progStats.textContent = `${pct}% (${sData.downloadedMB || '0'} MB / ${sData.totalMB || '0'} MB)`;
+
+          if (pct >= 100 || !sData.isDownloading) {
+            clearInterval(silentUpdatePollInterval);
+            onSilentUpdateComplete(data);
+          }
+        }
+      } catch (pollErr) {
+        // Ignored during restart
+      }
+    }, 700);
+
+  } catch (err) {
+    console.error('[AutoUpdater] Silent update error:', err);
+    if (txt) txt.textContent = 'تعذر التحديث التلقائي';
+    setTimeout(() => {
+      if (pill) pill.style.display = 'none';
+      isSilentAutoUpdating = false;
+    }, 4000);
+  }
+}
+
+function onSilentUpdateComplete(data) {
+  const pill = document.getElementById('headerAutoUpdateIndicator');
+  const txt = document.getElementById('headerUpdateText');
+  const icon = document.getElementById('headerUpdateIcon');
+
+  if (pill) {
+    pill.classList.add('ready');
+    pill.style.display = 'inline-flex';
+  }
+  if (icon) {
+    icon.className = 'header-update-icon';
+    icon.innerHTML = '<span style="font-size:12px;">🚀</span>';
+  }
+
+  // Cashier safety protection: if customer is being served, wait until invoice is done
+  const hasActiveCart = typeof state !== 'undefined' && Array.isArray(state.cart) && state.cart.length > 0;
+  if (hasActiveCart) {
+    pendingAutoRelaunch = true;
+    if (txt) txt.textContent = `⚡ التحديث جاهز v${data.latestVersion} (سيطبق فور إتمام الفاتورة)`;
+    showToast(`✅ اكتمل تنزيل التحديث v${data.latestVersion}! سيتم تطبيقه تلقائياً بمجرد إتمام الفاتورة الحالية.`, 'success');
+  } else {
+    startAutoRelaunchCountdown(data);
+  }
+}
+
+function checkPendingAutoUpdateRestart() {
+  if (pendingAutoRelaunch && cachedUpdateInfo) {
+    pendingAutoRelaunch = false;
+    startAutoRelaunchCountdown(cachedUpdateInfo);
+  }
+}
+
+function startAutoRelaunchCountdown(data, immediate = false) {
+  const txt = document.getElementById('headerUpdateText');
+  updateCountdownSeconds = immediate ? 0 : 5;
+
+  if (immediate) {
+    if (txt) txt.textContent = '🚀 جاري تشغيل الإصدار الجديد...';
+    showToast(`🚀 جاري تطبيق التحديث v${data?.latestVersion || ''} وإعادة التشغيل...`, 'success');
+    return;
+  }
+
+  showToast(`✅ اكتمل تنزيل التحديث v${data?.latestVersion || ''}! سيتم إعادة التشغيل لتطبيق التحديث خلال 5 ثوانٍ...`, 'success');
+
+  if (updateCountdownTimer) clearInterval(updateCountdownTimer);
+  updateCountdownTimer = setInterval(() => {
+    if (txt) txt.textContent = `🚀 إعادة التشغيل لتطبيق التحديث (${updateCountdownSeconds}ث)`;
+    updateCountdownSeconds--;
+
+    if (updateCountdownSeconds < 0) {
+      clearInterval(updateCountdownTimer);
+      if (txt) txt.textContent = '🚀 جاري تشغيل الإصدار الجديد...';
+    }
+  }, 1000);
+}
+
+function handleHeaderUpdateClick() {
+  const pill = document.getElementById('headerAutoUpdateIndicator');
+  if (!cachedUpdateInfo) {
+    manualCheckForUpdates();
+    return;
+  }
+
+  if (pill && pill.classList.contains('ready')) {
+    if (confirm(`اكتمل تنزيل تحديث QuazLink POS الجديد (v${cachedUpdateInfo.latestVersion}).\n\nهل تريد إعادة تشغيل البرنامج الآن لتطبيق التحديث فوراً؟`)) {
+      startAutoRelaunchCountdown(cachedUpdateInfo, true);
+    }
+  } else if (isSilentAutoUpdating) {
+    showToast(`⚡ جاري تنزيل التحديث تلقائياً في الخلفية (v${cachedUpdateInfo.latestVersion}). يمكنك مواصلة العمل بكل حرية وسرعة.`, 'info');
+  } else {
+    switchView('settingsView');
+    switchSettingsSubtab('updates');
+  }
+}
+
+function toggleSilentAutoUpdatePref(enabled) {
+  localStorage.setItem('quazlink_silent_auto_update', enabled ? 'true' : 'false');
+  const label = document.getElementById('labelSilentAutoUpdateStatus');
+  if (label) {
+    label.textContent = enabled ? 'مفعل تلقائياً ✅' : 'معطل (إشعار يدوي) ⚠️';
+    label.style.color = enabled ? '#34d399' : '#f59e0b';
+  }
+  showToast(enabled ? '✅ تم تفعيل التحديث التلقائي الصامت في الخلفية' : 'تم تحويل التحديث إلى الإشعار اليدوي', 'info');
 }
 
 function dismissUpdateBanner() {
@@ -5523,6 +5703,16 @@ function applyAppSettingsUI() {
   if (togglePrintA4) togglePrintA4.checked = appSettingsCache.print_format_a4 !== 'false';
   if (togglePrintA5) togglePrintA5.checked = appSettingsCache.print_format_a5 !== 'false';
   if (selectDefaultPrint) selectDefaultPrint.value = appSettingsCache.default_print_format || 'thermal';
+
+  // Update Silent Auto-Update switch in settings
+  const toggleSilent = document.getElementById('toggleSilentAutoUpdate');
+  const labelSilent = document.getElementById('labelSilentAutoUpdateStatus');
+  const isSilent = localStorage.getItem('quazlink_silent_auto_update') !== 'false';
+  if (toggleSilent) toggleSilent.checked = isSilent;
+  if (labelSilent) {
+    labelSilent.textContent = isSilent ? 'مفعل تلقائياً ✅' : 'معطل (إشعار يدوي) ⚠️';
+    labelSilent.style.color = isSilent ? '#34d399' : '#f59e0b';
+  }
 
   applyPrintFormatVisibility();
   updateCashierPrintFormatUI();

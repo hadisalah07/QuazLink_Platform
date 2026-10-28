@@ -50,6 +50,19 @@
         <span class="brand-title">QuazLink <span class="badge-retail">ERP OS</span></span>
         <span class="badge-version" id="headerAppVersionBadge" title="إصدار النظام الحالي (اضغط لمراجعة التحديثات)" style="font-family: 'Cairo', system-ui, sans-serif; font-variant-numeric: tabular-nums; font-size: 0.72rem; font-weight: 800; color: #34d399; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 7px; border-radius: 6px; margin-right: 8px; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onclick="switchView('settingsView'); switchSettingsSubtab('updates');">v1.3.9</span>
       </div>
+
+      <!-- Top Auto-Update Indicator / Micro-Pill (Icon and Live Background Progress) -->
+      <div id="headerAutoUpdateIndicator" class="header-update-pill" style="display: none;" onclick="handleHeaderUpdateClick()" title="اضغط لمشاهدة تفاصيل التحديث أو التحكم به">
+        <span id="headerUpdateIcon" class="header-update-icon spin-update">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+          </svg>
+        </span>
+        <span id="headerUpdateText" class="header-update-text">تحديث تلقائي (0%)</span>
+        <div class="header-update-track">
+          <div id="headerUpdateBar" class="header-update-bar" style="width: 0%;"></div>
+        </div>
+      </div>
       <!-- View Switcher Navigation Tabs -->
       <nav class="nav-tabs">
         <button class="nav-tab active" data-view="posView" onclick="switchView('posView')">🛒 الكاشير (POS)</button>
@@ -1324,13 +1337,25 @@
       </div>
 
       <!-- Auto Update Settings Card -->
-      <div class="update-auto-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong class="update-auto-title">فحص التحديثات التلقائي عند بدء التشغيل</strong>
-            <span class="update-auto-desc">إظهار شريط إشعار فوري عند توفر إصدار أحدث لضمان تشغيل المتجر بأعلى أداء وأمان.</span>
+      <div class="update-auto-card" style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 16px 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 240px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span style="font-size: 1.15rem;">⚡</span>
+              <strong class="update-auto-title" style="font-size: 0.95rem; color: #34d399;">التحديث التلقائي الصامت في الخلفية (Silent Auto-Update)</strong>
+              <span class="update-auto-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.68rem; font-weight: 800; padding: 2px 7px; border-radius: 6px;">مُوصى به</span>
+            </div>
+            <span class="update-auto-desc" style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; display: block;">
+              يقوم النظام بتنزيل وتثبيت التحديثات تلقائياً في الخلفية مع إظهار أيقونة تقدم صغيرة في الشريط العلوي، دون الحاجة لدخول الإعدادات وتثبيته يدوياً.
+            </span>
           </div>
-          <span class="update-auto-badge">✅ مفعل تلقائياً</span>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label class="theme-switch" style="position: relative; display: inline-block; width: 44px; height: 24px; margin: 0;">
+              <input type="checkbox" id="toggleSilentAutoUpdate" checked onchange="toggleSilentAutoUpdatePref(this.checked)" style="opacity: 0; width: 0; height: 0;">
+              <span class="theme-slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.15); transition: .3s; border-radius: 24px; border: 1px solid rgba(255,255,255,0.2);"></span>
+            </label>
+            <span id="labelSilentAutoUpdateStatus" style="font-size: 0.8rem; font-weight: 700; color: #34d399;">مفعل تلقائياً ✅</span>
+          </div>
         </div>
       </div>
 
