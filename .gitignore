@@ -38,6 +38,8 @@ yarn-error.log*
 # OS Files
 .DS_Store
 Thumbs.db
+*.zip
+*.exe
 apps/desktop-agent/release/
 apps/web/public/downloads/*.exe
 apps/web/public/downloads/*.zip

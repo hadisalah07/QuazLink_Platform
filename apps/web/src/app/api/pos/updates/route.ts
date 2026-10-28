@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const POS_LATEST_VERSION = "1.3.9";
+export const POS_LATEST_VERSION = "1.4.0";
 export const POS_MIN_REQUIRED_VERSION = "1.0.0";
-export const POS_RELEASE_DATE = "2026-10-26";
-export const POS_RELEASE_NOTES = `• حل مشكلة تداخل شاشة الإعدادات والترخيص تحت شاشة الكاشير (View Isolation & Specificity Fix).
-• ترقية محرك التحديث السريع والذاتي (Self-Healing Fast Patch Engine) مع إعادة التشغيل التلقائي المضمون في ثانيتين.
-• استقرار كامل لأداء الواجهة والتمرير بدون أي تعليق أو تداخل في العناصر.`;
+export const POS_RELEASE_DATE = "2026-10-28";
+export const POS_RELEASE_NOTES = `• نظام التحديث التلقائي الصامت (Silent Background Auto-Update) بدون الحاجة لدخول الإعدادات.
+• مؤشر وأيقونة التحديث العلوية مع شريط تقدم مصغر في الشريط العلوي (Top Header Progress Indicator).
+• حماية عملية البيع للكاشير: تأجيل إعادة التشغيل تلقائياً في حال وجود أصناف في السلة حتى إتمام الفاتورة.
+• استقرار فائق وتحسينات عامة على سرعة المزامنة والواجهة.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -59,8 +60,8 @@ export async function GET(request: Request) {
     releaseNotes: POS_RELEASE_NOTES,
     downloadUrl: `/downloads/${setupFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
     portableUrl: `/downloads/${portableFilename}?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
-    patchUrl: `/downloads/QuazLink-POS-Patch-v1.3.9.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
-    patchSize: 1156470,
+    patchUrl: `/downloads/QuazLink-POS-Patch-v1.4.0.zip?v=${POS_LATEST_VERSION}&t=${new Date(POS_RELEASE_DATE).getTime()}`,
+    patchSize: 1128273,
     assetSize: setupFileSize,
     portableSize: portableFileSize,
     publishedAt: new Date(POS_RELEASE_DATE).toISOString(),
