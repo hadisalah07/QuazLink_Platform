@@ -396,6 +396,37 @@ export interface DownloadsInfoResponse {
       peripherals: string;
     };
   };
+  posLegacyClient?: {
+    name: string;
+    version: string;
+    description: string;
+    recommended: boolean;
+    isLegacy?: boolean;
+    installer: {
+      filename: string;
+      downloadUrl: string;
+      apiDownloadUrl: string;
+      exists: boolean;
+      sizeBytes: number;
+      sizeMB: number;
+      modifiedAt: string | null;
+    };
+    portable: {
+      filename: string;
+      downloadUrl: string;
+      apiDownloadUrl: string;
+      exists: boolean;
+      sizeBytes: number;
+      sizeMB: number;
+      modifiedAt: string | null;
+    };
+    requirements: {
+      os: string;
+      ram: string;
+      disk: string;
+      peripherals: string;
+    };
+  };
   runner: {
     name: string;
     version: string;
