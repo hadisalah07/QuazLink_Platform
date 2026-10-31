@@ -604,7 +604,7 @@
   <div class="header">
     <div class="brand">
       <img src="../assets/icon.png" class="brand-logo" alt="QuazLink Logo" />
-      <div class="brand-title">QuazLink <span>Runner</span> <span class="version-badge">v26.10.15</span></div>
+      <div class="brand-title">QuazLink <span>Runner</span> <span class="version-badge">v26.10.16</span></div>
     </div>
     <div class="header-actions">
       <button class="update-check-btn" id="checkUpdateBtn" title="Check for Updates">
@@ -710,6 +710,18 @@
       </label>
     </div>
 
+    <!-- Auto-Launch on Windows Startup Toggle -->
+    <div class="toggle-card">
+      <div class="toggle-info">
+        <div class="toggle-title">Launch on Windows Startup</div>
+        <div class="toggle-desc">Starts automatically in background on PC boot</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="autoLaunchToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <!-- Terminal Console Stream -->
     <div class="logs-container">
       <div class="logs-header">
@@ -745,6 +757,7 @@
     const pairBtn = document.getElementById('pairBtn');
     const keepAwakeToggle = document.getElementById('keepAwakeToggle');
     const showBrowserToggle = document.getElementById('showBrowserToggle');
+    const autoLaunchToggle = document.getElementById('autoLaunchToggle');
     const closeBtn = document.getElementById('closeBtn');
     const logsBox = document.getElementById('logsBox');
     const openWebBtn = document.getElementById('openWebBtn');
@@ -777,6 +790,11 @@
     showBrowserToggle.addEventListener('change', (e) => {
       q.toggleShowBrowser(e.target.checked);
       addLog(`[SETTINGS] Browser window set to ${e.target.checked ? 'VISIBLE (Foreground)' : 'SILENT (Background)'}`, 'warn');
+    });
+
+    autoLaunchToggle.addEventListener('change', (e) => {
+      q.toggleAutoLaunch(e.target.checked);
+      addLog(`[SETTINGS] Launch on Windows Startup set to ${e.target.checked ? 'ENABLED (Background Mode)' : 'DISABLED'}`, 'warn');
     });
 
     pairingCodeInput.addEventListener('keydown', (e) => {
@@ -844,6 +862,10 @@
 
       if (config?.showBrowser !== undefined) {
         showBrowserToggle.checked = !!config.showBrowser;
+      }
+
+      if (config?.autoLaunch !== undefined) {
+        autoLaunchToggle.checked = !!config.autoLaunch;
       }
 
       if (info?.version || config?.version || window.__appVersion) {

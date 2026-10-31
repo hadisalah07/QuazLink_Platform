@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import crypto from 'crypto';
 import { LocalJobQueue, LocalTask } from '../queue/local-queue';
-import { PlaywrightRunner } from '../executor/playwright-runner';
+import { PlaywrightRunner, ExecutionResult } from '../executor/playwright-runner';
 
 export interface RunnerWSOptions {
   token?: string;

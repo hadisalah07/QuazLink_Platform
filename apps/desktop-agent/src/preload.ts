@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld('quazlink', {
   closeWindow: () => ipcRenderer.send('close-window'),
   toggleKeepAwake: (enabled: boolean) => ipcRenderer.send('toggle-keep-awake', enabled),
   toggleShowBrowser: (enabled: boolean) => ipcRenderer.send('toggle-show-browser', enabled),
+  toggleAutoLaunch: (enabled: boolean) => ipcRenderer.send('toggle-auto-launch', enabled),
   pairDevice: (code: string) => ipcRenderer.send('pair-device', code),
   unpairDevice: () => ipcRenderer.send('unpair-device'),
   getState: () => ipcRenderer.send('get-state'),

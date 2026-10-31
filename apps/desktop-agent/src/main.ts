@@ -44,6 +44,7 @@ process.on('unhandledRejection', (reason: any) => {
 });
 
 logToFile(`🚀 App launched with argv: ${JSON.stringify(process.argv)}`);
+const isHiddenLaunch = process.argv.includes('--hidden') || process.argv.includes('--background') || process.argv.includes('--silent');
 
 // Robust Chromium flags for Windows desktop agent stability
 try {
@@ -73,6 +74,7 @@ interface LocalConfig {
   pairingToken?: string;
   keepAwake?: boolean;
   showBrowser?: boolean;
+  autoLaunch?: boolean;
 }
 
 function loadConfig(): LocalConfig {
@@ -83,6 +85,7 @@ function loadConfig(): LocalConfig {
     try {
       const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf-8'));
       if (cfg.showBrowser === undefined) cfg.showBrowser = false;
+      if (cfg.autoLaunch === undefined) cfg.autoLaunch = false;
       return cfg;
     } catch {}
   }
@@ -90,6 +93,7 @@ function loadConfig(): LocalConfig {
     serverUrl: process.env.CLOUD_GATEWAY_URL || 'wss://api.quazlink.site',
     keepAwake: true,
     showBrowser: false,
+    autoLaunch: false,
   };
 }
 
@@ -222,7 +226,7 @@ function createWindow() {
     title: 'QuazLink Desktop Runner',
     width: 420,
     height: 670,
-    show: true, // Visible immediately upon startup
+    show: !isHiddenLaunch, // Visible immediately only if NOT launched silently in background
     frame: true,
     resizable: true,
     alwaysOnTop: false,
@@ -237,9 +241,11 @@ function createWindow() {
     },
   });
 
-  mainWindow.center();
-  mainWindow.show();
-  mainWindow.focus();
+  if (!isHiddenLaunch) {
+    mainWindow.center();
+    mainWindow.show();
+    mainWindow.focus();
+  }
 
   const htmlPath = fs.existsSync(path.join(__dirname, 'ui', 'index.html'))
     ? path.join(__dirname, 'ui', 'index.html')
@@ -253,12 +259,16 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     logToFile('🪟 [Window] ready-to-show event received');
-    showAppWindow();
+    if (!isHiddenLaunch) {
+      showAppWindow();
+    } else {
+      logToFile('🪟 [Window] Runner launched silently in background (System Tray active)');
+    }
   });
 
-  // Fallback: If ready-to-show takes too long, ensure window becomes visible
+  // Fallback: If ready-to-show takes too long, ensure window becomes visible (only if not background startup)
   setTimeout(() => {
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+    if (!isHiddenLaunch && mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
       logToFile('🪟 [Window] Fallback timeout showing window');
       showAppWindow();
     }
@@ -354,6 +364,18 @@ function updateTrayMenu() {
         },
       },
       {
+        label: 'Start with Windows (Auto-Launch)',
+        type: 'checkbox',
+        checked: !!appConfig.autoLaunch,
+        click: (item) => {
+          applyAutoLaunch(item.checked);
+          updateTrayMenu();
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig, version: app.getVersion() });
+          }
+        },
+      },
+      {
         label: 'Show Browser Window (Live Mode)',
         type: 'checkbox',
         checked: !!appConfig.showBrowser,
@@ -362,7 +384,7 @@ function updateTrayMenu() {
           saveConfig(appConfig);
           wsClient?.setShowBrowser(appConfig.showBrowser);
           if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig });
+            mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig, version: app.getVersion() });
           }
         },
       },
@@ -370,6 +392,7 @@ function updateTrayMenu() {
       {
         label: 'Quit Agent',
         click: () => {
+          (app as any).isQuitting = true;
           wsClient?.cleanup();
           app.quit();
         },
@@ -379,6 +402,42 @@ function updateTrayMenu() {
     tray.setContextMenu(contextMenu);
   } catch (err: any) {
     logToFile(`❌ [Tray] Failed to update tray menu: ${err?.message || err}`);
+  }
+}
+
+function applyAutoLaunch(enabled: boolean) {
+  try {
+    appConfig.autoLaunch = enabled;
+    saveConfig(appConfig);
+
+    const settings: Electron.Settings = {
+      openAtLogin: enabled,
+      args: ['--hidden'],
+    };
+    if (app.isPackaged) {
+      settings.path = process.execPath;
+    }
+    app.setLoginItemSettings(settings);
+    logToFile(`🚀 [AutoLaunch] OS startup registration set to ${enabled} (args: ['--hidden'])`);
+  } catch (err: any) {
+    logToFile(`❌ [AutoLaunch] Failed to apply login item settings: ${err?.message || err}`);
+  }
+}
+
+function syncAutoLaunch() {
+  try {
+    const settings = app.getLoginItemSettings();
+    if (appConfig.autoLaunch !== undefined) {
+      if (settings.openAtLogin !== appConfig.autoLaunch) {
+        applyAutoLaunch(appConfig.autoLaunch);
+      }
+    } else {
+      appConfig.autoLaunch = settings.openAtLogin;
+      saveConfig(appConfig);
+    }
+    logToFile(`🚀 [AutoLaunch] Synced with OS settings: openAtLogin=${appConfig.autoLaunch}`);
+  } catch (err: any) {
+    logToFile(`❌ [AutoLaunch] Sync error: ${err?.message || err}`);
   }
 }
 
@@ -461,6 +520,7 @@ if (gotTheLock) {
     createWindow();
     setupTray();
     applyPowerManagement();
+    syncAutoLaunch();
 
     // Check if launched directly with a deep link argument
     const initialDeepLink = process.argv.find((arg) => arg.includes('quazlink://'));
@@ -498,6 +558,14 @@ if (gotTheLock) {
       saveConfig(appConfig);
       applyPowerManagement();
       updateTrayMenu();
+    });
+
+    ipcMain.on('toggle-auto-launch', (_, enabled) => {
+      applyAutoLaunch(enabled);
+      updateTrayMenu();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-updated', { status: currentStatus, config: appConfig, version: app.getVersion() });
+      }
     });
 
     ipcMain.on('toggle-show-browser', (_, enabled) => {
