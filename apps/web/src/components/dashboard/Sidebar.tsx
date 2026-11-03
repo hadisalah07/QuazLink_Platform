@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt, Download, Store, ShieldCheck, Activity, Smartphone } from "lucide-react";
+import { LayoutDashboard, Users, Zap, Settings, Workflow, PenSquare, ShoppingBag, LogOut, ChevronLeft, ChevronRight, Receipt, Download, Store, ShieldCheck, Activity, Smartphone, Headphones, MessageSquare } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logout, type AuthUser } from "@/lib/api";
@@ -26,6 +26,7 @@ const baseNavItems: NavItem[] = [
   { name: "Runs", href: "/runs", icon: Zap },
   { name: "QuazLink POS Portal", href: "/pos", icon: Store },
   { name: "Downloads & Apps", href: "/download", icon: Download },
+  { name: "Support & Contact", href: "/contact", icon: Headphones },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -45,14 +46,22 @@ export function Sidebar({ user }: { user: AuthUser }) {
   const isAdmin = user.role === "admin" || user.email.toLowerCase() === "hadisalah07@gmail.com";
   const navItems: NavItem[] = React.useMemo(() => {
     if (!isAdmin) return baseNavItems;
-    // Insert Admin Console right after Dashboard for high visibility
+    // Insert Admin Console & Inquiries right after Dashboard for high visibility
     const items = [...baseNavItems];
-    items.splice(1, 0, {
-      name: "Admin Console",
-      href: "/admin",
-      icon: ShieldCheck,
-      badge: "ADMIN",
-    });
+    items.splice(1, 0, 
+      {
+        name: "Admin Console",
+        href: "/admin",
+        icon: ShieldCheck,
+        badge: "ADMIN",
+      },
+      {
+        name: "Customer Inquiries",
+        href: "/admin/contacts",
+        icon: MessageSquare,
+        badge: "INBOX",
+      }
+    );
     return items;
   }, [isAdmin]);
 

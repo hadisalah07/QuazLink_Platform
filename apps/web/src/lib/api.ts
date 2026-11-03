@@ -91,12 +91,16 @@ export async function logout(): Promise<void> {
 // Returns the current user, or null if not authenticated. Works server-side
 // (pass the request's cookie header) and browser-side (cookie auto-attached).
 export async function getMe(cookieHeader?: string): Promise<AuthUser | null> {
-  const res = await apiFetch("/api/auth/me", {
-    cache: "no-store",
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-  });
-  if (!res.ok) return null;
-  return res.json();
+  try {
+    const res = await apiFetch("/api/auth/me", {
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
 }
 
 // --- Accounts ---
@@ -802,6 +806,100 @@ export async function pushPosSync(input: PosPushSyncInput): Promise<{
   });
   return jsonOrThrow(res);
 }
+
+// --- Customer Inquiries & Contact Messages ---
+
+export interface ContactMessageInput {
+  name: string;
+  email: string;
+  phone?: string;
+  category: string;
+  subject: string;
+  message: string;
+}
+
+export interface ContactMessageItem {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  category: string;
+  subject: string;
+  message: string;
+  status: "pending" | "in_progress" | "contacted" | "resolved" | "spam" | string;
+  adminNotes: string | null;
+  ipAddress: string | null;
+  country: string | null;
+  city: string | null;
+  countryCode: string | null;
+  flag?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminContactsResponse {
+  items: ContactMessageItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  counts: {
+    pending: number;
+    inProgress: number;
+    resolved: number;
+    all: number;
+  };
+}
+
+export async function submitContactMessage(input: ContactMessageInput): Promise<{ success: boolean; messageId: string }> {
+  const res = await apiFetch("/api/contacts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function getAdminContactMessages(params?: {
+  status?: string;
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<AdminContactsResponse> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set("status", params.status);
+  if (params?.category) query.set("category", params.category);
+  if (params?.search) query.set("search", params.search);
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.limit) query.set("limit", String(params.limit));
+
+  const qs = query.toString();
+  const res = await apiFetch(`/api/contacts/admin/list${qs ? `?${qs}` : ""}`, { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function updateAdminContactMessage(
+  id: string,
+  input: { status?: string; adminNotes?: string }
+): Promise<{ success: boolean; item: ContactMessageItem }> {
+  const res = await apiFetch(`/api/contacts/admin/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function deleteAdminContactMessage(id: string): Promise<{ success: boolean }> {
+  const res = await apiFetch(`/api/contacts/admin/${id}`, {
+    method: "DELETE",
+  });
+  return jsonOrThrow(res);
+}
+
 
 
 

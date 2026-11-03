@@ -259,4 +259,26 @@ model PosBranchDailyStats {
   @@index([tenantId, date])
 }
 
+model ContactMessage {
+  id          String   @id @default(uuid())
+  name        String
+  email       String
+  phone       String?
+  category    String   @default("general") // 'subscription_renewal', 'sales_inquiry', 'pos_support', 'runner_support', 'general'
+  subject     String
+  message     String   @db.Text
+  status      String   @default("pending") // 'pending', 'in_progress', 'contacted', 'resolved', 'spam'
+  adminNotes  String?  @db.Text
+  ipAddress   String?
+  country     String?
+  city        String?
+  countryCode String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([category])
+  @@index([email])
+}
+
 

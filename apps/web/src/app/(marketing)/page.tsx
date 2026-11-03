@@ -4,7 +4,20 @@ import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Aurora } from "@/components/effects/Aurora";
 import { GlassCard } from "@/components/effects/GlassCard";
-import { Bot, Network, Zap, Store, ArrowRight, Download } from "lucide-react";
+import {
+  Bot,
+  Network,
+  Zap,
+  Store,
+  ArrowRight,
+  Download,
+  Printer,
+  QrCode,
+  ShieldCheck,
+  Building2,
+  Activity,
+  Layers,
+} from "lucide-react";
 import Link from "next/link";
 import { APP_VERSION } from "@/lib/version";
 import { useLanguage } from "@/context/LanguageContext";
@@ -199,35 +212,168 @@ export default function LandingPage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="w-full flex flex-col items-center"
           >
-            {/* POS Spotlight Announcement Card */}
-            <section className="relative z-10 w-full max-w-6xl px-4 sm:px-6 mb-10">
-              <Link href="/pos">
-                <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-emerald-950/70 via-[#0C1222] to-cyan-950/70 border border-emerald-500/30 hover:border-emerald-500/70 transition-colors duration-200 shadow-xl group cursor-pointer flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
-                  <div className="flex items-center gap-4 sm:gap-5">
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
-                      <Store className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-400" />
-                    </div>
-                    <div className={isAr ? "text-right" : "text-left"}>
-                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 mb-1.5">
-                        <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold whitespace-nowrap shrink-0 border border-emerald-500/30">
-                          {t.posCardTag}
+            {/* ── DUAL PREMIER ENGINES (THE 2 CARDS) ───────────────────── */}
+            <section className="relative z-10 w-full max-w-6xl px-4 sm:px-6 mb-12 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* 🏪 BENTO CARD 1: IN-STORE RETAIL POS & ERP */}
+              <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-emerald-950/60 via-[#0A101D] to-[#060A14] border border-emerald-500/30 hover:border-emerald-500/60 shadow-2xl transition-all duration-300 group flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div>
+                  {/* Card Header & Badge */}
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+                        <Store className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-400">
+                          {t.bentoTagRetail || "IN-STORE RETAIL ENGINE"}
                         </span>
-                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-                          {t.posCardTitle}
+                        <h3 className="text-xl sm:text-2xl font-bold text-white">
+                          {t.bentoTitleRetail || "QuazLink POS & Warehouse ERP"}
                         </h3>
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-400 leading-relaxed max-w-3xl">
-                        {t.posCardDesc}
-                      </p>
+                    </div>
+                    <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-xs font-bold shrink-0">
+                      v1.4.0 Live
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                    {t.bentoDescRetail || "Engineered for supermarkets, retail chains, and electronics stores. 100% offline-capable, 1.8ms Arabic thermal printing, and compliant with Egyptian ETA mandates."}
+                  </p>
+
+                  {/* Feature Highlights Tags */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 text-xs text-gray-300 font-medium">
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <Printer className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>1.8ms Canvas Thermal Printing</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <QrCode className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>ETA e-Receipt TLV Base64 QR</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Serial &amp; IMEI Warranty Tracking</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <Building2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Multi-Branch Inventory Sync</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs sm:text-sm shrink-0 px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 group-hover:bg-emerald-500/20 transition-colors duration-200 whitespace-nowrap">
-                    <span>{t.posCardCta}</span>
-                    <ArrowRight className={`w-4 h-4 transform group-hover:translate-x-1 transition-transform duration-200 ${isAr ? "rotate-180 group-hover:-translate-x-1" : ""}`} />
+                  {/* Stylized Mini Live Transaction Preview Mockup */}
+                  <div className="rounded-2xl p-4 bg-black/50 border border-emerald-500/20 backdrop-blur-sm mb-6 font-mono text-xs text-gray-300">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+                      <span className="text-emerald-400 font-bold">{t.bentoLiveMockupReceipt || "Transaction #INV-CAI-POS-01"}</span>
+                      <span className="text-[10px] text-gray-400">Offline SQLite Buffer</span>
+                    </div>
+                    <div className="flex items-center justify-between text-gray-400 text-[11px] mb-1">
+                      <span>Subtotal (3 items)</span>
+                      <span>1,271.93 EGP</span>
+                    </div>
+                    <div className="flex items-center justify-between text-gray-400 text-[11px] mb-2">
+                      <span>VAT (14% ETA separated)</span>
+                      <span>178.07 EGP</span>
+                    </div>
+                    <div className="flex items-center justify-between font-bold text-sm text-white pt-2 border-t border-white/10">
+                      <span>Total Invoice</span>
+                      <span className="text-emerald-400">{t.bentoLiveMockupTotal || "EGP 1,450.00"}</span>
+                    </div>
                   </div>
                 </div>
-              </Link>
+
+                {/* Card Action Link */}
+                <Link
+                  href="/pos"
+                  className="w-full flex items-center justify-between p-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/35 text-emerald-300 font-bold text-sm transition-colors group/btn"
+                >
+                  <span>Explore Retail POS Portal &amp; Downloads</span>
+                  <ArrowRight className={`w-4 h-4 transition-transform group-hover/btn:translate-x-1 ${isAr ? "rotate-180 group-hover/btn:-translate-x-1" : ""}`} />
+                </Link>
+              </div>
+
+              {/* 🤖 BENTO CARD 2: AUTONOMOUS AUTOMATION RUNNER */}
+              <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-cyan-950/60 via-[#0A101D] to-[#060A14] border border-cyan-500/30 hover:border-cyan-500/60 shadow-2xl transition-all duration-300 group flex flex-col justify-between">
+                <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div>
+                  {/* Card Header & Badge */}
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+                        <Bot className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-cyan-400">
+                          {t.bentoTagAutomation || "AUTONOMOUS AUTOMATION ENGINE"}
+                        </span>
+                        <h3 className="text-xl sm:text-2xl font-bold text-white">
+                          {t.bentoTitleAutomation || "Desktop Automation Runner"}
+                        </h3>
+                      </div>
+                    </div>
+                    <span className="hidden sm:inline-flex px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono text-xs font-bold shrink-0">
+                      v26.10.16 Live
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                    {t.bentoDescAutomation || "Turn local PCs into zero-ban residential automation nodes. Auto-launch with Windows startup, silent background execution, anti-sleep keep-awake, and multi-channel scheduling."}
+                  </p>
+
+                  {/* Feature Highlights Tags */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-6 text-xs text-gray-300 font-medium">
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <Zap className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>Windows Boot Auto-Launch</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <Activity className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>Keep-System-Awake Daemon</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>Zero-Trust TLS Cloud Gateway</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-white/[0.03] border border-white/5">
+                      <Layers className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>Stealth Multi-Account Publishing</span>
+                    </div>
+                  </div>
+
+                  {/* Stylized Mini Live Runner Terminal Mockup */}
+                  <div className="rounded-2xl p-4 bg-[#04060A]/90 border border-cyan-500/20 backdrop-blur-sm mb-6 font-mono text-xs text-gray-300">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-emerald-400 font-bold text-xs">{t.bentoLiveMockupRunnerStatus || "ONLINE & READY"}</span>
+                      </div>
+                      <span className="text-[10px] text-cyan-400 font-bold">ZERO-BAN RESIDENTIAL NODE</span>
+                    </div>
+                    <div className="flex items-center justify-between text-gray-400 text-[11px] mb-1">
+                      <span>Node Identity</span>
+                      <span className="text-white">{t.bentoLiveMockupRunnerTitle || "Local Residential Node"}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-gray-400 text-[11px]">
+                      <span>Cloud Gateway</span>
+                      <span className="text-cyan-300 font-mono text-[10px]">wss://api.quazlink.site</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Action Link */}
+                <Link
+                  href="/download"
+                  className="w-full flex items-center justify-between p-3.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/35 text-cyan-300 font-bold text-sm transition-colors group/btn"
+                >
+                  <span>Download Desktop Runner v26.10.16</span>
+                  <ArrowRight className={`w-4 h-4 transition-transform group-hover/btn:translate-x-1 ${isAr ? "rotate-180 group-hover/btn:-translate-x-1" : ""}`} />
+                </Link>
+              </div>
+
             </section>
 
             {/* Features Section */}
@@ -277,6 +423,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-6">
                   <Link href="/pos" className="hover:text-emerald-400 transition-colors">{t.posPortal}</Link>
                   <Link href="/download" className="hover:text-cyan-400 transition-colors">{t.downloads}</Link>
+                  <Link href="/contact" className="hover:text-amber-400 transition-colors">{t.contactTitle || (isAr ? "تواصل معنا والدعم" : "Contact & Support")}</Link>
                   <Link href="/accounts" className="hover:text-white transition-colors">{t.console}</Link>
                   <a href="/api/version" target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors font-mono">
                     /api/version

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Users,
   Laptop,
@@ -39,6 +40,7 @@ import {
   Layers,
   Info,
   Trash2,
+  MessageSquare,
 } from "lucide-react";
 import {
   getAdminAnalytics,
@@ -413,6 +415,32 @@ export default function AdminDashboardPage() {
             <span>Refresh Now</span>
           </button>
         </div>
+      </div>
+
+      {/* ── CUSTOMER INQUIRIES & SUPPORT TICKETS QUICK BANNER ── */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#0C1222] to-cyan-950/40 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 shrink-0">
+            <MessageSquare className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm text-white">رسائل واستفسارات العملاء (Customer Inquiries)</span>
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">New System</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              متابعة طلبات تجديد الاشتراكات، استفسارات الكاشير والمخازن، والتواصل المباشر مع العملاء عبر الواتساب.
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href="/admin/contacts"
+          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-black font-extrabold text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 shrink-0 cursor-pointer"
+        >
+          <span>Open Inquiries Inbox</span>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
       {/* ── SECTION 4: KPIs & REAL-TIME ANALYTICS (إحصائيات بيانية سريعة) ────── */}

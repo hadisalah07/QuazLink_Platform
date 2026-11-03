@@ -11,6 +11,7 @@ import integrationsRouter from './integrations';
 import downloadsRouter from './downloads';
 import adminRouter from './admin';
 import posRouter from './pos';
+import contactsRouter from './contacts';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -20,6 +21,9 @@ router.use('/auth', authRouter);
 
 // Public / self-guarded download endpoints
 router.use('/downloads', downloadsRouter);
+
+// Public Contacts & Support Inquiries (Self-guarded admin routes internally)
+router.use('/contacts', contactsRouter);
 
 // POS & ERP Telemetry and Updates (Public endpoints for retail client machines)
 router.use('/pos', posRouter);
