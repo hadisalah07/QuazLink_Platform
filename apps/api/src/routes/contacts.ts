@@ -126,6 +126,30 @@ router.post('/', async (req: Request, res: Response) => {
       },
     });
 
+    // 1. Notify Admins in real-time
+    await prisma.notification.create({
+      data: {
+        role: 'admin',
+        type: 'contact_new',
+        title: `استفسار جديد من ${name.trim()}`,
+        message: `${cleanCategory === 'subscription_renewal' ? 'تجديد اشتراك' : subject.trim()}: ${message.trim().slice(0, 120)}...`,
+        link: '/admin/contacts',
+      },
+    }).catch(() => {});
+
+    // 2. If registered customer, notify them of successful receipt
+    if (resolvedUserId) {
+      await prisma.notification.create({
+        data: {
+          userId: resolvedUserId,
+          type: 'contact_received',
+          title: 'تم استلام استفسارك بنجاح',
+          message: `تم تسجيل تذكرتك برقم #${created.id.slice(0, 8)} (${subject.trim()}). سيتواصل معك فريق الإدارة قريباً.`,
+          link: '/contact',
+        },
+      }).catch(() => {});
+    }
+
     return res.status(201).json({
       success: true,
       messageId: created.id,
@@ -307,6 +331,19 @@ router.post('/admin/:id/reply', requireAuth, requireAdmin, async (req: Request, 
         },
       },
     });
+
+    // Notify customer in real-time on platform
+    if (targetUserId) {
+      await prisma.notification.create({
+        data: {
+          userId: targetUserId,
+          type: 'contact_reply',
+          title: 'رد رسمي جديد من إدارة QuazLink',
+          message: `قامت الإدارة بالرد على استفسارك (${message.subject}): "${reply.trim().slice(0, 110)}..."`,
+          link: '/contact',
+        },
+      }).catch(() => {});
+    }
 
     return res.json({ success: true, item: updated });
   } catch (error: any) {

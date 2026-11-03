@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Bell, Search, Laptop, Download } from "lucide-react";
+import { Search, Laptop, Download } from "lucide-react";
 import { getDevices } from "@/lib/api";
 import { LanguageSwitcher } from "@/components/ui/LanguageSwitcher";
+import { NotificationBell } from "./NotificationBell";
 
 export function TopNav() {
   const [isOnline, setIsOnline] = React.useState(false);
@@ -79,10 +80,8 @@ export function TopNav() {
           <span className="hidden md:inline">Download App</span>
         </Link>
 
-        <button className="relative p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-white/5">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[var(--color-quaz-bg)]"></span>
-        </button>
+        {/* Live Notifications (Admins & Users) */}
+        <NotificationBell />
       </div>
     </header>
   );

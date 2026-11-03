@@ -930,6 +930,39 @@ export async function getMyContactMessages(): Promise<{ items: ContactMessageIte
   return jsonOrThrow(res);
 }
 
+// --- Platform Notifications (Admins & Customers) ---
+
+export interface PlatformNotification {
+  id: string;
+  userId: string | null;
+  role: string | null;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export async function getNotifications(): Promise<{ items: PlatformNotification[]; unreadCount: number }> {
+  const res = await apiFetch("/api/notifications", { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function markNotificationRead(id: string): Promise<{ success: boolean }> {
+  const res = await apiFetch(`/api/notifications/${id}/read`, {
+    method: "PATCH",
+  });
+  return jsonOrThrow(res);
+}
+
+export async function markAllNotificationsRead(): Promise<{ success: boolean }> {
+  const res = await apiFetch("/api/notifications/mark-all-read", {
+    method: "POST",
+  });
+  return jsonOrThrow(res);
+}
+
 
 
 
