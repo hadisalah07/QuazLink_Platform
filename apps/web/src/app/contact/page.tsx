@@ -43,9 +43,11 @@ import {
   signup,
   login,
   getMyContactMessages,
+  ackContactReply,
   type AuthUser,
   type ContactMessageItem,
 } from "@/lib/api";
+import { useLiveHub } from "@/lib/useLiveHub";
 
 type CategoryKey = "subscription_renewal" | "pos_support" | "runner_support" | "sales_inquiry" | "general";
 
@@ -56,6 +58,7 @@ export default function ContactPage() {
   // Current logged in user (if any)
   const [currentUser, setCurrentUser] = React.useState<AuthUser | null>(null);
   const [activeTab, setActiveTab] = React.useState<"form" | "my_messages">("form");
+  const [liveReplyAlert, setLiveReplyAlert] = React.useState<{ title: string; reply: string; ticketId: string } | null>(null);
 
   // Form State
   const [name, setName] = React.useState("");
@@ -111,6 +114,36 @@ export default function ContactPage() {
       setLoadingMyInquiries(false);
     }
   }, []);
+
+  // Real-time live hub listener (instant push without page refresh)
+  const { sendAck } = useLiveHub({
+    role: "user",
+    userId: currentUser?.id,
+    contactId: successTicketId || undefined,
+    onReply: ({ contactId, data }) => {
+      // 1. Instantly ACK delivery and seen status
+      sendAck(contactId, "delivered");
+      ackContactReply(contactId, "delivered").catch(() => {});
+      sendAck(contactId, "read");
+      ackContactReply(contactId, "read").catch(() => {});
+
+      // 2. Update list in real-time
+      setMyInquiries((prev) => {
+        const exists = prev.some((it) => it.id === contactId);
+        if (exists) {
+          return prev.map((it) => (it.id === contactId ? { ...it, ...data, replyStatus: "read" } : it));
+        }
+        return [{ ...data, replyStatus: "read" }, ...prev];
+      });
+
+      // 3. Show live floating alert
+      setLiveReplyAlert({
+        title: data.subject || "استفسارك",
+        reply: data.adminReply || "قامت إدارة QuazLink بالرد على استفسارك الآن.",
+        ticketId: contactId.slice(0, 8),
+      });
+    },
+  });
 
   React.useEffect(() => {
     if (activeTab === "my_messages" && currentUser) {
@@ -365,6 +398,32 @@ export default function ContactPage() {
           <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
             {t.contactSubtitle || "Have a question, need to renew your subscription, or looking for technical assistance? Send your inquiry directly through the platform and our team will get back to you promptly."}
           </p>
+
+          {/* Real-time Live Admin Reply Push Banner */}
+          {liveReplyAlert && (
+            <div className="w-full max-w-2xl my-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-emerald-500/20 border border-emerald-500/40 text-emerald-200 shadow-2xl flex items-start justify-between gap-3 text-right">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5 animate-pulse" />
+                <div className="text-right">
+                  <div className="text-xs font-mono font-bold text-emerald-300">
+                    {isAr ? "⚡ وصلك رد رسمي للتو من الإدارة!" : "⚡ New Official Admin Reply Received!"} (#{liveReplyAlert.ticketId})
+                  </div>
+                  <div className="text-sm font-bold text-white mt-0.5">{liveReplyAlert.title}</div>
+                  <p className="text-xs text-gray-200 mt-1 whitespace-pre-wrap">{liveReplyAlert.reply}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLiveReplyAlert(null);
+                  setActiveTab("my_messages");
+                }}
+                className="text-xs font-bold text-emerald-300 hover:text-white underline cursor-pointer shrink-0"
+              >
+                {isAr ? "عرض في رسائلي" : "View"}
+              </button>
+            </div>
+          )}
 
           {/* Tab Navigation if user is logged in */}
           {currentUser && (

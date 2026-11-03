@@ -13,6 +13,7 @@ import adminRouter from './admin';
 import posRouter from './pos';
 import contactsRouter from './contacts';
 import notificationsRouter from './notifications';
+import telegramRouter from './telegram';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -28,6 +29,9 @@ router.use('/contacts', contactsRouter);
 
 // Notifications System for Admins and Customers
 router.use('/notifications', notificationsRouter);
+
+// Telegram Bot Integration & Webhooks (Public webhook internally guarded)
+router.use('/telegram', telegramRouter);
 
 // POS & ERP Telemetry and Updates (Public endpoints for retail client machines)
 router.use('/pos', posRouter);

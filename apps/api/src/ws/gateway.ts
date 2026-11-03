@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import prisma from '../prisma';
 import { addWhatsappless, extractPhone } from '../services/whatsappless';
 import { resolveGeoLocation } from '../lib/geoip';
+import { liveHub } from './liveHub';
 
 interface AuthenticatedSocket extends WebSocket {
   deviceId?: string;
@@ -43,9 +44,30 @@ const CURRENT_OTA_SELECTORS = {
 };
 
 export function setupWebSocketGateway(server: HttpServer) {
-  const wss = new WebSocketServer({ server, path: '/ws/runner' });
+  const wss = new WebSocketServer({ noServer: true });
+  const wssLive = liveHub.getWebSocketServer();
 
-  console.log('🛡️ WebSocket Gateway initialized on /ws/runner (Secure Zero-Trust Channel)');
+  server.on('upgrade', (request, socket, head) => {
+    try {
+      const pathname = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`).pathname;
+
+      if (pathname === '/ws/runner') {
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          wss.emit('connection', ws, request);
+        });
+      } else if (pathname === '/ws/live' || pathname === '/ws/chat' || pathname === '/ws/contacts') {
+        wssLive.handleUpgrade(request, socket, head, (ws) => {
+          wssLive.emit('connection', ws, request);
+        });
+      } else {
+        socket.destroy();
+      }
+    } catch {
+      socket.destroy();
+    }
+  });
+
+  console.log('🛡️ WebSocket Gateway initialized on /ws/runner (Runners) & /ws/live (Live Hub)');
 
   // Periodic background watchdog to reconcile any stuck/dispatched jobs (runs every 15s)
   setInterval(async () => {

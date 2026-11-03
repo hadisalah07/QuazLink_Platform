@@ -26,6 +26,9 @@ import {
   ShieldCheck,
   Check,
   Send,
+  Radio,
+  Eye,
+  CheckCheck,
 } from "lucide-react";
 import {
   getAdminContactMessages,
@@ -34,6 +37,7 @@ import {
   replyAdminContactMessage,
   type ContactMessageItem,
 } from "@/lib/api";
+import { useLiveHub } from "@/lib/useLiveHub";
 
 type StatusTab = "all" | "pending" | "in_progress" | "contacted" | "resolved";
 
@@ -43,6 +47,36 @@ export default function AdminContactsPage() {
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [newContactAlert, setNewContactAlert] = React.useState<string | null>(null);
+
+  // Real-time bidirectional LiveHub connection (WebSocket)
+  const { isConnected: isLiveConnected } = useLiveHub({
+    role: "admin",
+    onNewContact: (newMsg) => {
+      setItems((prev) => [newMsg, ...prev.filter((it) => it.id !== newMsg.id)]);
+      setCounts((prev) => ({
+        ...prev,
+        pending: prev.pending + 1,
+        all: prev.all + 1,
+      }));
+      setNewContactAlert(`استفسار جديد وصل للتو من ${newMsg.name}: "${newMsg.subject}"`);
+      setTimeout(() => setNewContactAlert(null), 7000);
+    },
+    onReply: ({ contactId, data }) => {
+      setItems((prev) =>
+        prev.map((item) => (item.id === contactId ? { ...item, ...data } : item))
+      );
+    },
+    onReplyStatus: ({ contactId, replyStatus, replyDeliveredAt, replyReadAt }) => {
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === contactId
+            ? { ...item, replyStatus, replyDeliveredAt, replyReadAt }
+            : item
+        )
+      );
+    },
+  });
 
   // Filters
   const [statusTab, setStatusTab] = React.useState<StatusTab>("all");
@@ -204,7 +238,15 @@ export default function AdminContactsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          {/* Live Webhook Status Indicator */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-black/50 border border-white/10 text-xs font-mono shadow-sm">
+            <span className={`w-2 h-2 rounded-full ${isLiveConnected ? "bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" : "bg-amber-400"}`} />
+            <span className={isLiveConnected ? "text-emerald-300 font-semibold" : "text-amber-300"}>
+              {isLiveConnected ? "Live Webhook Active" : "Connecting..."}
+            </span>
+          </div>
+
           <Link
             href="/contact"
             target="_blank"
@@ -223,6 +265,22 @@ export default function AdminContactsPage() {
           </button>
         </div>
       </div>
+
+      {/* Real-time New Inquiry Push Alert Banner */}
+      {newContactAlert && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-500/20 via-emerald-500/20 to-cyan-500/20 border border-cyan-500/40 text-cyan-200 text-xs sm:text-sm font-bold flex items-center justify-between shadow-2xl animate-bounce">
+          <div className="flex items-center gap-2.5">
+            <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>⚡ {newContactAlert}</span>
+          </div>
+          <button
+            onClick={() => setNewContactAlert(null)}
+            className="text-gray-400 hover:text-white text-xs underline cursor-pointer"
+          >
+            إغلاق
+          </button>
+        </div>
+      )}
 
       {/* KPI Stats Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -480,7 +538,7 @@ export default function AdminContactsPage() {
                     </div>
 
                     {item.adminReply && (
-                      <div className="p-3 rounded-xl bg-black/50 border border-emerald-500/25 flex flex-col gap-1 text-xs">
+                      <div className="p-3 rounded-xl bg-black/50 border border-emerald-500/25 flex flex-col gap-2 text-xs">
                         <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
                           <span className="text-emerald-300 font-bold flex items-center gap-1">
                             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
@@ -490,9 +548,36 @@ export default function AdminContactsPage() {
                             <span>{new Date(item.repliedAt).toLocaleString()} ({item.repliedBy || "الإدارة"})</span>
                           )}
                         </div>
-                        <p className="text-gray-200 whitespace-pre-wrap leading-relaxed mt-1 font-sans">
+                        <p className="text-gray-200 whitespace-pre-wrap leading-relaxed font-sans">
                           {item.adminReply}
                         </p>
+
+                        {/* Customer Delivery & Seen Verification Status */}
+                        <div className="flex flex-wrap items-center justify-between pt-2 border-t border-white/10 mt-1 text-[11px] font-mono">
+                          <span className="text-gray-400">حالة تسليم الرد للعميل:</span>
+                          {item.replyStatus === "read" ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 font-bold shadow-sm">
+                              <CheckCheck className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>تمت المشاهدة (Seen)</span>
+                              {item.replyReadAt && (
+                                <span className="text-gray-400 font-normal">({new Date(item.replyReadAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
+                              )}
+                            </span>
+                          ) : item.replyStatus === "delivered" ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-bold shadow-sm">
+                              <CheckCheck className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>وصل لجهاز العميل (Delivered)</span>
+                              {item.replyDeliveredAt && (
+                                <span className="text-gray-400 font-normal">({new Date(item.replyDeliveredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})</span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-300 font-medium">
+                              <Check className="w-3.5 h-3.5 text-gray-400" />
+                              <span>تم الإرسال (Sent) • في انتظار الاستلام</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
 

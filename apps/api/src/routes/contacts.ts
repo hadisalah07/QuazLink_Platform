@@ -4,6 +4,8 @@ import { requireAuth } from '../middleware/auth';
 import { requireAdmin } from '../middleware/admin';
 import { resolveGeoLocation, getCountryFlag } from '../lib/geoip';
 import { verifyToken, SESSION_COOKIE } from '../lib/auth';
+import { liveHub } from '../ws/liveHub';
+import { telegramService } from '../services/telegramService';
 
 const router = Router();
 
@@ -127,7 +129,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     // 1. Notify Admins in real-time
-    await prisma.notification.create({
+    const adminNotif = await prisma.notification.create({
       data: {
         role: 'admin',
         type: 'contact_new',
@@ -135,11 +137,12 @@ router.post('/', async (req: Request, res: Response) => {
         message: `${cleanCategory === 'subscription_renewal' ? 'تجديد اشتراك' : subject.trim()}: ${message.trim().slice(0, 120)}...`,
         link: '/admin/contacts',
       },
-    }).catch(() => {});
+    }).catch(() => null);
 
     // 2. If registered customer, notify them of successful receipt
+    let customerNotif: any = null;
     if (resolvedUserId) {
-      await prisma.notification.create({
+      customerNotif = await prisma.notification.create({
         data: {
           userId: resolvedUserId,
           type: 'contact_received',
@@ -147,8 +150,22 @@ router.post('/', async (req: Request, res: Response) => {
           message: `تم تسجيل تذكرتك برقم #${created.id.slice(0, 8)} (${subject.trim()}). سيتواصل معك فريق الإدارة قريباً.`,
           link: '/contact',
         },
-      }).catch(() => {});
+      }).catch(() => null);
     }
+
+    // 3. Broadcast real-time WebSocket events
+    liveHub.broadcastNewContact(created);
+    if (adminNotif) {
+      liveHub.broadcastNotification({ role: 'admin' }, adminNotif);
+    }
+    if (customerNotif && resolvedUserId) {
+      liveHub.broadcastNotification({ userId: resolvedUserId }, customerNotif);
+    }
+
+    // 4. Forward to Admin on Telegram Bot immediately (non-blocking)
+    telegramService.notifyNewContact(created).catch((err) => {
+      console.warn('[Contacts API] Telegram forward notice:', err.message);
+    });
 
     return res.status(201).json({
       success: true,
@@ -183,10 +200,56 @@ router.get('/my', requireAuth, async (req: Request, res: Response) => {
       take: 50,
     });
 
+    // Auto-mark any unread replies as read & acknowledged
+    const unreadReplies = items.filter((item) => item.adminReply && item.replyStatus !== 'read');
+    if (unreadReplies.length > 0) {
+      const now = new Date();
+      const idsToMark = unreadReplies.map((it) => it.id);
+      await prisma.contactMessage.updateMany({
+        where: { id: { in: idsToMark } },
+        data: {
+          replyStatus: 'read',
+          replyReadAt: now,
+        },
+      }).catch(() => {});
+
+      // Notify admins live that the customer has read the reply
+      for (const it of unreadReplies) {
+        liveHub.broadcastToAdmins({
+          type: 'contact:reply_status',
+          contactId: it.id,
+          replyStatus: 'read',
+          replyDeliveredAt: it.replyDeliveredAt || now,
+          replyReadAt: now,
+        });
+      }
+    }
+
     return res.json({ items });
   } catch (error: any) {
     console.error('[Contacts API] Error fetching user inquiries:', error);
     return res.status(500).json({ error: 'Failed to retrieve your inquiries.' });
+  }
+});
+
+/**
+ * POST /api/contacts/:id/ack
+ * Public/User client ACK for delivery or read of an admin reply
+ */
+router.post('/:id/ack', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status = 'delivered' } = req.body;
+
+    if (status !== 'delivered' && status !== 'read') {
+      return res.status(400).json({ error: 'Invalid ACK status (must be delivered or read).' });
+    }
+
+    await liveHub.handleReplyAck(id, status);
+    return res.json({ success: true, contactId: id, status });
+  } catch (error: any) {
+    console.error('[Contacts API] Error handling reply ACK:', error);
+    return res.status(500).json({ error: 'Failed to acknowledge reply.' });
   }
 });
 
@@ -317,6 +380,7 @@ router.post('/admin/:id/reply', requireAuth, requireAdmin, async (req: Request, 
         adminReply: reply.trim(),
         repliedAt: new Date(),
         repliedBy: adminIdentifier,
+        replyStatus: 'sent',
         status: 'contacted',
       },
       include: {
@@ -333,8 +397,9 @@ router.post('/admin/:id/reply', requireAuth, requireAdmin, async (req: Request, 
     });
 
     // Notify customer in real-time on platform
+    let customerNotif: any = null;
     if (targetUserId) {
-      await prisma.notification.create({
+      customerNotif = await prisma.notification.create({
         data: {
           userId: targetUserId,
           type: 'contact_reply',
@@ -342,7 +407,13 @@ router.post('/admin/:id/reply', requireAuth, requireAdmin, async (req: Request, 
           message: `قامت الإدارة بالرد على استفسارك (${message.subject}): "${reply.trim().slice(0, 110)}..."`,
           link: '/contact',
         },
-      }).catch(() => {});
+      }).catch(() => null);
+    }
+
+    // Real-time WebSocket broadcast to Customer active tab and Admin dashboard
+    liveHub.broadcastReply(id, targetUserId, updated);
+    if (customerNotif && targetUserId) {
+      liveHub.broadcastNotification({ userId: targetUserId }, customerNotif);
     }
 
     return res.json({ success: true, item: updated });

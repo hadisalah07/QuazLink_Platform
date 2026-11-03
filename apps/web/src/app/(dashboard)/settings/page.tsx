@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw, Laptop, ArrowRight } from "lucide-react";
+import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw, Laptop, ArrowRight, Send } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { DeviceManager } from "@/components/settings/DeviceManager";
+import { TelegramSettingsPanel } from "@/components/settings/TelegramSettingsPanel";
 import { getMe, type AuthUser } from "@/lib/api";
 import { PLATFORM_VERSION } from "@/lib/version";
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = React.useState<"profile" | "devices" | "security" | "api" | "notifications">("profile");
+  const [activeTab, setActiveTab] = React.useState<"profile" | "devices" | "security" | "api" | "notifications" | "telegram">("profile");
   const [user, setUser] = React.useState<AuthUser | null>(null);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -70,6 +71,7 @@ export default function SettingsPage() {
       <div className="flex items-center space-x-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none">
         {[
           { id: "profile", label: "Profile & Identity", icon: User },
+          { id: "telegram", label: "Telegram Bot & Mobile Reply", icon: Send },
           { id: "devices", label: "Desktop Runners (Zero-Ban)", icon: Laptop },
           { id: "security", label: "Security & Password", icon: Shield },
           { id: "api", label: "API Keys & Webhooks", icon: Key },
@@ -95,6 +97,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Panels */}
+      {activeTab === "telegram" && <TelegramSettingsPanel />}
+
       {activeTab === "devices" && (
         <SpotlightCard className="p-6 md:p-8 rounded-2xl border border-white/10 bg-[var(--color-quaz-bg)] space-y-6 shadow-2xl">
           <DeviceManager />

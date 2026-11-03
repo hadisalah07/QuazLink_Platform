@@ -273,16 +273,20 @@ model ContactMessage {
   subject     String
   message     String    @db.Text
   status      String    @default("pending") // 'pending', 'in_progress', 'contacted', 'resolved', 'spam'
-  adminNotes  String?   @db.Text
-  adminReply  String?   @db.Text
-  repliedAt   DateTime?
-  repliedBy   String?
-  ipAddress   String?
-  country     String?
-  city        String?
-  countryCode String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  adminNotes       String?   @db.Text
+  adminReply       String?   @db.Text
+  repliedAt        DateTime?
+  repliedBy        String?
+  replyStatus      String    @default("none") // 'none', 'sent', 'delivered', 'read'
+  replyDeliveredAt DateTime?
+  replyReadAt      DateTime?
+  telegramMessageId Int?
+  ipAddress        String?
+  country          String?
+  city             String?
+  countryCode      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([status, createdAt(sort: Desc)])
   @@index([category])
@@ -305,6 +309,28 @@ model Notification {
   @@index([userId, isRead, createdAt(sort: Desc)])
   @@index([role, isRead, createdAt(sort: Desc)])
 }
+
+model AdminTelegramSetting {
+  id             String    @id @default("default")
+  botToken       String?
+  chatId         String?
+  isEnabled      Boolean   @default(false)
+  notifyOnNew    Boolean   @default(true)
+  webhookSecret  String?
+  lastTestedAt   DateTime?
+  lastTestStatus String?
+  updatedAt      DateTime  @updatedAt
+}
+
+model TelegramMessageMapping {
+  id               String   @id @default(uuid())
+  telegramMsgId    Int      @unique
+  contactMessageId String
+  createdAt        DateTime @default(now())
+
+  @@index([contactMessageId])
+}
+
 
 
 

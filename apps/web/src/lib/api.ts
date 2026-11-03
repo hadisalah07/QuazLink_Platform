@@ -834,6 +834,9 @@ export interface ContactMessageItem {
   adminReply?: string | null;
   repliedAt?: string | null;
   repliedBy?: string | null;
+  replyStatus?: "none" | "sent" | "delivered" | "read";
+  replyDeliveredAt?: string | null;
+  replyReadAt?: string | null;
   ipAddress: string | null;
   country: string | null;
   city: string | null;
@@ -962,6 +965,71 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean }> 
   });
   return jsonOrThrow(res);
 }
+
+// --- Contact Delivery Receipts & ACK ---
+
+export async function ackContactReply(
+  id: string,
+  status: "delivered" | "read"
+): Promise<{ success: boolean; contactId: string; status: string }> {
+  const res = await apiFetch(`/api/contacts/${id}/ack`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  return jsonOrThrow(res);
+}
+
+// --- Telegram Bot Integration (Admin) ---
+
+export interface TelegramSettingsData {
+  id: string;
+  botToken: string;
+  isTokenConfigured: boolean;
+  chatId: string;
+  isEnabled: boolean;
+  notifyOnNew: boolean;
+  lastTestedAt: string | null;
+  lastTestStatus: string | null;
+  webhookUrl: string;
+}
+
+export interface UpdateTelegramSettingsInput {
+  botToken?: string;
+  chatId?: string;
+  isEnabled?: boolean;
+  notifyOnNew?: boolean;
+  setupWebhook?: boolean;
+}
+
+export async function getTelegramSettings(): Promise<{ success: boolean; settings: TelegramSettingsData }> {
+  const res = await apiFetch("/api/telegram/settings", { cache: "no-store" });
+  return jsonOrThrow(res);
+}
+
+export async function updateTelegramSettings(
+  input: UpdateTelegramSettingsInput
+): Promise<{ success: boolean; settings: Partial<TelegramSettingsData> }> {
+  const res = await apiFetch("/api/telegram/settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function testTelegramSettings(input?: {
+  botToken?: string;
+  chatId?: string;
+}): Promise<{ success: boolean; message: string }> {
+  const res = await apiFetch("/api/telegram/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input || {}),
+  });
+  return jsonOrThrow(res);
+}
+
 
 
 
