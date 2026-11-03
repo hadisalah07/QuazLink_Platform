@@ -22,6 +22,7 @@ function safeUser(user: {
   id: string;
   email: string;
   name: string | null;
+  phone?: string | null;
   role?: string;
   country?: string | null;
   city?: string | null;
@@ -33,6 +34,7 @@ function safeUser(user: {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone ?? null,
     role,
     country: user.country,
     city: user.city,
@@ -51,7 +53,7 @@ function issueSession(res: Response, userId: string) {
 // POST /api/auth/signup — open public SaaS registration
 router.post('/signup', async (req: Request, res: Response) => {
   try {
-    const { email, password, name } = req.body ?? {};
+    const { email, password, name, phone } = req.body ?? {};
     if (typeof email !== 'string' || !EMAIL_RE.test(email)) {
       return res.status(400).json({ error: 'A valid email is required.' });
     }
@@ -72,11 +74,13 @@ router.post('/signup', async (req: Request, res: Response) => {
     const ip = extractClientIp(req);
     const loc = await resolveGeoLocation(ip, req.headers as any);
     const isSuperAdmin = normalizedEmail === 'hadisalah07@gmail.com';
+    const cleanPhone = typeof phone === 'string' && phone.trim() ? phone.trim().slice(0, 30) : null;
 
     const user = await prisma.user.create({
       data: {
         email: normalizedEmail,
         name: typeof name === 'string' && name.trim() ? name.trim() : null,
+        phone: cleanPhone,
         passwordHash,
         role: isSuperAdmin ? 'admin' : 'user',
         lastLoginAt: new Date(),

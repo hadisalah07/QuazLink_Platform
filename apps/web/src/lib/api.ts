@@ -73,6 +73,7 @@ export async function signup(input: {
   email: string;
   password: string;
   name?: string;
+  phone?: string;
   inviteCode?: string;
 }): Promise<AuthUser> {
   const res = await apiFetch("/api/auth/signup", {
@@ -816,10 +817,12 @@ export interface ContactMessageInput {
   category: string;
   subject: string;
   message: string;
+  userId?: string;
 }
 
 export interface ContactMessageItem {
   id: string;
+  userId?: string | null;
   name: string;
   email: string;
   phone: string | null;
@@ -828,6 +831,9 @@ export interface ContactMessageItem {
   message: string;
   status: "pending" | "in_progress" | "contacted" | "resolved" | "spam" | string;
   adminNotes: string | null;
+  adminReply?: string | null;
+  repliedAt?: string | null;
+  repliedBy?: string | null;
   ipAddress: string | null;
   country: string | null;
   city: string | null;
@@ -835,6 +841,13 @@ export interface ContactMessageItem {
   flag?: string;
   createdAt: string;
   updatedAt: string;
+  user?: {
+    id: string;
+    name: string | null;
+    email: string;
+    phone?: string | null;
+    createdAt: string;
+  } | null;
 }
 
 export interface AdminContactsResponse {
@@ -897,6 +910,23 @@ export async function deleteAdminContactMessage(id: string): Promise<{ success: 
   const res = await apiFetch(`/api/contacts/admin/${id}`, {
     method: "DELETE",
   });
+  return jsonOrThrow(res);
+}
+
+export async function replyAdminContactMessage(
+  id: string,
+  reply: string
+): Promise<{ success: boolean; item: ContactMessageItem }> {
+  const res = await apiFetch(`/api/contacts/admin/${id}/reply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reply }),
+  });
+  return jsonOrThrow(res);
+}
+
+export async function getMyContactMessages(): Promise<{ items: ContactMessageItem[] }> {
+  const res = await apiFetch("/api/contacts/my", { cache: "no-store" });
   return jsonOrThrow(res);
 }
 

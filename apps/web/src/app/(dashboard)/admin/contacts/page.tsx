@@ -25,11 +25,13 @@ import {
   ChevronRight,
   ShieldCheck,
   Check,
+  Send,
 } from "lucide-react";
 import {
   getAdminContactMessages,
   updateAdminContactMessage,
   deleteAdminContactMessage,
+  replyAdminContactMessage,
   type ContactMessageItem,
 } from "@/lib/api";
 
@@ -52,6 +54,9 @@ export default function AdminContactsPage() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [notesDrafts, setNotesDrafts] = React.useState<Record<string, string>>({});
   const [savedNotesId, setSavedNotesId] = React.useState<string | null>(null);
+  const [replyDrafts, setReplyDrafts] = React.useState<Record<string, string>>({});
+  const [sendingReplyId, setSendingReplyId] = React.useState<string | null>(null);
+  const [repliedSuccessId, setRepliedSuccessId] = React.useState<string | null>(null);
 
   const fetchMessages = React.useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -68,12 +73,15 @@ export default function AdminContactsPage() {
       setItems(res.items || []);
       setCounts(res.counts || { pending: 0, inProgress: 0, resolved: 0, all: 0 });
 
-      // Initialize notes drafts
-      const drafts: Record<string, string> = {};
+      // Initialize drafts
+      const notes: Record<string, string> = {};
+      const replies: Record<string, string> = {};
       (res.items || []).forEach((item) => {
-        drafts[item.id] = item.adminNotes || "";
+        notes[item.id] = item.adminNotes || "";
+        replies[item.id] = item.adminReply || "";
       });
-      setNotesDrafts(drafts);
+      setNotesDrafts(notes);
+      setReplyDrafts(replies);
     } catch (err: any) {
       setError(err?.message || "Failed to load customer inquiries.");
     } finally {
@@ -116,6 +124,28 @@ export default function AdminContactsPage() {
       alert("Failed to save note: " + err.message);
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleSendReply = async (id: string) => {
+    const text = (replyDrafts[id] || "").trim();
+    if (!text) {
+      alert("Please enter a reply before sending.");
+      return;
+    }
+    setSendingReplyId(id);
+    try {
+      const res = await replyAdminContactMessage(id, text);
+      setItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, ...res.item } : item))
+      );
+      setRepliedSuccessId(id);
+      setTimeout(() => setRepliedSuccessId(null), 3000);
+      fetchMessages(true);
+    } catch (err: any) {
+      alert("Failed to send reply: " + err.message);
+    } finally {
+      setSendingReplyId(null);
     }
   };
 
@@ -328,8 +358,18 @@ export default function AdminContactsPage() {
                       {item.flag || "🌐"}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-extrabold text-sm text-white">{item.name}</span>
+                        {item.userId || item.user ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-extrabold flex items-center gap-1 shadow-sm">
+                            <User className="w-2.5 h-2.5 text-emerald-400" />
+                            <span>عضو مسجل • Member</span>
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-gray-400 text-[10px] font-medium flex items-center gap-1">
+                            <span>زائر • Guest</span>
+                          </span>
+                        )}
                         {item.country && (
                           <span className="text-[11px] text-gray-400 flex items-center gap-1 font-mono">
                             <MapPin className="w-3 h-3 text-cyan-400" />
@@ -404,10 +444,11 @@ export default function AdminContactsPage() {
                     <button
                       onClick={() => handleDelete(item.id)}
                       disabled={deletingId === item.id}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+                      className="px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
                       title="Delete inquiry"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف الرسالة • Delete</span>
                     </button>
                   </div>
                 </div>
@@ -421,6 +462,77 @@ export default function AdminContactsPage() {
                     {item.message}
                   </div>
                 </div>
+
+                {/* In-Platform Reply Section (Registered Users Only) */}
+                {item.userId || item.user ? (
+                  <div className="p-4 rounded-2xl bg-cyan-950/25 border border-cyan-500/30 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <Send className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>الرد الرسمي للعميل داخل المنصة (In-Platform Reply)</span>
+                      </label>
+                      {repliedSuccessId === item.id && (
+                        <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 animate-pulse">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>تم إرسال الرد للعميل بنجاح!</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {item.adminReply && (
+                      <div className="p-3 rounded-xl bg-black/50 border border-emerald-500/25 flex flex-col gap-1 text-xs">
+                        <div className="flex items-center justify-between text-[11px] text-gray-400 font-mono">
+                          <span className="text-emerald-300 font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>الرد المرسل للعميل:</span>
+                          </span>
+                          {item.repliedAt && (
+                            <span>{new Date(item.repliedAt).toLocaleString()} ({item.repliedBy || "الإدارة"})</span>
+                          )}
+                        </div>
+                        <p className="text-gray-200 whitespace-pre-wrap leading-relaxed mt-1 font-sans">
+                          {item.adminReply}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
+                      <textarea
+                        rows={2}
+                        placeholder="اكتب رد الإدارة هنا ليظهر للعميل فوراً داخل حسابه على المنصة..."
+                        value={replyDrafts[item.id] ?? ""}
+                        onChange={(e) =>
+                          setReplyDrafts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        }
+                        className="flex-1 p-3 rounded-xl bg-black/60 border border-cyan-500/30 focus:border-cyan-400 text-xs text-white placeholder-gray-500 focus:outline-none transition-colors resize-y min-h-[55px]"
+                      />
+                      <button
+                        onClick={() => handleSendReply(item.id)}
+                        disabled={sendingReplyId === item.id || !replyDrafts[item.id]?.trim()}
+                        className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-teal-300 hover:from-cyan-300 hover:to-teal-200 text-black font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      >
+                        {sendingReplyId === item.id ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>جاري الإرسال...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>إرسال الرد للعميل</span>
+                            <Send className="w-3.5 h-3.5" />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center gap-2.5 text-xs text-gray-400">
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>
+                      هذا الاستفسار من <strong>زائر غير مسجل</strong> في المنصة. الرد المباشر داخل المنصة متاح فقط للأعضاء المسجلين. للتواصل معه، استخدم البريد الإلكتروني أو رقم الهاتف أعلاه.
+                    </span>
+                  </div>
+                )}
 
                 {/* Admin Internal Notes Section */}
                 <div className="mt-1 pt-3 border-t border-white/5 flex flex-col gap-2">
