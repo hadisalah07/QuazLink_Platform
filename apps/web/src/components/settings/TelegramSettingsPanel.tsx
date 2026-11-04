@@ -8,14 +8,13 @@ import {
   RefreshCw,
   Eye,
   EyeOff,
-  Sparkles,
   ExternalLink,
-  ShieldCheck,
   Check,
   Radio,
   HelpCircle,
 } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   getTelegramSettings,
   updateTelegramSettings,
@@ -24,6 +23,8 @@ import {
 } from "@/lib/api";
 
 export function TelegramSettingsPanel() {
+  const { isAr } = useLanguage();
+
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [testing, setTesting] = React.useState(false);
@@ -53,7 +54,10 @@ export function TelegramSettingsPanel() {
         setNotifyOnNew(res.settings.notifyOnNew);
       }
     } catch (err: any) {
-      setToast({ type: "error", message: err.message || "Failed to load Telegram settings." });
+      setToast({
+        type: "error",
+        message: err.message || (isAr ? "تعذر تحميل إعدادات تيليجرام." : "Failed to load Telegram settings."),
+      });
     } finally {
       setLoading(false);
     }
@@ -78,11 +82,16 @@ export function TelegramSettingsPanel() {
       }
       setToast({
         type: "success",
-        message: "تم حفظ إعدادات تيليجرام وتفعيل الـ Webhook بنجاح! جاهز لاستقبال الرسائل والرد عليها.",
+        message: isAr
+          ? "تم حفظ إعدادات تيليجرام وتفعيل الـ Webhook بنجاح! جاهز لاستقبال الرسائل والرد عليها."
+          : "Telegram settings saved and Webhook activated successfully! Ready to receive and reply to messages.",
       });
       setTimeout(() => setToast(null), 5000);
     } catch (err: any) {
-      setToast({ type: "error", message: err.message || "تعذر حفظ إعدادات تيليجرام." });
+      setToast({
+        type: "error",
+        message: err.message || (isAr ? "تعذر حفظ إعدادات تيليجرام." : "Failed to save Telegram settings."),
+      });
     } finally {
       setSaving(false);
     }
@@ -90,7 +99,12 @@ export function TelegramSettingsPanel() {
 
   const handleTest = async () => {
     if (!chatId.trim()) {
-      setToast({ type: "error", message: "يرجى كتابة الـ Chat ID أولاً لإرسال رسالة الاختبار." });
+      setToast({
+        type: "error",
+        message: isAr
+          ? "يرجى كتابة الـ Chat ID أولاً لإرسال رسالة الاختبار."
+          : "Please enter your Chat ID first to send a test message.",
+      });
       return;
     }
     setTesting(true);
@@ -103,11 +117,18 @@ export function TelegramSettingsPanel() {
       });
       setToast({
         type: "success",
-        message: res.message || "تم إرسال رسالة الاختبار بنجاح إلى التيليجرام الخاص بك!",
+        message: res.message || (isAr
+          ? "تم إرسال رسالة الاختبار بنجاح إلى التيليجرام الخاص بك!"
+          : "Test message sent successfully to your Telegram!"),
       });
       setTimeout(() => setToast(null), 5000);
     } catch (err: any) {
-      setToast({ type: "error", message: err.message || "فشل إرسال رسالة الاختبار، تأكد من صحة التوكن ورقم الشات." });
+      setToast({
+        type: "error",
+        message: err.message || (isAr
+          ? "فشل إرسال رسالة الاختبار، تأكد من صحة التوكن ورقم الشات."
+          : "Failed to send test message. Please verify Bot Token and Chat ID."),
+      });
     } finally {
       setTesting(false);
     }
@@ -118,7 +139,9 @@ export function TelegramSettingsPanel() {
       <SpotlightCard className="p-8 rounded-2xl border border-white/10 bg-[var(--color-quaz-bg)] flex items-center justify-center min-h-[300px]">
         <div className="flex flex-col items-center gap-3 text-cyan-400">
           <RefreshCw className="w-6 h-6 animate-spin" />
-          <span className="text-xs font-mono">Loading Telegram Integration...</span>
+          <span className="text-xs font-mono">
+            {isAr ? "جاري تحميل إعدادات تيليجرام..." : "Loading Telegram Integration..."}
+          </span>
         </div>
       </SpotlightCard>
     );
@@ -135,18 +158,30 @@ export function TelegramSettingsPanel() {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold text-white">
-                Telegram Bot Integration &amp; Instant Mobile Reply
+                {isAr
+                  ? "ربط بوت تيليجرام والرد المباشر من الهاتف"
+                  : "Telegram Bot Integration & Instant Mobile Reply"}
               </h3>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
-                isEnabled
-                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
-                  : "bg-gray-500/15 border-gray-500/30 text-gray-400"
-              }`}>
-                {isEnabled ? "ACTIVE" : "DISABLED"}
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  isEnabled
+                    ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-300"
+                    : "bg-gray-500/15 border-gray-500/30 text-gray-400"
+                }`}
+              >
+                {isEnabled
+                  ? isAr
+                    ? "مفعل"
+                    : "ACTIVE"
+                  : isAr
+                  ? "معطل"
+                  : "DISABLED"}
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-1">
-              استقبل كافة رسائل واستفسارات العملاء فورياً على هاتفك عبر تيليجرام مع إمكانية الرد المباشر بنظام الـ Reply.
+              {isAr
+                ? "استقبل كافة رسائل واستفسارات العملاء فورياً على هاتفك عبر تيليجرام مع إمكانية الرد المباشر بنظام الـ Reply."
+                : "Receive all customer inquiries instantly on your phone via Telegram and reply directly with Telegram native reply."}
             </p>
           </div>
         </div>
@@ -154,7 +189,7 @@ export function TelegramSettingsPanel() {
         {/* Live Webhook Endpoint status */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/40 border border-white/10 text-[11px] font-mono text-gray-400 shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Webhook Ready</span>
+          <span>{isAr ? "الويب هوك جاهز" : "Webhook Ready"}</span>
         </div>
       </div>
 
@@ -189,10 +224,12 @@ export function TelegramSettingsPanel() {
             />
             <div>
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>تفعيل ربط تيليجرام (Enable Integration)</span>
+                <span>{isAr ? "تفعيل ربط تيليجرام" : "Enable Telegram Integration"}</span>
               </span>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                تفعيل استقبال الرسائل والردود عبر بوت تيليجرام دون الحاجة لتسجيل الدخول للمنصة.
+                {isAr
+                  ? "تفعيل استقبال الرسائل والردود عبر بوت تيليجرام دون الحاجة لتسجيل الدخول للمنصة."
+                  : "Enable receiving messages and replying through Telegram without logging into the web dashboard."}
               </p>
             </div>
           </label>
@@ -206,10 +243,12 @@ export function TelegramSettingsPanel() {
             />
             <div>
               <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                <span>إرسال إشعار فوري عند كل استفسار جديد</span>
+                <span>{isAr ? "إرسال إشعار فوري عند كل استفسار جديد" : "Instant Notification on New Inquiry"}</span>
               </span>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                يصلك إشعار فوري باسم العميل ورقمه وبريده ونص رسالته فور إرسالها من صفحة الـ Contact.
+                {isAr
+                  ? "يصلك إشعار فوري باسم العميل ورقمه وبريده ونص رسالته فور إرسالها من صفحة الـ Contact."
+                  : "Receive an immediate alert with customer name, phone, email, and inquiry text upon submission."}
               </p>
             </div>
           </label>
@@ -222,7 +261,7 @@ export function TelegramSettingsPanel() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
-                <span>Telegram Bot Token (توكن البوت)</span>
+                <span>{isAr ? "توكن بوت تيليجرام (Bot Token)" : "Telegram Bot Token"}</span>
                 <span className="text-red-400">*</span>
               </label>
               <a
@@ -231,7 +270,7 @@ export function TelegramSettingsPanel() {
                 rel="noopener noreferrer"
                 className="text-[11px] text-[#229ED9] hover:underline flex items-center gap-1 font-mono"
               >
-                <span>احصل عليه من @BotFather</span>
+                <span>{isAr ? "احصل عليه من @BotFather" : "Get from @BotFather"}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
@@ -253,7 +292,15 @@ export function TelegramSettingsPanel() {
               </button>
             </div>
             <p className="text-[11px] text-gray-500 mt-1">
-              أنشئ بوتاً جديداً في تيليجرام عبر إرسال الأمر <code>/newbot</code> لحساب <strong>@BotFather</strong> ثم الصق التوكن هنا.
+              {isAr ? (
+                <>
+                  أنشئ بوتاً جديداً في تيليجرام عبر إرسال الأمر <code>/newbot</code> لحساب <strong>@BotFather</strong> ثم الصق التوكن هنا.
+                </>
+              ) : (
+                <>
+                  Create a bot by sending <code>/newbot</code> to <strong>@BotFather</strong> on Telegram, then paste the API token here.
+                </>
+              )}
             </p>
           </div>
 
@@ -261,7 +308,7 @@ export function TelegramSettingsPanel() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
-                <span>Admin Chat ID (رقم الشات أو القناة الخاصة بك)</span>
+                <span>{isAr ? "رقم الشات أو القناة (Admin Chat ID)" : "Admin Chat ID"}</span>
                 <span className="text-red-400">*</span>
               </label>
               <a
@@ -270,26 +317,28 @@ export function TelegramSettingsPanel() {
                 rel="noopener noreferrer"
                 className="text-[11px] text-[#229ED9] hover:underline flex items-center gap-1 font-mono"
               >
-                <span>معرفة رقمك عبر @userinfobot</span>
+                <span>{isAr ? "معرفة رقمك عبر @userinfobot" : "Find your ID via @userinfobot"}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
             <input
               type="text"
-              placeholder="مثال: 987654321 أو -1001234567890"
+              placeholder={isAr ? "مثال: 987654321 أو -1001234567890" : "e.g. 987654321 or -1001234567890"}
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
               className="w-full px-4 py-3 rounded-xl bg-black/60 border border-white/10 focus:border-[#229ED9] text-xs text-white placeholder-gray-500 font-mono focus:outline-none transition-colors"
             />
             <p className="text-[11px] text-gray-500 mt-1">
-              رقم الـ Chat ID الخاص بحسابك أو مجموعتك لاستقبال الإشعارات والرد منها.
+              {isAr
+                ? "رقم الـ Chat ID الخاص بحسابك أو مجموعتك لاستقبال الإشعارات والرد منها."
+                : "Your personal Telegram user ID or group chat ID to receive alerts and reply from."}
             </p>
           </div>
 
           {/* Webhook URL Display (Read-Only) */}
           <div>
             <label className="text-xs font-bold text-gray-300 block mb-1.5 font-mono">
-              Production Webhook Endpoint (يتم ربطه تلقائياً)
+              {isAr ? "رابط الـ Webhook المباشر (يتم ربطه تلقائياً)" : "Production Webhook Endpoint (Auto-Configured)"}
             </label>
             <input
               type="text"
@@ -311,12 +360,12 @@ export function TelegramSettingsPanel() {
             {testing ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>جاري إرسال الاختبار...</span>
+                <span>{isAr ? "جاري إرسال الاختبار..." : "Sending Test Message..."}</span>
               </>
             ) : (
               <>
                 <Radio className="w-3.5 h-3.5 text-[#229ED9]" />
-                <span>إرسال رسالة اختبار (Test Connection)</span>
+                <span>{isAr ? "إرسال رسالة اختبار" : "Send Test Connection"}</span>
               </>
             )}
           </button>
@@ -329,12 +378,12 @@ export function TelegramSettingsPanel() {
             {saving ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                <span>جاري الحفظ وتفعيل الويب هوك...</span>
+                <span>{isAr ? "جاري الحفظ وتفعيل الويب هوك..." : "Saving & Activating Webhook..."}</span>
               </>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                <span>حفظ وتفعيل بوت تيليجرام</span>
+                <span>{isAr ? "حفظ وتفعيل بوت تيليجرام" : "Save & Activate Telegram"}</span>
               </>
             )}
           </button>
@@ -345,24 +394,44 @@ export function TelegramSettingsPanel() {
       <div className="p-4 rounded-2xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-gray-300 space-y-2.5">
         <div className="flex items-center gap-2 font-bold text-cyan-300">
           <HelpCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-          <span>كيف ترد على العملاء مباشرة من تيليجرام دون فتح المنصة؟</span>
+          <span>
+            {isAr
+              ? "كيف ترد على العملاء مباشرة من تيليجرام دون فتح المنصة؟"
+              : "How to reply to customers directly from Telegram without opening the platform?"}
+          </span>
         </div>
-        <ol className="list-decimal list-inside space-y-1.5 text-gray-300 leading-relaxed font-sans pr-2">
-          <li>
-            عندما يقوم أي عميل بإرسال استفسار على المنصة، يرسل البوت رسالة فورية إلى شات تيليجرام تتضمن بياناته ورقم التذكرة.
-          </li>
-          <li>
-            <strong>طريقة الرد السريع:</strong> ببساطة اسحب الرسالة واضغط <strong>Reply</strong> واكتب ردك.
-          </li>
-          <li>
-            <strong>طريقة الأمر البديل:</strong> يمكنك إرسال <code>/reply &lt;ticket_id&gt; نص ردك هنا</code>.
-          </li>
-          <li>
-            يقوم النظام فورياً بتسليم الرد لشاشة العميل في المنصة عبر الـ WebSocket بدون ريفريش، ويُسجل لك إشعار تأكيد الاستلام والمشاهدة!
-          </li>
-        </ol>
+        {isAr ? (
+          <ol className="list-decimal list-inside space-y-1.5 text-gray-300 leading-relaxed font-sans pr-2">
+            <li>
+              عندما يقوم أي عميل بإرسال استفسار على المنصة، يرسل البوت رسالة فورية إلى شات تيليجرام تتضمن بياناته ورقم التذكرة.
+            </li>
+            <li>
+              <strong>طريقة الرد السريع:</strong> ببساطة اسحب الرسالة واضغط <strong>Reply</strong> واكتب ردك.
+            </li>
+            <li>
+              <strong>طريقة الأمر البديل:</strong> يمكنك إرسال <code>/reply &lt;ticket_id&gt; نص ردك هنا</code>.
+            </li>
+            <li>
+              يقوم النظام فورياً بتسليم الرد لشاشة العميل في المنصة عبر الـ WebSocket بدون ريفريش، ويُسجل لك إشعار تأكيد الاستلام والمشاهدة!
+            </li>
+          </ol>
+        ) : (
+          <ol className="list-decimal list-inside space-y-1.5 text-gray-300 leading-relaxed font-sans pl-2">
+            <li>
+              When a customer submits an inquiry on the platform, your Telegram bot instantly sends a message with their details and ticket ID.
+            </li>
+            <li>
+              <strong>Instant Quick Reply:</strong> Simply swipe on the message in Telegram, tap <strong>Reply</strong>, and type your answer.
+            </li>
+            <li>
+              <strong>Command Alternative:</strong> You can also send <code>/reply &lt;ticket_id&gt; your response here</code>.
+            </li>
+            <li>
+              QuazLink immediately routes the answer to the customer's browser screen via WebSocket without refresh, and tracks delivery and read receipts in real time!
+            </li>
+          </ol>
+        )}
       </div>
     </SpotlightCard>
   );
 }
-

@@ -4,6 +4,7 @@ import * as React from "react";
 import { Plus, Loader2, Trash2, RefreshCw, Users, Globe, X, Sparkles, CheckCircle2, Laptop } from "lucide-react";
 import { getAccounts, connectAccount, deleteAccount, redetectPages, type Account } from "@/lib/api";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
+import { useLanguage } from "@/context/LanguageContext";
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -87,6 +88,7 @@ const PLATFORMS: PlatformConfig[] = [
 ];
 
 export default function AccountsPage() {
+  const { isAr } = useLanguage();
   const [accounts, setAccounts] = React.useState<Account[]>([]);
   const [connectingPlatform, setConnectingPlatform] = React.useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = React.useState(false);
@@ -191,7 +193,7 @@ export default function AccountsPage() {
       {(connectingPlatform || anyConnecting) && (
         <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 flex items-center gap-3 text-sm animate-pulse shadow-lg">
           <Loader2 className="w-5 h-5 animate-spin text-blue-400 flex-shrink-0" />
-          <span>المتصفح هيفتح — سجّل دخولك على حسابك وسيبه، والمنصة هتكمّل لوحدها وتحفظ الجلسة. الكارت هيتحوّل لـ active أوتوماتيك.</span>
+          <span>{isAr ? "سيفتح المتصفح — سجّل دخولك على حسابك، وستقوم المنصة بحفظ الجلسة وتفعيل الحساب تلقائياً." : "Browser will open — log in and QuazLink will capture the session to activate your account automatically."}</span>
         </div>
       )}
 
@@ -367,6 +369,7 @@ function AccountCard({
   onRedetect: () => void;
   redetecting: boolean;
 }) {
+  const { isAr } = useLanguage();
   const style = STATUS_STYLES[account.status] || { bg: "bg-gray-500/10", text: "text-gray-400", border: "border-gray-500/30" };
   const destinations = account.destinations || [];
   const pageCount = Math.max(0, destinations.length - 1);
@@ -433,10 +436,10 @@ function AccountCard({
               {isWa ? (
                 <>
                   <span className="px-2 py-0.5 rounded-md bg-emerald-950/40 text-[11px] text-emerald-300 border border-emerald-500/20 truncate">
-                    🟢 WhatsApp Status (حالة / قصة)
+                    {isAr ? "🟢 حالة الواتساب (Story)" : "🟢 WhatsApp Status (Story)"}
                   </span>
                   <span className="px-2 py-0.5 rounded-md bg-emerald-950/40 text-[11px] text-emerald-300 border border-emerald-500/20 truncate">
-                    💬 Direct Customer Chat (محادثة مباشرة)
+                    {isAr ? "💬 محادثة مباشرة مع العميل" : "💬 Direct Customer Chat"}
                   </span>
                 </>
               ) : (
@@ -459,10 +462,10 @@ function AccountCard({
         <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-2">
           <span className="text-xs text-gray-400" dir="auto">
             {redetecting
-              ? "بيدوّر على الصفحات..."
+              ? (isAr ? "جاري فحص الصفحات..." : "Scanning for pages...")
               : pageCount > 0
-              ? `${pageCount} صفحة + البروفايل`
-              : "مفيش صفحات لسه"}
+              ? (isAr ? `${pageCount} صفحة + الملف الشخصي` : `${pageCount} pages + Profile`)
+              : (isAr ? "لا توجد صفحات مكتشفة بعد" : "No pages detected yet")}
           </span>
           <button
             onClick={onRedetect}

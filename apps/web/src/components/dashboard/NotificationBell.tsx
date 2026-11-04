@@ -1,111 +1,92 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
-  Check,
-  CheckCheck,
-  MessageSquare,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
-  Clock,
+  MessageSquare,
+  ShieldAlert,
+  Radio,
+  CheckCheck,
 } from "lucide-react";
 import {
   getNotifications,
-  markNotificationRead,
   markAllNotificationsRead,
+  markNotificationRead,
   type PlatformNotification,
 } from "@/lib/api";
+import { useLanguage } from "@/context/LanguageContext";
 
-interface NotificationBellProps {
-  variant?: "dashboard" | "header";
-}
-
-export function NotificationBell({ variant = "dashboard" }: NotificationBellProps) {
+export function NotificationBell() {
+  const { isAr } = useLanguage();
   const router = useRouter();
+  const [isOpen, setIsOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState<PlatformNotification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
 
   const fetchNotifs = React.useCallback(async () => {
-    if (typeof document !== "undefined" && document.hidden) return;
     try {
       const res = await getNotifications();
-      setNotifications(res.items || []);
-      setUnreadCount(res.unreadCount || 0);
-    } catch {
-      // Ignore background fetch failures (e.g. unauthenticated)
-    }
+      if (res.items) {
+        setNotifications(res.items);
+        setUnreadCount(res.unreadCount || 0);
+      }
+    } catch {}
   }, []);
 
   React.useEffect(() => {
     fetchNotifs();
-    const interval = setInterval(fetchNotifs, 15000); // Poll every 15s
-
-    const onVisibilityChange = () => {
-      if (!document.hidden) fetchNotifs();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", onVisibilityChange);
-    };
+    const interval = setInterval(fetchNotifs, 10000);
+    return () => clearInterval(interval);
   }, [fetchNotifs]);
 
-  // Close on click outside
   React.useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsRead();
-      setUnreadCount(0);
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch (e) {
-      console.error(e);
-    }
+      setUnreadCount(0);
+    } catch {}
   };
 
-  const handleClickItem = async (notif: PlatformNotification) => {
-    if (!notif.isRead) {
-      markNotificationRead(notif.id).catch(() => {});
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
-      );
-      setUnreadCount((c) => Math.max(0, c - 1));
+  const handleClickItem = async (item: PlatformNotification) => {
+    if (!item.isRead) {
+      try {
+        await markNotificationRead(item.id);
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === item.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+      } catch {}
     }
     setIsOpen(false);
-    if (notif.link) {
-      router.push(notif.link);
+    if (item.link) {
+      router.push(item.link);
     }
   };
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "contact_new":
+      case "contact":
         return <MessageSquare className="w-4 h-4 text-cyan-400" />;
-      case "contact_reply":
-        return <ShieldCheck className="w-4 h-4 text-emerald-400" />;
-      case "contact_received":
-        return <CheckCircle2 className="w-4 h-4 text-teal-400" />;
+      case "telegram":
+        return <Radio className="w-4 h-4 text-[#229ED9]" />;
+      case "alert":
+        return <AlertCircle className="w-4 h-4 text-amber-400" />;
+      case "system":
+        return <ShieldAlert className="w-4 h-4 text-red-400" />;
       default:
         return <Bell className="w-4 h-4 text-purple-400" />;
     }
@@ -113,9 +94,15 @@ export function NotificationBell({ variant = "dashboard" }: NotificationBellProp
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-    if (diff < 60) return "الآن • Just now";
-    if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`;
-    if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`;
+    if (diff < 60) return isAr ? "الآن" : "Just now";
+    if (diff < 3600) {
+      const mins = Math.floor(diff / 60);
+      return isAr ? `منذ ${mins} دقيقة` : `${mins}m ago`;
+    }
+    if (diff < 86400) {
+      const hours = Math.floor(diff / 3600);
+      return isAr ? `منذ ${hours} ساعة` : `${hours}h ago`;
+    }
     return new Date(dateStr).toLocaleDateString();
   };
 
@@ -125,7 +112,7 @@ export function NotificationBell({ variant = "dashboard" }: NotificationBellProp
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        title="Notifications / الإشعارات"
+        title={isAr ? "الإشعارات والتنبيهات" : "Notifications & Alerts"}
         className={`relative p-2 rounded-full transition-all cursor-pointer ${
           isOpen
             ? "bg-white/10 text-white"
@@ -142,15 +129,19 @@ export function NotificationBell({ variant = "dashboard" }: NotificationBellProp
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#070B16] border border-white/10 shadow-2xl z-50 overflow-hidden backdrop-blur-xl">
+        <div className={`absolute mt-2 w-80 sm:w-96 rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#070B16] border border-white/10 shadow-2xl z-50 overflow-hidden backdrop-blur-xl ${
+          isAr ? "left-0" : "right-0"
+        }`}>
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/[0.02]">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-extrabold text-white">الإشعارات</span>
+              <span className="text-sm font-extrabold text-white">
+                {isAr ? "الإشعارات" : "Notifications"}
+              </span>
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold">
-                  {unreadCount} جديد
+                  {unreadCount} {isAr ? "جديد" : "New"}
                 </span>
               )}
             </div>
@@ -162,7 +153,7 @@ export function NotificationBell({ variant = "dashboard" }: NotificationBellProp
                 className="text-[11px] font-bold text-gray-400 hover:text-cyan-300 transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
-                <span>تحديد الكل كمقروء</span>
+                <span>{isAr ? "تحديد الكل كمقروء" : "Mark all as read"}</span>
               </button>
             )}
           </div>
@@ -172,8 +163,12 @@ export function NotificationBell({ variant = "dashboard" }: NotificationBellProp
             {notifications.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                 <CheckCircle2 className="w-8 h-8 text-gray-600" />
-                <span className="text-xs font-bold text-gray-400">لا توجد إشعارات حالياً</span>
-                <span className="text-[11px] text-gray-500">أنت على اطلاع دائم بكافة التحديثات!</span>
+                <span className="text-xs font-bold text-gray-400">
+                  {isAr ? "لا توجد إشعارات حالياً" : "No notifications yet"}
+                </span>
+                <span className="text-[11px] text-gray-500">
+                  {isAr ? "أنت على اطلاع دائم بكافة التحديثات!" : "You are all caught up with recent activity."}
+                </span>
               </div>
             ) : (
               notifications.map((item) => (
@@ -215,4 +210,3 @@ export function NotificationBell({ variant = "dashboard" }: NotificationBellProp
     </div>
   );
 }
-

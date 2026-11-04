@@ -42,6 +42,7 @@ import {
   Trash2,
   MessageSquare,
 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   getAdminAnalytics,
   updateUserRole,
@@ -72,6 +73,7 @@ const COUNTRY_COORDINATES: Record<string, { x: number; y: number; name: string }
 };
 
 export default function AdminDashboardPage() {
+  const { isAr } = useLanguage();
   const [data, setData] = React.useState<AdminAnalyticsData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [refreshing, setRefreshing] = React.useState(false);
@@ -179,7 +181,7 @@ export default function AdminDashboardPage() {
   }
 
   async function handleDeleteTerminal(terminal: PosTerminalItem) {
-    if (!confirm(`هل أنت متأكد من رغبتك في حذف جهاز "${terminal.businessName}" (${terminal.hardwareId}) من السجلات نهائياً؟`)) {
+    if (!confirm(isAr ? `هل أنت متأكد من رغبتك في حذف جهاز "${terminal.businessName}" (${terminal.hardwareId}) من السجلات نهائياً؟` : `Are you sure you want to permanently delete terminal "${terminal.businessName}" (${terminal.hardwareId})?`)) {
       return;
     }
     try {
@@ -192,7 +194,7 @@ export default function AdminDashboardPage() {
         };
       });
     } catch (err: any) {
-      alert(err.message || "فشل حذف الجهاز من السجلات");
+      alert(err.message || (isAr ? "فشل حذف الجهاز من السجلات" : "Failed to delete terminal from records"));
     }
   }
 
@@ -425,11 +427,11 @@ export default function AdminDashboardPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-sm text-white">رسائل واستفسارات العملاء (Customer Inquiries)</span>
+              <span className="font-extrabold text-sm text-white">{isAr ? "رسائل واستفسارات العملاء" : "Customer Inquiries & Support"}</span>
               <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">New System</span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              متابعة طلبات تجديد الاشتراكات، استفسارات الكاشير والمخازن، والتواصل المباشر مع العملاء عبر الواتساب.
+              {isAr ? "متابعة طلبات تجديد الاشتراكات، استفسارات الكاشير والمخازن، والتواصل المباشر مع العملاء." : "Manage subscription renewals, cashier and warehouse inquiries, and customer communications."}
             </p>
           </div>
         </div>
@@ -449,7 +451,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center space-x-2">
             <TrendingUp className="w-4 h-4 text-cyan-400" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Platform Vital Metrics &amp; Operations (التحليلات اللحظية)
+              {isAr ? "التحليلات اللحظية والمؤشرات الحيوية" : "Platform Vital Metrics & Operations"}
             </h2>
           </div>
           <span className="text-[11px] text-gray-500 font-mono">Telemetry: Live Stream</span>
@@ -697,12 +699,12 @@ export default function AdminDashboardPage() {
               <h2 className="text-lg font-bold text-white tracking-tight flex items-center space-x-2">
                 <span>Standalone POS &amp; Retail Terminals ({data?.posTerminals?.length || 0})</span>
                 <span className="text-sm font-semibold text-cyan-400">
-                  (أجهزة الكاشير والمحلات بدون حساب منصة)
+                  {isAr ? "(أجهزة الكاشير والمحلات بدون حساب منصة)" : "(Hardware-Locked Terminals)"}
                 </span>
               </h2>
             </div>
             <p className="text-xs text-gray-400 mt-1 max-w-2xl">
-              أجهزة الكاشير ونظام نقاط البيع التي تم تحميلها وتشغيلها محلياً على أجهزة الكمبيوتر دون إنشاء حساب على المنصة. يتم رصد بصمة العتاد الفريدة (Hardware ID)، مواصفات المعالج، الذاكرة العشوائية، إصدار الويندوز، والموقع الجغرافي الفعلي لحظة بلحظة.
+              {isAr ? "أجهزة الكاشير ونظام نقاط البيع التي تم تحميلها وتشغيلها محلياً على أجهزة الكمبيوتر دون إنشاء حساب على المنصة. يتم رصد بصمة العتاد الفريدة، مواصفات المعالج، الذاكرة العشوائية، إصدار الويندوز، والموقع الجغرافي لحظة بلحظة." : "Standalone offline cashier desks running locally on client PCs. Hardware ID, CPU, RAM, OS version, and real-time geolocation telemetry are captured automatically."}
             </p>
           </div>
 
@@ -799,7 +801,7 @@ export default function AdminDashboardPage() {
             <Store className="w-10 h-10 text-gray-600 mx-auto" />
             <p className="text-gray-300 font-medium">No Standalone POS Machines Recorded Yet</p>
             <p className="text-xs text-gray-500 max-w-md mx-auto">
-              بمجرد أن يقوم أي شخص بتحميل وتثبيت برنامج الكاشير وتشغيله على جهازه، ستظهر بيانات المحل والعتاد والموقع هنا تلقائياً دون الحاجة لتسجيل حساب.
+              {isAr ? "بمجرد أن يقوم أي شخص بتحميل وتثبيت برنامج الكاشير وتشغيله على جهازه، ستظهر بيانات المحل والعتاد والموقع هنا تلقائياً دون الحاجة لتسجيل حساب." : "Once a user downloads and installs the POS app on their desktop, their machine hardware and location appear here automatically."}
             </p>
           </div>
         ) : (
@@ -849,7 +851,7 @@ export default function AdminDashboardPage() {
                         )}
                         <button
                           onClick={() => handleDeleteTerminal(terminal)}
-                          title="حذف هذا الجهاز من السجلات"
+                          title={isAr ? "حذف هذا الجهاز من السجلات" : "Delete this terminal record"}
                           className="p-1 rounded-lg text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/20"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -900,7 +902,7 @@ export default function AdminDashboardPage() {
                         <div className="flex items-center space-x-2">
                           <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                           <div>
-                            <div className="text-xs font-bold text-emerald-300">Lifetime License (ترخيص مدى الحياة)</div>
+                            <div className="text-xs font-bold text-emerald-300">{isAr ? "ترخيص مدى الحياة" : "Lifetime License Active"}</div>
                             <div className="text-[10px] text-gray-400">Activated &amp; Unlimited Enterprise POS</div>
                           </div>
                         </div>
@@ -922,13 +924,13 @@ export default function AdminDashboardPage() {
                               isExpired ? "text-rose-400" : daysLeft <= 7 ? "text-amber-400" : "text-cyan-400"
                             }`} />
                             <span className="text-[10px] font-semibold tracking-wide text-gray-200">
-                              30-Day Free Trial (فترة تجريبية)
+                              {isAr ? "فترة تجريبية 30 يوماً" : "30-Day Free Trial"}
                             </span>
                           </div>
                           {isExpired ? (
                             <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
                               <Lock className="w-2.5 h-2.5" />
-                              <span>منتهية - مقفل (Expired)</span>
+                              <span>{isAr ? "منتهية - مقفل" : "Expired - Locked"}</span>
                             </span>
                           ) : (
                             <span className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
@@ -936,7 +938,7 @@ export default function AdminDashboardPage() {
                                 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                                 : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
                             }`}>
-                              <span>باقي {daysLeft} يوم ({daysLeft}d Left)</span>
+                              <span>{isAr ? `باقي ${daysLeft} يوم` : `${daysLeft}d Left`}</span>
                             </span>
                           )}
                         </div>
@@ -1026,7 +1028,7 @@ export default function AdminDashboardPage() {
                       className="w-full py-2 px-3 rounded-xl bg-white/[0.04] hover:bg-cyan-500/15 border border-white/10 hover:border-cyan-500/40 text-gray-300 hover:text-cyan-200 text-xs font-medium flex items-center justify-center space-x-2 transition-all group/btn shadow-sm"
                     >
                       <CircuitBoard className="w-3.5 h-3.5 text-cyan-400 group-hover/btn:rotate-12 transition-transform" />
-                      <span>تفاصيل العتاد بالكامل (Full Specs)</span>
+                      <span>{isAr ? "تفاصيل العتاد بالكامل" : "Full Hardware Specs"}</span>
                       <ArrowUpRight className="w-3.5 h-3.5 opacity-60 group-hover/btn:opacity-100 group-hover/btn:translate-x-0.5 transition-all" />
                     </button>
                   </div>
@@ -1057,7 +1059,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center space-x-2.5">
             <Globe className="w-5 h-5 text-cyan-400" />
             <h2 className="text-lg font-bold text-white tracking-tight">
-              Geographic Presence &amp; Real-Time Locations (فاتحين منين وأنهي مكان)
+              {isAr ? "التوزيع الجغرافي والاتصالات اللحظية" : "Geographic Presence & Real-Time Locations"}
             </h2>
           </div>
           <div className="flex items-center space-x-2">
@@ -1222,7 +1224,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center space-x-2.5">
             <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_#34d399]" />
             <h2 className="text-lg font-bold text-white tracking-tight">
-              Live Active Desktop Runners ({activeSessions.length}) (المستخدمين النشطين والرانرز)
+              {isAr ? `أجهزة الرانر النشطة حالياً (${activeSessions.length})` : `Live Active Desktop Runners (${activeSessions.length})`}
             </h2>
           </div>
           <span className="text-xs text-emerald-400/90 font-mono">
@@ -1310,7 +1312,7 @@ export default function AdminDashboardPage() {
           <div>
             <h2 className="text-lg font-bold text-white tracking-tight flex items-center space-x-2">
               <Users className="w-5 h-5 text-cyan-400" />
-              <span>Registered Users Directory ({data?.users.length || 0}) (المستخدمين المسجلين)</span>
+              <span>{isAr ? `دليل المستخدمين المسجلين (${data?.users.length || 0})` : `Registered Users Directory (${data?.users.length || 0})`}</span>
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
               Comprehensive registry with location telemetry, connected nodes, and privilege control
@@ -1381,7 +1383,7 @@ export default function AdminDashboardPage() {
               <tr>
                 <th className="px-4 py-3.5">User Profile</th>
                 <th className="px-4 py-3.5">Status</th>
-                <th className="px-4 py-3.5">Location (فاتحين منين)</th>
+                <th className="px-4 py-3.5">{isAr ? "الموقع الجغرافي" : "Location"}</th>
                 <th className="px-4 py-3.5">Desktop Runner</th>
                 <th className="px-4 py-3.5">Social Accounts</th>
                 <th className="px-4 py-3.5">Joined</th>
@@ -1591,8 +1593,8 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center space-x-3">
                     <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                     <div>
-                      <div className="text-sm font-bold text-emerald-300">Enterprise Lifetime License (ترخيص مدى الحياة نشط)</div>
-                      <div className="text-xs text-gray-300">البرنامج مفعل بشكل دائم وغير مقيد بأي فترة تجريبية.</div>
+                      <div className="text-sm font-bold text-emerald-300">{isAr ? "ترخيص المؤسسات مدى الحياة نشط" : "Enterprise Lifetime License Active"}</div>
+                      <div className="text-xs text-gray-300">{isAr ? "البرنامج مفعل بشكل دائم وغير مقيد بأي فترة تجريبية." : "Software is permanently activated and not restricted by trial limits."}</div>
                     </div>
                   </div>
                   <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
@@ -1617,14 +1619,14 @@ export default function AdminDashboardPage() {
                           : "text-cyan-400"
                       }`} />
                       <span className="font-bold text-sm text-white">
-                        فترة الـ 30 يوماً التجريبية المجانية (Free Trial Status)
+                        {isAr ? "حالة الفترة التجريبية (30 يوماً)" : "30-Day Free Trial Status"}
                       </span>
                     </div>
 
                     {selectedSpecsTerminal.isTrialExpired ? (
                       <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 w-fit">
                         <Lock className="w-3.5 h-3.5" />
-                        <span>انتهت الفترة التجريبية - النظام مقفل (Expired)</span>
+                        <span>{isAr ? "انتهت الفترة التجريبية - النظام مقفل" : "Trial Period Ended - System Locked"}</span>
                       </span>
                     ) : (
                       <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold w-fit ${
@@ -1632,7 +1634,7 @@ export default function AdminDashboardPage() {
                           ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                           : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
                       }`}>
-                        <span>باقي {selectedSpecsTerminal.daysRemaining ?? 30} يوم عمل ({selectedSpecsTerminal.daysRemaining ?? 30} Days Left)</span>
+                        <span>{isAr ? `باقي ${selectedSpecsTerminal.daysRemaining ?? 30} يوم عمل` : `${selectedSpecsTerminal.daysRemaining ?? 30} Days Left`}</span>
                       </span>
                     )}
                   </div>
@@ -1652,9 +1654,9 @@ export default function AdminDashboardPage() {
                       />
                     </div>
                     <div className="flex items-center justify-between text-[10px] font-mono text-gray-400 pt-1">
-                      <span>تاريخ البدء: {new Date(selectedSpecsTerminal.trialStartedAt || selectedSpecsTerminal.firstSeenAt).toLocaleDateString()}</span>
-                      <span>نسبة الاستهلاك: {selectedSpecsTerminal.trialProgressPercent ?? 0}%</span>
-                      <span>تاريخ الانتهاء: {new Date(selectedSpecsTerminal.expiresAt || new Date(new Date(selectedSpecsTerminal.firstSeenAt).getTime() + 30*86400000)).toLocaleDateString()}</span>
+                      <span>{isAr ? `تاريخ البدء: ${new Date(selectedSpecsTerminal.trialStartedAt || selectedSpecsTerminal.firstSeenAt).toLocaleDateString()}` : `Started: ${new Date(selectedSpecsTerminal.trialStartedAt || selectedSpecsTerminal.firstSeenAt).toLocaleDateString()}`}</span>
+                      <span>{isAr ? `نسبة الاستهلاك: ${selectedSpecsTerminal.trialProgressPercent ?? 0}%` : `Progress: ${selectedSpecsTerminal.trialProgressPercent ?? 0}%`}</span>
+                      <span>{isAr ? `تاريخ الانتهاء: ${new Date(selectedSpecsTerminal.expiresAt || new Date(new Date(selectedSpecsTerminal.firstSeenAt).getTime() + 30*86400000)).toLocaleDateString()}` : `Expires: ${new Date(selectedSpecsTerminal.expiresAt || new Date(new Date(selectedSpecsTerminal.firstSeenAt).getTime() + 30*86400000)).toLocaleDateString()}`}</span>
                     </div>
                   </div>
 
@@ -1662,7 +1664,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center space-x-2 text-[11px] text-cyan-300/80 bg-slate-950/50 p-2.5 rounded-lg border border-cyan-500/10">
                     <ShieldCheck className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                     <span>
-                      نظام الحماية ضد التلاعب: الفترة التجريبية مربوطة بسيريال وبصمة اللوحة الأم (Motherboard UUID) بالسيرفر السحابي. لا يمكن تصفيرها بإعادة تثبيت الويندوز أو مسح الملفات.
+                      {isAr ? "نظام الحماية ضد التلاعب: الفترة التجريبية مربوطة بسيريال وبصمة اللوحة الأم بالسيرفر السحابي. لا يمكن تصفيرها بإعادة تثبيت الويندوز." : "Tamper-Proof Guarantee: Trial validity is cryptographically anchored to Motherboard UUID & Hardware ID on server."}
                     </span>
                   </div>
                 </div>
@@ -1674,7 +1676,7 @@ export default function AdminDashboardPage() {
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
                   <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
                     <CircuitBoard className="w-4 h-4 text-cyan-400" />
-                    <h3 className="font-bold text-white text-xs">Motherboard &amp; BIOS (اللوحة الأم والبيوس)</h3>
+                    <h3 className="font-bold text-white text-xs">{isAr ? "اللوحة الأم والبيوس" : "Motherboard & BIOS"}</h3>
                   </div>
 
                   <div className="space-y-2 font-mono">
@@ -1734,7 +1736,7 @@ export default function AdminDashboardPage() {
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
                   <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
                     <Cpu className="w-4 h-4 text-cyan-400" />
-                    <h3 className="font-bold text-white text-xs">Processor &amp; Architecture (المعالج والنواة)</h3>
+                    <h3 className="font-bold text-white text-xs">{isAr ? "المعالج وبنية النظام" : "Processor & Architecture"}</h3>
                   </div>
 
                   <div className="space-y-2 font-mono">
@@ -1781,7 +1783,7 @@ export default function AdminDashboardPage() {
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
                   <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
                     <HardDrive className="w-4 h-4 text-cyan-400" />
-                    <h3 className="font-bold text-white text-xs">Memory &amp; Storage (الذاكرة والتخزين)</h3>
+                    <h3 className="font-bold text-white text-xs">{isAr ? "الذاكرة العشوائية والتخزين" : "Memory & Storage"}</h3>
                   </div>
 
                   <div className="space-y-2 font-mono">
@@ -1820,7 +1822,7 @@ export default function AdminDashboardPage() {
                 <div className="p-4 rounded-xl bg-slate-950/60 border border-white/10 space-y-3">
                   <div className="flex items-center space-x-2 border-b border-white/5 pb-2">
                     <Globe className="w-4 h-4 text-cyan-400" />
-                    <h3 className="font-bold text-white text-xs">Network &amp; Geolocation (الموقع والاتصال)</h3>
+                    <h3 className="font-bold text-white text-xs">{isAr ? "الموقع الجغرافي وشبكة الاتصال" : "Network & Geolocation"}</h3>
                   </div>
 
                   <div className="space-y-2 font-mono">
@@ -1872,7 +1874,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center space-x-2">
                     <Layers className="w-4 h-4 text-cyan-400" />
                     <span className="font-bold text-white text-xs">
-                      Raw Hardware &amp; Telemetry Payload (البيانات التقنية الكاملة)
+                      {isAr ? "البيانات التقنية الخام" : "Raw Hardware & Telemetry Payload"}
                     </span>
                   </div>
 
@@ -1880,7 +1882,7 @@ export default function AdminDashboardPage() {
                     onClick={() => setShowRawSpecsJson(!showRawSpecsJson)}
                     className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 hover:text-white transition-all text-[11px]"
                   >
-                    {showRawSpecsJson ? "Hide Raw JSON (إخفاء)" : "View Raw JSON (عرض الكود)"}
+                    {showRawSpecsJson ? (isAr ? "إخفاء كود JSON" : "Hide Raw JSON") : (isAr ? "عرض كود JSON" : "View Raw JSON")}
                   </button>
                 </div>
 
@@ -1920,7 +1922,7 @@ export default function AdminDashboardPage() {
                 }}
                 className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-all"
               >
-                إغلاق (Close)
+                {isAr ? "إغلاق" : "Close"}
               </button>
             </div>
           </div>

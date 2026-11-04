@@ -1,14 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw, Laptop, ArrowRight, Send } from "lucide-react";
+import { User, Shield, Key, Bell, CheckCircle2, Save, Sparkles, Lock, RefreshCw, Laptop, ArrowRight, ArrowLeft, Send } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { DeviceManager } from "@/components/settings/DeviceManager";
 import { TelegramSettingsPanel } from "@/components/settings/TelegramSettingsPanel";
+import { useLanguage } from "@/context/LanguageContext";
 import { getMe, type AuthUser } from "@/lib/api";
 import { PLATFORM_VERSION } from "@/lib/version";
 
 export default function SettingsPage() {
+  const { isAr } = useLanguage();
   const [activeTab, setActiveTab] = React.useState<"profile" | "devices" | "security" | "api" | "notifications" | "telegram">("profile");
   const [user, setUser] = React.useState<AuthUser | null>(null);
   const [name, setName] = React.useState("");
@@ -31,10 +33,43 @@ export default function SettingsPage() {
     setSaving(true);
     setTimeout(() => {
       setSaving(false);
-      setToastMessage("Settings updated successfully!");
+      setToastMessage(isAr ? "تم تحديث الإعدادات بنجاح!" : "Settings updated successfully!");
       setTimeout(() => setToastMessage(null), 3000);
     }, 800);
   }
+
+  const tabs = [
+    {
+      id: "profile",
+      label: isAr ? "الملف الشخصي" : "Profile & Identity",
+      icon: User,
+    },
+    {
+      id: "telegram",
+      label: isAr ? "بوت تيليجرام والرد الذكي" : "Telegram Bot & Mobile Reply",
+      icon: Send,
+    },
+    {
+      id: "devices",
+      label: isAr ? "أجهزة الرانر (Zero-Ban)" : "Desktop Runners (Zero-Ban)",
+      icon: Laptop,
+    },
+    {
+      id: "security",
+      label: isAr ? "الأمان وكلمة المرور" : "Security & Password",
+      icon: Shield,
+    },
+    {
+      id: "api",
+      label: isAr ? "مفاتيح API والويب هوك" : "API Keys & Webhooks",
+      icon: Key,
+    },
+    {
+      id: "notifications",
+      label: isAr ? "الإشعارات" : "Notifications",
+      icon: Bell,
+    },
+  ];
 
   return (
     <div className="flex flex-col space-y-8 max-w-5xl mx-auto">
@@ -43,10 +78,12 @@ export default function SettingsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-2.5">
             <User className="w-8 h-8 text-[var(--color-quaz-cyan)]" />
-            Account &amp; System Settings
+            {isAr ? "إعدادات الحساب والنظام" : "Account & System Settings"}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Manage your personal profile, desktop runners, security credentials, and system preferences.
+            {isAr
+              ? "إدارة ملفك الشخصي، برامج الرانر للكمبيوتر، مفاتيح الأمان والتفضيلات."
+              : "Manage your personal profile, desktop runners, security credentials, and system preferences."}
           </p>
         </div>
 
@@ -54,7 +91,9 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/30 px-4 py-2 rounded-xl self-start sm:self-auto shadow-[0_0_15px_rgba(34,211,238,0.15)]">
           <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
           <div className="flex flex-col">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-gray-400">Platform Version</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-gray-400">
+              {isAr ? "إصدار المنصة" : "Platform Version"}
+            </span>
             <span className="text-sm font-mono font-bold text-cyan-300">{PLATFORM_VERSION}</span>
           </div>
         </div>
@@ -69,14 +108,7 @@ export default function SettingsPage() {
 
       {/* Settings Navigation Tabs */}
       <div className="flex items-center space-x-2 border-b border-white/10 pb-4 overflow-x-auto scrollbar-none">
-        {[
-          { id: "profile", label: "Profile & Identity", icon: User },
-          { id: "telegram", label: "Telegram Bot & Mobile Reply", icon: Send },
-          { id: "devices", label: "Desktop Runners (Zero-Ban)", icon: Laptop },
-          { id: "security", label: "Security & Password", icon: Shield },
-          { id: "api", label: "API Keys & Webhooks", icon: Key },
-          { id: "notifications", label: "Notifications", icon: Bell },
-        ].map((tab) => {
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -112,10 +144,10 @@ export default function SettingsPage() {
               {name ? name.slice(0, 2).toUpperCase() : "QL"}
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">{name || "User Profile"}</h3>
+              <h3 className="text-lg font-bold text-white">{name || (isAr ? "الملف الشخصي" : "User Profile")}</h3>
               <p className="text-xs text-gray-400">{email || "user@quazlink.local"}</p>
               <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 text-[10px] font-mono border border-cyan-500/20">
-                Administrator
+                {isAr ? "مشرف النظام (Admin)" : "Administrator"}
               </span>
             </div>
           </div>
@@ -123,7 +155,9 @@ export default function SettingsPage() {
           <form onSubmit={handleSave} className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Full Name</label>
+                <label className="text-sm font-medium text-gray-300">
+                  {isAr ? "الاسم الكامل" : "Full Name"}
+                </label>
                 <input
                   type="text"
                   value={name}
@@ -132,7 +166,9 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300">Email Address</label>
+                <label className="text-sm font-medium text-gray-300">
+                  {isAr ? "البريد الإلكتروني" : "Email Address"}
+                </label>
                 <input
                   type="email"
                   value={email}
@@ -149,7 +185,7 @@ export default function SettingsPage() {
                 className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold rounded-xl hover:shadow-[0_0_20px_rgba(34,211,238,0.3)] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                <span>Save Profile Changes</span>
+                <span>{isAr ? "حفظ تعديلات الملف الشخصي" : "Save Profile Changes"}</span>
               </button>
             </div>
           </form>
@@ -161,14 +197,18 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Lock className="w-5 h-5 text-cyan-400" />
-              Password &amp; Security Controls
+              {isAr ? "إعدادات الأمان وكلمة المرور" : "Password & Security Controls"}
             </h3>
-            <p className="text-xs text-gray-400 mt-1">Update your access password and session timeout settings.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {isAr ? "تحديث كلمة مرور الدخول وإدارة الجلسات." : "Update your access password and session timeout settings."}
+            </p>
           </div>
 
           <form onSubmit={handleSave} className="space-y-4 max-w-lg">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">Current Password</label>
+              <label className="text-sm font-medium text-gray-300">
+                {isAr ? "كلمة المرور الحالية" : "Current Password"}
+              </label>
               <input
                 type="password"
                 placeholder="••••••••••••"
@@ -176,7 +216,9 @@ export default function SettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">New Password</label>
+              <label className="text-sm font-medium text-gray-300">
+                {isAr ? "كلمة المرور الجديدة" : "New Password"}
+              </label>
               <input
                 type="password"
                 placeholder="••••••••••••"
@@ -187,7 +229,7 @@ export default function SettingsPage() {
               type="submit"
               className="px-5 py-2.5 bg-white/10 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-sm cursor-pointer"
             >
-              Update Password
+              {isAr ? "تحديث كلمة المرور" : "Update Password"}
             </button>
           </form>
         </SpotlightCard>
@@ -199,16 +241,20 @@ export default function SettingsPage() {
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Key className="w-5 h-5 text-purple-400" />
-                Developer API Keys &amp; Inbound Webhooks
+                {isAr ? "مفاتيح API والويب هوك للمطورين" : "Developer API Keys & Inbound Webhooks"}
               </h3>
-              <p className="text-xs text-gray-400 mt-1">Use these keys to trigger workflows and WhatsApp customer invoices remotely from external systems.</p>
+              <p className="text-xs text-gray-400 mt-1">
+                {isAr
+                  ? "استخدم هذه المفاتيح لتشغيل الأتمتة وإرسال فواتير الواتساب عن بُعد من الأنظمة الخارجية."
+                  : "Use these keys to trigger workflows and WhatsApp customer invoices remotely from external systems."}
+              </p>
             </div>
             <a
               href="/integrations"
               className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white rounded-xl text-xs font-bold transition-all shadow-[0_0_20px_rgba(34,211,238,0.3)] flex items-center gap-2 self-start sm:self-auto cursor-pointer"
             >
-              <span>فتح بوابة الفواتير والربط (Invoices Portal)</span>
-              <ArrowRight className="w-4 h-4" />
+              <span>{isAr ? "فتح بوابة الفواتير والربط" : "Open Invoices & Integrations"}</span>
+              {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
             </a>
           </div>
 
@@ -216,17 +262,21 @@ export default function SettingsPage() {
             <div className="space-y-1">
               <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-cyan-400" />
-                بوابة رسائل وفواتير الواتساب التلقائية واليدوية
+                {isAr
+                  ? "بوابة رسائل وفواتير الواتساب التلقائية واليدوية"
+                  : "Automated & Manual WhatsApp Invoicing Gateway"}
               </span>
               <p className="text-xs text-gray-300">
-                يمكنك الآن إرسال فواتير ورسائل شكر وترحيب لعملائك يدوياً أو ربط متجر Gallary NextJS تلقائياً بنقرة واحدة.
+                {isAr
+                  ? "يمكنك الآن إرسال فواتير ورسائل شكر وترحيب لعملائك يدوياً أو ربط متجر Gallary NextJS تلقائياً بنقرة واحدة."
+                  : "Send invoices, thank-you notes, and welcome messages to your customers manually or integrate your external store via one click."}
               </p>
             </div>
             <a
               href="/integrations"
               className="px-3.5 py-1.5 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 rounded-lg text-xs font-semibold hover:bg-cyan-500/30 transition-colors whitespace-nowrap cursor-pointer text-center"
             >
-              انتقل للبوابة الآن 🚀
+              {isAr ? "انتقل للبوابة الآن 🚀" : "Launch Portal Now 🚀"}
             </a>
           </div>
         </SpotlightCard>
@@ -237,15 +287,29 @@ export default function SettingsPage() {
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
               <Bell className="w-5 h-5 text-cyan-400" />
-              Notification Channels
+              {isAr ? "قنوات الإشعارات والتنبيهات" : "Notification Channels"}
             </h3>
-            <p className="text-xs text-gray-400 mt-1">Choose how and when you receive execution failure alerts.</p>
+            <p className="text-xs text-gray-400 mt-1">
+              {isAr
+                ? "حدد كيف ومتى ترغب في استلام إشعارات فشل المهام أو الأحداث الهامة."
+                : "Choose how and when you receive execution failure alerts."}
+            </p>
           </div>
 
           <div className="space-y-3">
             {[
-              { title: "Email Alerts for Failed Runs", desc: "Send an email notification when a browser automation encounters a captcha or error." },
-              { title: "Weekly Automation Summary", desc: "Receive a weekly summary of completed posts and active workflows." },
+              {
+                title: isAr ? "إشعارات البريد عند فشل المهام" : "Email Alerts for Failed Runs",
+                desc: isAr
+                  ? "إرسال إشعار بريدي فوري عندما تواجه أتمتة المتصفح كود كابتشا أو خطأ."
+                  : "Send an email notification when a browser automation encounters a captcha or error.",
+              },
+              {
+                title: isAr ? "ملخص أسبوعي للأتمتة" : "Weekly Automation Summary",
+                desc: isAr
+                  ? "استلام تقرير أسبوعي بالمنشورات المنفذة وحالة المهام النشطة."
+                  : "Receive a weekly summary of completed posts and active workflows.",
+              },
             ].map((item, i) => (
               <label key={i} className="flex items-start space-x-3 p-3.5 rounded-xl bg-white/5 border border-white/5 cursor-pointer hover:bg-white/10 transition-colors">
                 <input type="checkbox" defaultChecked={i === 0} className="mt-1 accent-cyan-500 rounded" />
@@ -273,18 +337,20 @@ export default function SettingsPage() {
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              Zero-Ban Distributed Agent &amp; Residential Desktop Runner Architecture
+              {isAr
+                ? "بنية الرانر المكتبي السكني والوكلاء المستقلين بدون حظر (Zero-Ban)"
+                : "Zero-Ban Distributed Agent & Residential Desktop Runner Architecture"}
             </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-gray-400 border-t md:border-t-0 pt-3 md:pt-0 border-white/5">
           <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-300">
-            Version Scheme: v.yr.mon.x
+            {isAr ? "نظام الإصدارات: v.yr.mon.x" : "Version Scheme: v.yr.mon.x"}
           </span>
           <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Runner Active
+            {isAr ? "الرانر نشط" : "Runner Active"}
           </span>
         </div>
       </div>

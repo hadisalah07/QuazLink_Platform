@@ -26,6 +26,7 @@ import {
   Plus,
   Hash,
 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 import {
   getCatalogs,
   getCatalogProducts,
@@ -53,6 +54,7 @@ const PRESET_ICONS: Record<string, React.ReactNode> = {
 };
 
 export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModalProps) {
+  const { isAr } = useLanguage();
   // Catalogs & Products state
   const [catalogs, setCatalogs] = React.useState<Catalog[]>([]);
   const [selectedCatalogId, setSelectedCatalogId] = React.useState<string>("");
@@ -245,7 +247,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                 </span>
               </h2>
               <p className="text-xs text-gray-400">
-                توليد إعلانات وحملات تسويقية ذكية ومبيعات مباشرة من بيانات منتجات الكتالوج
+                {isAr ? "توليد إعلانات وحملات تسويقية ذكية ومبيعات مباشرة من بيانات منتجات الكتالوج" : "Generate high-converting ad copy and sales campaigns directly from product data"}
               </p>
             </div>
           </div>
@@ -267,14 +269,14 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Package className="w-3.5 h-3.5 text-cyan-400" />
-                  المنتج المستهدف
+                  {isAr ? "المنتج المستهدف" : "Target Product"}
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowProductPicker((prev) => !prev)}
                   className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer font-medium"
                 >
-                  <span>{showProductPicker ? "إخفاء القائمة" : "تغيير المنتج"}</span>
+                  <span>{showProductPicker ? (isAr ? "إخفاء القائمة" : "Hide Picker") : (isAr ? "تغيير المنتج" : "Change Product")}</span>
                   {showProductPicker ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                 </button>
               </div>
@@ -299,14 +301,14 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                     </p>
                     {selectedProduct.images && selectedProduct.images.length > 1 && (
                       <span className="text-[10px] text-gray-400">
-                        +{selectedProduct.images.length} صور مرفقة
+                        {isAr ? `+${selectedProduct.images.length} صور مرفقة` : `+${selectedProduct.images.length} attached photos`}
                       </span>
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="p-4 rounded-xl border border-dashed border-white/15 text-center text-xs text-gray-400">
-                  لم يتم اختيار منتج بعد
+                  {isAr ? "لم يتم اختيار منتج بعد" : "No product selected yet"}
                 </div>
               )}
             </div>
@@ -338,7 +340,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                         type="text"
                         value={productSearch}
                         onChange={(e) => setProductSearch(e.target.value)}
-                        placeholder="بحث عن منتج..."
+                        placeholder={isAr ? "بحث عن منتج..." : "Search products..."}
                         className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
                       />
                     </div>
@@ -348,10 +350,10 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                     {loadingProducts ? (
                       <div className="py-6 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-                        <span>جاري تحميل المنتجات...</span>
+                        <span>{isAr ? "جاري تحميل المنتجات..." : "Loading products..."}</span>
                       </div>
                     ) : filteredProducts.length === 0 ? (
-                      <div className="py-4 text-center text-xs text-gray-500">لا توجد منتجات مطابقة</div>
+                      <div className="py-4 text-center text-xs text-gray-500">{isAr ? "لا توجد منتجات مطابقة" : "No matching products found"}</div>
                     ) : (
                       filteredProducts.map((p) => (
                         <button
@@ -383,7 +385,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
             <div className="space-y-2">
               <span className="text-xs font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                قالب ونوع الحملة التسويقية
+                {isAr ? "قالب ونوع الحملة التسويقية" : "Campaign Type & Preset Template"}
               </span>
 
               <div className="grid grid-cols-1 gap-1.5">
@@ -406,11 +408,11 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold truncate">{p.title}</div>
                         <div className="text-[10px] text-gray-500 truncate">
-                          {p.presetKey === "fb_ig_feed" && "صيغة AIDA لهوك المشاهدة والمبيعات"}
-                          {p.presetKey === "tiktok_reels" && "سكريبت فيديو سريع 15-30 ثانية بالمشاهد"}
-                          {p.presetKey === "whatsapp_direct" && "رسالة ودودة لإغلاق الصفقات والأوردرات"}
-                          {p.presetKey === "flash_sale" && "عرض لفترة محدودة وتحفيز الشراء الفوري"}
-                          {p.presetKey === "b2b_wholesale" && "عرض كميات وتجار وموزعين بهامش ربح"}
+                          {p.presetKey === "fb_ig_feed" && (isAr ? "صيغة AIDA لهوك المشاهدة والمبيعات" : "AIDA hook for attention & feed conversions")}
+                          {p.presetKey === "tiktok_reels" && (isAr ? "سكريبت فيديو سريع 15-30 ثانية بالمشاهد" : "Fast 15-30s viral short script with visual cues")}
+                          {p.presetKey === "whatsapp_direct" && (isAr ? "رسالة ودودة لإغلاق الصفقات والأوردرات" : "Friendly direct sales closing pitch & order CTA")}
+                          {p.presetKey === "flash_sale" && (isAr ? "عرض لفترة محدودة وتحفيز الشراء الفوري" : "Urgent FOMO flash offer driving impulse buys")}
+                          {p.presetKey === "b2b_wholesale" && (isAr ? "عرض كميات وتجار وموزعين بهامش ربح" : "Bulk order B2B pricing & distributor profit margins")}
                         </div>
                       </div>
                       {isActive && <div className="w-2 h-2 rounded-full bg-cyan-400 shrink-0"></div>}
@@ -429,7 +431,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
               >
                 <span className="flex items-center gap-1.5 font-medium">
                   <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                  تخصيص تعليمات الذكاء الاصطناعي (Prompt Instructions)
+                  {isAr ? "تخصيص تعليمات الذكاء الاصطناعي (Prompt Instructions)" : "Customize AI Prompt Instructions"}
                 </span>
                 {showPromptEditor ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               </button>
@@ -448,21 +450,21 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                         onClick={() => insertToken("{title}")}
                         className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-cyan-300 border border-white/10"
                       >
-                        + اسم المنتج
+                        {isAr ? "+ اسم المنتج" : "+ Product Name"}
                       </button>
                       <button
                         type="button"
                         onClick={() => insertToken("{price}")}
                         className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-cyan-300 border border-white/10"
                       >
-                        + السعر
+                        {isAr ? "+ السعر" : "+ Price"}
                       </button>
                       <button
                         type="button"
                         onClick={() => insertToken("{description}")}
                         className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-cyan-300 border border-white/10"
                       >
-                        + الوصف
+                        {isAr ? "+ الوصف" : "+ Description"}
                       </button>
                     </div>
 
@@ -481,12 +483,12 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                         className="text-[11px] px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         {savingPreset ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 text-cyan-400" />}
-                        <span>حفظ كإعداد افتراضي لي</span>
+                        <span>{isAr ? "حفظ كإعداد افتراضي لي" : "Save as My Default Preset"}</span>
                       </button>
 
                       {presetSavedMsg && (
                         <span className="text-[11px] text-emerald-400 font-medium animate-pulse">
-                          تم الحفظ بنجاح!
+                          {isAr ? "تم الحفظ بنجاح!" : "Saved successfully!"}
                         </span>
                       )}
                     </div>
@@ -506,12 +508,12 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                 {generating ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-black" />
-                    <span>جاري توليد الإعلان عبر الذكاء الاصطناعي...</span>
+                    <span>{isAr ? "جاري توليد الإعلان عبر الذكاء الاصطناعي..." : "Generating AI Ad Copy..."}</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>توليد الإعلان الآن ({activePreset?.title || "حملة جديدة"})</span>
+                    <span>{isAr ? `توليد الإعلان الآن (${activePreset?.title || "حملة جديدة"})` : `Generate Ad Now (${activePreset?.title || "New Campaign"})`}</span>
                   </>
                 )}
               </button>
@@ -524,7 +526,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-white uppercase tracking-wider">
-                  الإعلان المُولّد (Ad Copy Output)
+                  {isAr ? "الإعلان المُولّد (Ad Copy Output)" : "Generated Ad Copy Output"}
                 </span>
                 {generationSource && (
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
@@ -536,7 +538,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
               {adCopy && (
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-gray-500">
-                    {adCopy.length} حرف | {adCopy.split(/\s+/).filter(Boolean).length} كلمة
+                    {isAr ? `${adCopy.length} حرف | ${adCopy.split(/\s+/).filter(Boolean).length} كلمة` : `${adCopy.length} chars | ${adCopy.split(/\s+/).filter(Boolean).length} words`}
                   </span>
                   <button
                     type="button"
@@ -544,7 +546,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                     className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 text-xs flex items-center gap-1 cursor-pointer transition-colors"
                   >
                     {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copied ? "تم النسخ!" : "نسخ"}</span>
+                    <span>{copied ? (isAr ? "تم النسخ!" : "Copied!") : (isAr ? "نسخ" : "Copy")}</span>
                   </button>
                 </div>
               )}
@@ -558,14 +560,14 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                     <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
                     <Sparkles className="w-4 h-4 text-purple-400 absolute -top-1 -right-1 animate-ping" />
                   </div>
-                  <p className="text-xs font-medium">جاري صياغة الإعلان بدقة تسويقية عالية...</p>
+                  <p className="text-xs font-medium">{isAr ? "جاري صياغة الإعلان بدقة تسويقية عالية..." : "Crafting high-converting ad copy with marketing psychology..."}</p>
                 </div>
               ) : adCopy ? (
                 <textarea
                   value={adCopy}
                   onChange={(e) => setAdCopy(e.target.value)}
                   className="flex-1 w-full bg-transparent text-gray-100 text-sm leading-relaxed focus:outline-none resize-none font-sans whitespace-pre-wrap selection:bg-cyan-500/30"
-                  placeholder="نص الإعلان سيظهر هنا..."
+                  placeholder={isAr ? "نص الإعلان سيظهر هنا..." : "Generated ad copy will appear here..."}
                 />
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-3">
@@ -573,9 +575,9 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                     <Sparkles className="w-8 h-8 text-cyan-500/50" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-gray-300">جاهز لصياغة الإعلان</h4>
+                    <h4 className="text-sm font-bold text-gray-300">{isAr ? "جاهز لصياغة الإعلان" : "Ready to Draft Your Ad"}</h4>
                     <p className="text-xs text-gray-500 max-w-sm mt-1">
-                      اختر المنتج من اليسار ثم اضغط على زر "توليد الإعلان" ليتم صياغة كابشن إعلاني احترافي فائق الإقناع وموجّه للمبيعات.
+                      {isAr ? "اختر المنتج من اليسار ثم اضغط على زر توليد الإعلان لصياغة كابشن إعلاني احترافي فائق الإقناع وموجّه للمبيعات." : "Select a product from the left and click Generate Ad to craft professional, high-converting promotional copy."}
                     </p>
                   </div>
                 </div>
@@ -592,42 +594,42 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
             {adCopy && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-gray-400">تحسينات سريعة بنقرة واحدة:</span>
+                  <span className="text-[11px] font-semibold text-gray-400">{isAr ? "تحسينات سريعة بنقرة واحدة:" : "1-Click Quick AI Refinements:"}</span>
                   <span className="text-[10px] text-cyan-400/80 font-mono">1-Click AI Refine</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => handleGenerate("اجعل النص أقصر وأكثر تركيزاً في 3 سطور فقط مع الحفاظ على الهوك والسعر")}
+                    onClick={() => handleGenerate(isAr ? "اجعل النص أقصر وأكثر تركيزاً في 3 سطور فقط مع الحفاظ على الهوك والسعر" : "Make the text shorter and punchy in 3 lines max while preserving the hook and pricing")}
                     disabled={generating}
                     className="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 transition-colors cursor-pointer"
                   >
-                    ⚡ اجعله أقصر ومختصر
+                    {isAr ? "⚡ اجعله أقصر ومختصر" : "⚡ Make it punchy & shorter"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleGenerate("أضف هوك قوي جداً عن الشحن المجاني والمعاينة قبل الاستلام والدفع عند الاستلام")}
+                    onClick={() => handleGenerate(isAr ? "أضف هوك قوي جداً عن الشحن المجاني والمعاينة قبل الاستلام والدفع عند الاستلام" : "Add a strong hook about free shipping, package inspection before payment, and cash on delivery")}
                     disabled={generating}
                     className="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 transition-colors cursor-pointer"
                   >
-                    🚚 أضف ميزة الشحن والمعاينة
+                    {isAr ? "🚚 أضف ميزة الشحن والمعاينة" : "🚚 Highlight free shipping & inspection"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleGenerate("ارفع نبرة الحماس والإثارة واستخدم أسلوب العرض الخاطف والحصري")}
+                    onClick={() => handleGenerate(isAr ? "ارفع نبرة الحماس والإثارة واستخدم أسلوب العرض الخاطف والحصري" : "Boost hype, excitement, and FOMO with exclusive limited-time urgency")}
                     disabled={generating}
                     className="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 transition-colors cursor-pointer"
                   >
-                    🔥 زوّد نبرة الحماس والعرض
+                    {isAr ? "🔥 زوّد نبرة الحماس والعرض" : "🔥 Boost urgency & hype"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleGenerate("أضف مجموعة هاشتاجات قوية ومستهدفة ورائجة (Viral & Trending E-Commerce Hashtags) في نهاية الإعلان ومناسبة للمنتج وللسوق العربي والمصري")}
+                    onClick={() => handleGenerate(isAr ? "أضف مجموعة هاشتاجات قوية ومستهدفة ورائجة في نهاية الإعلان ومناسبة للمنتج" : "Add viral, trending e-commerce hashtags at the bottom suitable for the product niche")}
                     disabled={generating}
                     className="text-xs px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 hover:border-cyan-500/30 transition-colors cursor-pointer flex items-center gap-1.5"
                   >
                     <Hash className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>زوّد الهاشتاجات</span>
+                    <span>{isAr ? "زوّد الهاشتاجات" : "Add viral hashtags"}</span>
                   </button>
                   <button
                     type="button"
@@ -640,7 +642,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                     }`}
                   >
                     <Plus className={`w-3.5 h-3.5 ${showCustomRefinement ? "text-cyan-300 rotate-45 transition-transform" : "text-cyan-400"}`} />
-                    <span>تخصيص (+)</span>
+                    <span>{isAr ? "تخصيص (+)" : "Custom Refine (+)"}</span>
                   </button>
                 </div>
 
@@ -664,7 +666,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                               handleGenerate(customRefinementText.trim());
                             }
                           }}
-                          placeholder="اكتب طلبك الخاص للذكاء الاصطناعي (مثال: خصم 20% عند شراء قطعتين، ركّز على خامة المنتج، اجعل النبرة فكاهية)..."
+                          placeholder={isAr ? "اكتب طلبك الخاص للذكاء الاصطناعي (مثال: خصم 20% عند شراء قطعتين، ركّز على خامة المنتج)..." : "Type your custom prompt refinement (e.g. 20% off on 2 pieces, focus on material quality)..."}
                           className="flex-1 bg-transparent px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
                           autoFocus
                         />
@@ -679,7 +681,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                           className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-40 disabled:grayscale text-black font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all shrink-0"
                         >
                           {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 fill-black" />}
-                          <span>تطبيق</span>
+                          <span>{isAr ? "تطبيق" : "Apply"}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -695,7 +697,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                 onClick={onClose}
                 className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 text-xs font-medium cursor-pointer transition-colors"
               >
-                إلغاء
+                {isAr ? "إلغاء" : "Cancel"}
               </button>
 
               <div className="flex items-center gap-2">
@@ -706,7 +708,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                   className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? "تم النسخ!" : "نسخ الكابشن"}</span>
+                  <span>{copied ? (isAr ? "تم النسخ!" : "Copied!") : (isAr ? "نسخ الكابشن" : "Copy Caption")}</span>
                 </button>
 
                 <button
@@ -716,7 +718,7 @@ export function AiAdModal({ isOpen, onClose, onApply, initialProduct }: AiAdModa
                   className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(34,211,238,0.4)] disabled:opacity-50 disabled:grayscale transition-all"
                 >
                   <Send className="w-3.5 h-3.5 fill-black" />
-                  <span>🚀 استخدام في البوست وإرفاق الصور</span>
+                  <span>{isAr ? "🚀 استخدام في البوست وإرفاق الصور" : "🚀 Use in Post & Attach Media"}</span>
                 </button>
               </div>
             </div>

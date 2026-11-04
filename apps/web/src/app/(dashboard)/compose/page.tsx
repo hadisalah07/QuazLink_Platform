@@ -9,9 +9,11 @@ import { GlassCard } from "@/components/effects/GlassCard";
 import { PostPreview } from "@/components/compose/PostPreview";
 import { AiAdModal } from "@/components/compose/AiAdModal";
 import { fadeIn } from "@/lib/motion";
+import { useLanguage } from "@/context/LanguageContext";
 import { getAccounts, createPost, getCatalogs, getCatalogProducts, generateCopy, addDestination, type Account, type Catalog, type Product } from "@/lib/api";
 
 export default function ComposePage() {
+  const { isAr } = useLanguage();
   const router = useRouter();
   const [accounts, setAccounts] = React.useState<Account[]>([]);
   const [accountId, setAccountId] = React.useState("");
@@ -94,8 +96,8 @@ export default function ComposePage() {
       const waOnly = dests.filter(d => d.url && d.url.includes("whatsapp.com"));
       if (waOnly.length > 0) return waOnly;
       return [
-        { name: "WhatsApp Status (حالة الواتساب / قصة)", url: "https://web.whatsapp.com/status" },
-        { name: "Direct Customer Chat (محادثة مباشرة)", url: "https://web.whatsapp.com/send" },
+        { name: isAr ? "حالة الواتساب (Story)" : "WhatsApp Status (Story)", url: "https://web.whatsapp.com/status" },
+        { name: isAr ? "محادثة مباشرة مع العميل" : "Direct Customer Chat", url: "https://web.whatsapp.com/send" },
       ];
     }
     return dests.length > 0 ? dests : [{ name: "Personal Profile (Timeline)", url: "https://www.facebook.com/" }];
@@ -166,9 +168,9 @@ export default function ComposePage() {
     <motion.div initial="initial" animate="animate" variants={fadeIn} className="max-w-7xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Compose Post</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-white">{isAr ? "إنشاء منشور جديد" : "Compose Post"}</h1>
           <p className="text-sm text-gray-400 mt-1">
-            اكتب البوست، والـ agent هيجهّزه ويقف قبل النشر — تراجعه وتدوس Post بإيدك.
+            {isAr ? "اكتب المنشور وسيقوم الرانر بتجهيزه قبل النشر للمراجعة والاعتماد." : "Draft your post and your runner will stage it for manual review before publishing."}
           </p>
         </div>
         <button
@@ -187,12 +189,12 @@ export default function ComposePage() {
           <GlassCard className="flex flex-col p-6 md:p-8 space-y-6">
             {accounts.length === 0 ? (
               <div className="text-center py-8 space-y-4">
-                <p className="text-gray-400">مفيش حساب متصل جاهز للنشر.</p>
+                <p className="text-gray-400">{isAr ? "لا توجد حسابات متصلة جاهزة للنشر." : "No connected social accounts ready for publishing."}</p>
                 <Link
                   href="/accounts"
                   className="inline-block px-5 py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 font-semibold hover:bg-cyan-500/30 transition-all"
                 >
-                  اربط حسابك من صفحة Accounts الأول
+                  {isAr ? "قم بربط حسابك من صفحة الحسابات أولاً" : "Connect an account from the Accounts page first"}
                 </Link>
               </div>
             ) : (
@@ -266,11 +268,11 @@ export default function ComposePage() {
                     {selectedAcc.platform === "whatsapp" && targetUrl.includes("send") && (
                       <div className="mt-2.5 p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/30 space-y-1.5">
                         <label className="text-xs text-emerald-400 font-medium flex items-center gap-1.5">
-                          <span>📱 رقم هاتف العميل (مع كود الدولة):</span>
+                          <span>{isAr ? "📱 رقم هاتف العميل (مع كود الدولة):" : "📱 Customer Phone Number (with Country Code):"}</span>
                         </label>
                         <input
                           type="text"
-                          placeholder="مثال: 201012345678"
+                          placeholder={isAr ? "مثال: 201012345678" : "e.g. +201012345678"}
                           value={targetUrl.includes("phone=") ? targetUrl.split("phone=")[1] : ""}
                           onChange={(e) => {
                             const clean = e.target.value.replace(/[^0-9]/g, "");
@@ -279,7 +281,7 @@ export default function ComposePage() {
                           className="w-full px-3.5 py-2 rounded-lg bg-black/50 border border-emerald-500/40 text-white placeholder:text-gray-500 text-xs focus:outline-none focus:border-emerald-400 font-mono tracking-wider"
                         />
                         <p className="text-[10px] text-gray-400">
-                          سيتم فتح المحادثة المباشرة مع هذا الرقم وإرسال الرسالة والصور إليه تلقائياً.
+                          {isAr ? "سيتم فتح المحادثة المباشرة مع هذا الرقم وإرسال الرسالة والصور إليه تلقائياً." : "Direct chat will open with this phone number to send messages and photos automatically."}
                         </p>
                       </div>
                     )}
@@ -293,7 +295,7 @@ export default function ComposePage() {
                         className="w-full mt-2 py-2 px-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm disabled:opacity-50"
                       >
                         <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>{addingDest ? "Adding..." : "+ Quick-Add House Of Glass Page (ال عاشور عدس)"}</span>
+                        <span>{addingDest ? "Adding..." : isAr ? "+ إضافة سريعة لصفحة House Of Glass" : "+ Quick-Add House Of Glass Page"}</span>
                       </button>
                     )}
                   </div>
@@ -314,7 +316,7 @@ export default function ComposePage() {
                     rows={6}
                     value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    placeholder="اكتب البوست هنا أو اختار منتج من الكتالوج للتوليد التلقائي..."
+                    placeholder={isAr ? "اكتب البوست هنا أو اختار منتج من الكتالوج للتوليد التلقائي..." : "Write post content here or choose a product from catalog for AI copy..."}
                     disabled={generating}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-quaz-cyan)] transition-all resize-none disabled:opacity-50"
                   />
@@ -340,7 +342,7 @@ export default function ComposePage() {
                 <div className="flex items-start gap-2 text-xs text-gray-400 bg-white/5 p-3 rounded-xl border border-white/5">
                   <Info className="w-4 h-4 mt-0.5 text-cyan-400 flex-shrink-0" />
                   <span>
-                    هيتفتح متصفح ويجهّز البوست ويقف قبل النشر. راجعه وادوس Post بإيدك، بعدين اقفل الـ window.
+                    {isAr ? "سيفتح الرانر المتصفح ويجهز البوست ويقف قبل النشر للمراجعة اليدوية." : "A browser will launch and stage the post. Review it and click Post manually, then close the window."}
                   </span>
                 </div>
 

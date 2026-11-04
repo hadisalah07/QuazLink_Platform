@@ -28,6 +28,7 @@ import {
 import { getJobs, screenshotUrl, retryJob, retryAllFailedJobs, type Job } from "@/lib/api";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
 
 type UiStatus = "success" | "error" | "warn" | "running";
 
@@ -96,6 +97,7 @@ function formatJobDate(dateStr: string): string {
 }
 
 export default function RunsPage() {
+  const { isAr } = useLanguage();
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -146,7 +148,7 @@ export default function RunsPage() {
     setResentJobIds((prev) => new Set(prev).add(jobId));
     try {
       await retryJob(jobId);
-      setRetrySuccessMsg(`تمت جدولة إعادة إرسال المهمة #${jobId.slice(0, 8)} فوراً للرانر!`);
+      setRetrySuccessMsg(isAr ? `تمت جدولة إعادة إرسال المهمة #${jobId.slice(0, 8)} فوراً للرانر!` : `Job #${jobId.slice(0, 8)} scheduled for immediate retry!`);
       setTimeout(() => setRetrySuccessMsg(null), 4000);
       await refresh(true);
     } catch (err: any) {
@@ -161,7 +163,7 @@ export default function RunsPage() {
     setError(null);
     try {
       const res = await retryAllFailedJobs();
-      setRetrySuccessMsg(`تمت إعادة جدولة ${res.count} مهمة فاشلة للإرسال فوراً!`);
+      setRetrySuccessMsg(isAr ? `تمت إعادة جدولة ${res.count} مهمة فاشلة للإرسال فوراً!` : `${res.count} failed jobs scheduled for immediate retry!`);
       setTimeout(() => setRetrySuccessMsg(null), 4000);
       await refresh(true);
     } catch (err: any) {
@@ -286,13 +288,13 @@ export default function RunsPage() {
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
                 </span>
                 <span className="text-cyan-300 font-semibold flex items-center gap-1">
-                  مزامنة لحظية فورية (1.5s)
+                  {isAr ? "مزامنة لحظية فورية (1.5s)" : "Instant Real-time Sync (1.5s)"}
                 </span>
               </>
             ) : (
               <>
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"></span>
-                <span className="text-gray-400 font-medium">مراقبة حية نشطة (5s)</span>
+                <span className="text-gray-400 font-medium">{isAr ? "مراقبة حية نشطة (5s)" : "Active Live Monitor (5s)"}</span>
               </>
             )}
           </div>
@@ -304,7 +306,7 @@ export default function RunsPage() {
               className="px-4 py-2 bg-amber-500/15 border border-amber-500/30 text-amber-300 rounded-xl hover:bg-amber-500/25 transition-all flex items-center gap-2 text-sm font-semibold cursor-pointer shadow-sm hover:shadow-[0_0_15px_rgba(245,158,11,0.25)] disabled:opacity-50"
             >
               <RotateCcw className={cn("w-4 h-4 text-amber-400", retryingId === "all" && "animate-spin")} />
-              <span>{retryingId === "all" ? "جاري إعادة إرسال الكل..." : `إعادة محاولة كل الفاشل (${failedCount})`}</span>
+              <span>{retryingId === "all" ? (isAr ? "جاري إعادة إرسال الكل..." : "Retrying all...") : (isAr ? `إعادة محاولة كل الفاشل (${failedCount})` : `Retry All Failed (${failedCount})`)}</span>
             </button>
           )}
 
@@ -312,10 +314,10 @@ export default function RunsPage() {
             onClick={() => refresh(false)}
             disabled={isRefreshing}
             className="px-4 py-2 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center gap-2 text-sm font-medium cursor-pointer disabled:opacity-60"
-            title="تحديث قائمة السجلات فوراً"
+            title={isAr ? "تحديث قائمة السجلات فوراً" : "Refresh logs list now"}
           >
             <RefreshCw className={cn("w-4 h-4 text-cyan-400", isRefreshing && "animate-spin")} />
-            <span>{isRefreshing ? "جاري التحديث..." : "Refresh Logs"}</span>
+            <span>{isRefreshing ? (isAr ? "جاري التحديث..." : "Refreshing...") : (isAr ? "تحديث السجلات" : "Refresh Logs")}</span>
           </button>
         </div>
       </div>
@@ -400,14 +402,14 @@ export default function RunsPage() {
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white outline-none focus:border-cyan-500/50 transition-colors [color-scheme:dark] cursor-pointer"
-              title="اختر يوماً محدداً للفلترة"
+              title={isAr ? "اختر يوماً محدداً للفلترة" : "Pick a specific day to filter"}
             />
             {selectedDate && (
               <button
                 type="button"
                 onClick={() => setSelectedDate("")}
                 className="ml-1.5 p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 cursor-pointer"
-                title="إلغاء فلتر التاريخ (عرض الكل)"
+                title={isAr ? "إلغاء فلتر التاريخ (عرض الكل)" : "Clear date filter (View all)"}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -469,13 +471,13 @@ export default function RunsPage() {
                   <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                     {selectedDate ? (
                       <div className="flex flex-col items-center justify-center gap-2">
-                        <span>لا توجد سجلات تشغيل في تاريخ ({selectedDate}).</span>
+                        <span>{isAr ? `لا توجد سجلات تشغيل في تاريخ (${selectedDate}).` : `No execution logs found on (${selectedDate}).`}</span>
                         <button
                           type="button"
                           onClick={() => setSelectedDate("")}
                           className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold hover:bg-cyan-500/20 cursor-pointer transition-colors"
                         >
-                          عرض جميع التواريخ
+                          {isAr ? "عرض جميع التواريخ" : "Show All Dates"}
                         </button>
                       </div>
                     ) : (
@@ -555,6 +557,7 @@ function RunRow({
   isRetrying: boolean;
   isResent: boolean;
 }) {
+  const { isAr } = useLanguage();
   const status = toUiStatus(job.status);
   const fullContent = job.post?.content || "";
   const preview = fullContent
@@ -628,7 +631,7 @@ function RunRow({
                 )}
 
                 <span className="text-[11px] text-gray-500 group-hover:text-cyan-400/80 transition-colors">
-                  {isExpanded ? "إخفاء التفاصيل ▲" : "عرض التفاصيل الكاملة ▼"}
+                  {isExpanded ? (isAr ? "إخفاء التفاصيل ▲" : "Hide Details ▲") : (isAr ? "عرض التفاصيل الكاملة ▼" : "View Full Details ▼")}
                 </span>
               </div>
             </div>
@@ -655,7 +658,7 @@ function RunRow({
               {isWhatsappless && (
                 <span
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 shadow-[0_0_8px_rgba(244,63,94,0.25)]"
-                  title="هذا الرقم ليس لديه واتساب ومحفوظ في قائمة whatsappless لمدة شهر لتوفير الوقت"
+                  title={isAr ? "هذا الرقم ليس لديه واتساب ومحفوظ في قائمة whatsappless لمدة شهر" : "This number has no WhatsApp account and is cached in whatsappless list for 30 days"}
                 >
                   <PhoneOff className="w-2.5 h-2.5 text-rose-400" />
                   Whatsappless 🚫
@@ -696,12 +699,12 @@ function RunRow({
                   ? "bg-amber-500/10 border-amber-500/20 text-amber-400 hover:bg-amber-500/20 shadow-sm hover:shadow-[0_0_12px_rgba(245,158,11,0.2)]"
                   : "bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10 hover:border-white/20"
               )}
-              title={isResent ? "تمت إعادة إرسال هذه العملية سابقاً — اضغط لإعادة الإرسال مجدداً" : "إعادة إرسال هذه العملية الآن للرانر"}
+              title={isResent ? (isAr ? "تمت إعادة إرسال هذه العملية سابقاً — اضغط للمحاولة مجدداً" : "Already resent — click to retry again") : (isAr ? "إعادة إرسال هذه العملية الآن للرانر" : "Resend this task to runner now")}
             >
               <RotateCcw className={cn("w-3.5 h-3.5", isRetrying ? "animate-spin text-cyan-400" : isResent ? "text-cyan-400" : "text-gray-400")} />
               <span>
                 {isRetrying
-                  ? "جاري..."
+                  ? (isAr ? "جاري..." : "Retrying...")
                   : isResent
                   ? "Resent 🔄"
                   : "Resend"}
@@ -740,23 +743,23 @@ function RunRow({
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" />
-                    تفاصيل المهمة بالكامل
+                    {isAr ? "تفاصيل المهمة بالكامل" : "Task Execution Details"}
                   </span>
 
                   {isWhatsApp && (
                     <span className="px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
                       <MessageSquare className="w-3.5 h-3.5" />
-                      إرسال واتساب (WhatsApp Web)
+                      {isAr ? "إرسال واتساب (WhatsApp Web)" : "WhatsApp Web Dispatch"}
                     </span>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-mono text-gray-400">
                   <Calendar className="w-3.5 h-3.5 text-gray-500" />
-                  <span>تاريخ الإنشاء: {new Date(job.createdAt).toLocaleString("ar-EG")}</span>
+                  <span>{isAr ? `تاريخ الإنشاء: ${new Date(job.createdAt).toLocaleString("ar-EG")}` : `Created: ${new Date(job.createdAt).toLocaleString()}`}</span>
                   {job.completedAt && (
                     <span className="text-emerald-400/90">
-                      • اكتملت: {new Date(job.completedAt).toLocaleTimeString("ar-EG")}
+                      {isAr ? `• اكتملت: ${new Date(job.completedAt).toLocaleTimeString("ar-EG")}` : `• Completed: ${new Date(job.completedAt).toLocaleTimeString()}`}
                     </span>
                   )}
                 </div>
@@ -768,7 +771,7 @@ function RunRow({
                 <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
                   <span className="text-gray-400 font-medium flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                    المستلم / رقم الواتساب:
+                    {isAr ? "المستلم / رقم الواتساب:" : "Recipient / WhatsApp Number:"}
                   </span>
                   {phone ? (
                     <div className="flex items-center justify-between gap-2 pt-1">
@@ -784,12 +787,12 @@ function RunRow({
                           {copiedId === `phone-${job.id}` ? (
                             <>
                               <Check className="w-3 h-3" />
-                              <span>تم النسخ!</span>
+                              <span>{isAr ? "تم النسخ!" : "Copied!"}</span>
                             </>
                           ) : (
                             <>
                               <Copy className="w-3 h-3" />
-                              <span>نسخ الرقم</span>
+                              <span>{isAr ? "نسخ الرقم" : "Copy Number"}</span>
                             </>
                           )}
                         </button>
@@ -801,13 +804,13 @@ function RunRow({
                           className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-cyan-300 text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
                         >
                           <ExternalLink className="w-3 h-3" />
-                          <span>فتح الشات</span>
+                          <span>{isAr ? "فتح الشات" : "Open Chat"}</span>
                         </a>
                       </div>
                     </div>
                   ) : (
                     <p className="text-gray-300 font-mono break-all pt-1" dir="ltr">
-                      {job.targetUrl || "نشر تلقائي على الحساب"}
+                      {job.targetUrl || (isAr ? "نشر تلقائي على الحساب" : "Auto-publish on account")}
                     </p>
                   )}
                 </div>
@@ -816,7 +819,7 @@ function RunRow({
                 <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/5 space-y-1.5">
                   <span className="text-gray-400 font-medium flex items-center gap-1.5">
                     <Hash className="w-3.5 h-3.5 text-cyan-400" />
-                    المعرف الفريد للمهمة (UUID):
+                    {isAr ? "المعرف الفريد للمهمة (UUID):" : "Job UUID:"}
                   </span>
                   <div className="flex items-center justify-between gap-2 pt-1">
                     <span className="text-gray-300 font-mono text-xs break-all" dir="ltr">
@@ -830,12 +833,12 @@ function RunRow({
                       {copiedId === `fullid-${job.id}` ? (
                         <>
                           <Check className="w-3 h-3 text-emerald-400" />
-                          <span>تم!</span>
+                          <span>{isAr ? "تم!" : "Copied!"}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-3 h-3" />
-                          <span>نسخ</span>
+                          <span>{isAr ? "نسخ" : "Copy"}</span>
                         </>
                       )}
                     </button>
@@ -848,7 +851,7 @@ function RunRow({
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
                     <MessageSquare className="w-4 h-4 text-cyan-400" />
-                    محتوى الرسالة / الفاتورة بالكامل (Full Content):
+                    {isAr ? "محتوى الرسالة / الفاتورة بالكامل:" : "Full Message / Invoice Content:"}
                   </span>
                   {fullContent && (
                     <button
@@ -859,12 +862,12 @@ function RunRow({
                       {copiedId === `content-${job.id}` ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400">تم نسخ النص بالكامل!</span>
+                          <span className="text-emerald-400">{isAr ? "تم نسخ النص بالكامل!" : "Full text copied!"}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="w-3.5 h-3.5" />
-                          <span>نسخ النص كاملاً</span>
+                          <span>{isAr ? "نسخ النص كاملاً" : "Copy Full Text"}</span>
                         </>
                       )}
                     </button>
@@ -876,7 +879,7 @@ function RunRow({
                   dir="auto"
                 >
                   {fullContent || (
-                    <span className="text-gray-500 italic">لا يوجد محتوى نصي مسجل لهذه المهمة.</span>
+                    <span className="text-gray-500 italic">{isAr ? "لا يوجد محتوى نصي مسجل لهذه المهمة." : "No text payload recorded for this job."}</span>
                   )}
                 </div>
               </div>
@@ -886,7 +889,7 @@ function RunRow({
                 <div className="space-y-2 pt-1">
                   <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-cyan-400" />
-                    الملفات والمرفقات ({job.post.mediaUrls.length}):
+                    {isAr ? `الملفات والمرفقات (${job.post.mediaUrls.length}):` : `Attachments & Media (${job.post.mediaUrls.length}):`}
                   </span>
                   <div className="flex flex-wrap gap-2.5">
                     {job.post.mediaUrls.map((url, idx) => (
@@ -898,7 +901,7 @@ function RunRow({
                         onClick={(e) => e.stopPropagation()}
                         className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-cyan-300 flex items-center gap-1.5 transition-colors"
                       >
-                        <span>مرفق #{idx + 1}</span>
+                        <span>{isAr ? `مرفق #${idx + 1}` : `Media #${idx + 1}`}</span>
                         <ArrowUpRight className="w-3 h-3" />
                       </a>
                     ))}
@@ -910,17 +913,17 @@ function RunRow({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10 text-xs">
                 <div className="text-gray-400 flex flex-col gap-1 max-w-xl">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-gray-300">نتيجة التنفيذ:</span>
+                    <span className="font-semibold text-gray-300">{isAr ? "نتيجة التنفيذ:" : "Execution Result:"}</span>
                     <span className={cn(
                       "font-mono font-medium",
                       status === "error" ? "text-red-400" : status === "success" ? "text-emerald-400" : "text-gray-200"
                     )}>
-                      {job.result ? job.result.replace(/\[RESENT\]\s*/g, '') : (status === "success" ? "تم الإرسال بنجاح عبر الرانر المحلي" : "قيد المعالجة")}
+                      {job.result ? job.result.replace(/\[RESENT\]\s*/g, '') : (status === "success" ? (isAr ? "تم الإرسال بنجاح عبر الرانر المحلي" : "Dispatched successfully via Desktop Runner") : (isAr ? "قيد المعالجة" : "Processing"))}
                     </span>
                     {isResent && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                         <RotateCcw className="w-2.5 h-2.5" />
-                        تمت إعادة الإرسال (Resent 🔄)
+                        {isAr ? "تمت إعادة الإرسال (Resent 🔄)" : "Resent 🔄"}
                       </span>
                     )}
                   </div>
@@ -928,15 +931,15 @@ function RunRow({
                     <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2.5 text-xs text-rose-300 mt-2">
                       <PhoneOff className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold text-rose-200">🚫 رقم غير مسجل في واتساب (Whatsappless):</span>
+                        <span className="font-bold text-rose-200">{isAr ? "🚫 رقم غير مسجل في واتساب (Whatsappless):" : "🚫 Non-WhatsApp Number (Whatsappless):"}</span>
                         <p className="text-rose-300/80 mt-1 leading-relaxed font-sans">
-                          تم اكتشاف أن هذا الرقم ليس لديه حساب على واتساب، وحُفظ تلقائياً في قائمة (whatsappless) لتخطي محاولات الإرسال المستقبلية وتوفير وقت الخادم والرانر. تظل هذه القائمة فعالة لمدة شهر كامل (30 يوم) وسيتم السماح بمحاولته مجدداً بعدها تلقائياً في حال قام العميل بالانضمام للواتساب.
+                          {isAr ? "تم اكتشاف أن هذا الرقم ليس لديه حساب على واتساب، وحُفظ تلقائياً في قائمة (whatsappless) لتخطي محاولات الإرسال المستقبلية وتوفير وقت الخادم والرانر. تظل هذه القائمة فعالة لمدة 30 يوماً." : "This phone number has no active WhatsApp account. It was auto-cached in the whatsappless registry for 30 days to save server & runner dispatch cycles."}
                         </p>
                       </div>
                     </div>
                   ) : status === "error" ? (
                     <p className="text-[11px] text-amber-400/90 leading-relaxed font-sans">
-                      💡 ملاحظة: إذا كان الخطأ متعلقاً بعدم وجود المتصفح أو انقطاع الهاتف، اضغط على زر إعادة الإرسال (Resend) بعد فتح الهاتف وتوصيله بالإنترنت.
+                      {isAr ? "💡 ملاحظة: إذا كان الخطأ متعلقاً بعدم وجود المتصفح أو انقطاع الهاتف، اضغط على زر إعادة الإرسال بعد الاتصال بالإنترنت." : "💡 Note: If failure was caused by browser outage or phone disconnect, click Resend once your device is reconnected."}
                     </p>
                   ) : null}
                 </div>
@@ -958,10 +961,10 @@ function RunRow({
                     <RotateCcw className={cn("w-4 h-4", isRetrying && "animate-spin")} />
                     <span>
                       {isRetrying
-                        ? "جاري الإرسال للرانر..."
+                        ? (isAr ? "جاري الإرسال للرانر..." : "Dispatching to runner...")
                         : isResent
-                        ? "إعادة الإرسال مرة أخرى (Resend 🔄)"
-                        : "إعادة إرسال العملية (Resend)"}
+                        ? (isAr ? "إعادة الإرسال مرة أخرى (Resend 🔄)" : "Retry Again (Resend 🔄)")
+                        : (isAr ? "إعادة إرسال العملية (Resend)" : "Resend Job (Retry)")}
                     </span>
                   </button>
 
@@ -975,7 +978,7 @@ function RunRow({
                       className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 font-bold transition-all shadow-md hover:shadow-[0_0_15px_rgba(6,182,212,0.3)] cursor-pointer"
                     >
                       <ImageIcon className="w-4 h-4" />
-                      <span>معاينة لقطة الشاشة (View Proof)</span>
+                      <span>{isAr ? "معاينة لقطة الشاشة" : "View Screenshot Proof"}</span>
                     </button>
                   )}
                 </div>

@@ -6,28 +6,31 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logout, type AuthUser } from "@/lib/api";
 import { PLATFORM_VERSION } from "@/lib/version";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface NavItem {
-  name: string;
+  key: string;
+  enName: string;
+  arName: string;
   href: string;
   icon: any;
   badge?: string;
 }
 
 const baseNavItems: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Live POS Monitor", href: "/monitor", icon: Activity, badge: "LIVE" },
-  { name: "Mobile POS & Terminals", href: "/terminals", icon: Smartphone, badge: "PWA" },
-  { name: "Workflows", href: "/workflows", icon: Workflow },
-  { name: "Accounts", href: "/accounts", icon: Users },
-  { name: "Catalogs", href: "/catalogs", icon: ShoppingBag },
-  { name: "Compose", href: "/compose", icon: PenSquare },
-  { name: "Invoices & WhatsApp", href: "/integrations", icon: Receipt },
-  { name: "Runs", href: "/runs", icon: Zap },
-  { name: "QuazLink POS Portal", href: "/pos", icon: Store },
-  { name: "Downloads & Apps", href: "/download", icon: Download },
-  { name: "Support & Contact", href: "/contact", icon: Headphones },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { key: "dashboard", enName: "Dashboard", arName: "لوحة التحكم", href: "/dashboard", icon: LayoutDashboard },
+  { key: "monitor", enName: "Live POS Monitor", arName: "مراقبة نقاط البيع الحية", href: "/monitor", icon: Activity, badge: "LIVE" },
+  { key: "terminals", enName: "Mobile POS & Terminals", arName: "نقاط البيع والموبايل", href: "/terminals", icon: Smartphone, badge: "PWA" },
+  { key: "workflows", enName: "Workflows", arName: "سير العمل المؤتمت", href: "/workflows", icon: Workflow },
+  { key: "accounts", enName: "Accounts", arName: "الحسابات المرتبطة", href: "/accounts", icon: Users },
+  { key: "catalogs", enName: "Catalogs", arName: "كتالوجات المنتجات", href: "/catalogs", icon: ShoppingBag },
+  { key: "compose", enName: "Compose", arName: "صانع المنشورات", href: "/compose", icon: PenSquare },
+  { key: "integrations", enName: "Invoices & WhatsApp", arName: "الفواتير والواتساب", href: "/integrations", icon: Receipt },
+  { key: "runs", enName: "Runs", arName: "سجل التشغيل", href: "/runs", icon: Zap },
+  { key: "pos", enName: "QuazLink POS Portal", arName: "بوابة كاشير ومخازن POS", href: "/pos", icon: Store },
+  { key: "download", enName: "Downloads & Apps", arName: "التنزيلات والبرامج", href: "/download", icon: Download },
+  { key: "contact", enName: "Support & Contact", arName: "الدعم والتواصل", href: "/contact", icon: Headphones },
+  { key: "settings", enName: "Settings", arName: "الإعدادات", href: "/settings", icon: Settings },
 ];
 
 function initials(user: AuthUser): string {
@@ -38,6 +41,7 @@ function initials(user: AuthUser): string {
 }
 
 export function Sidebar({ user }: { user: AuthUser }) {
+  const { isAr } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = React.useState(false);
@@ -50,13 +54,17 @@ export function Sidebar({ user }: { user: AuthUser }) {
     const items = [...baseNavItems];
     items.splice(1, 0, 
       {
-        name: "Admin Console",
+        key: "admin",
+        enName: "Admin Console",
+        arName: "لوحة تحكم الإدارة",
         href: "/admin",
         icon: ShieldCheck,
         badge: "ADMIN",
       },
       {
-        name: "Customer Inquiries",
+        key: "inquiries",
+        enName: "Customer Inquiries",
+        arName: "استفسارات العملاء",
         href: "/admin/contacts",
         icon: MessageSquare,
         badge: "INBOX",
@@ -98,8 +106,8 @@ export function Sidebar({ user }: { user: AuthUser }) {
           )}
         </Link>
         {isExpanded && (
-          <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="text-gray-400 hover:text-white">
-            <ChevronLeft className="w-5 h-5" />
+          <button onClick={(e) => { e.stopPropagation(); setIsExpanded(false); }} className="text-gray-400 hover:text-white cursor-pointer">
+            {isAr ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
         )}
       </div>
@@ -107,11 +115,12 @@ export function Sidebar({ user }: { user: AuthUser }) {
       <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const label = isAr ? item.arName : item.enName;
           return (
             <Link
-              key={item.name}
+              key={item.href}
               href={item.href}
-              title={!isExpanded ? item.name : undefined}
+              title={!isExpanded ? label : undefined}
               className={cn(
                 "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors overflow-hidden",
                 isActive
@@ -123,7 +132,7 @@ export function Sidebar({ user }: { user: AuthUser }) {
               <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive ? "text-[var(--color-quaz-cyan)]" : "")} />
               {isExpanded && (
                 <div className="flex items-center justify-between flex-1 min-w-0">
-                  <span className="whitespace-nowrap truncate">{item.name}</span>
+                  <span className="whitespace-nowrap truncate">{label}</span>
                   {item.badge && (
                     <span className="ml-2 text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
                       {item.badge}
@@ -151,19 +160,25 @@ export function Sidebar({ user }: { user: AuthUser }) {
         <button
           onClick={handleLogout}
           disabled={signingOut}
-          title={!isExpanded ? "Sign out" : undefined}
+          title={!isExpanded ? (isAr ? "تسجيل الخروج" : "Sign out") : undefined}
           className={cn(
-            "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden",
+            "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed overflow-hidden cursor-pointer",
             isExpanded ? "w-full" : "w-10 h-10 justify-center mx-auto px-0"
           )}
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />
-          {isExpanded && <span className="whitespace-nowrap">{signingOut ? "Signing out…" : "Sign out"}</span>}
+          {isExpanded && (
+            <span className="whitespace-nowrap">
+              {isAr
+                ? signingOut ? "جاري الخروج…" : "تسجيل الخروج"
+                : signingOut ? "Signing out…" : "Sign out"}
+            </span>
+          )}
         </button>
 
         {isExpanded && (
           <div className="pt-2 px-1 flex items-center justify-between text-[11px] text-gray-500 font-mono">
-            <span>Platform</span>
+            <span>{isAr ? "المنصة" : "Platform"}</span>
             <span className="text-cyan-400 font-semibold">{PLATFORM_VERSION}</span>
           </div>
         )}

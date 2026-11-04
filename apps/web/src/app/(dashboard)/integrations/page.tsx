@@ -30,6 +30,7 @@ import {
   CheckCheck
 } from "lucide-react";
 import { SpotlightCard } from "@/components/ui/SpotlightCard";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface IntegrationConfig {
   apiKey: string;
@@ -63,7 +64,7 @@ const PRESET_TEMPLATES = [
     label: "📦 تأكيد الطلب وجاري الشحن",
     content: `مرحباً بك {customerName} 🌸
 تم تأكيد طلبك رقم #{invoiceNumber} بنجاح وجاري تجهيزه للشحن الآن 🚚
-💰 إجمالي المبلغ عند الاستلام: {amount} {currency}
+💰 {isAr ? "إجمالي المبلغ" : "Total Amount"} عند الاستلام: {amount} {currency}
 سيتواصل معك مندوب الشحن فور وصول الشحنة لمنطقتك. شكراً لاختيارك لنا! ❤️`
   },
   {
@@ -82,6 +83,7 @@ const PRESET_TEMPLATES = [
 ];
 
 export default function IntegrationsPage() {
+  const { isAr } = useLanguage();
   const [activeMainTab, setActiveMainTab] = React.useState<"manual" | "bulk" | "api" | "history">("manual");
   const [config, setConfig] = React.useState<IntegrationConfig | null>(null);
   const [historyItems, setHistoryItems] = React.useState<DispatchedHistoryItem[]>([]);
@@ -268,19 +270,19 @@ export default function IntegrationsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "فشل إرسال الفاتورة عبر واتساب");
+        throw new Error(data.error || (isAr ? "فشل إرسال الفاتورة عبر واتساب" : "Failed to dispatch WhatsApp invoice"));
       }
 
       setTestResult({
         success: true,
-        message: `تم إرسال الفاتورة بنجاح! تم توجيه المهمة لحظياً للـ Desktop Runner (Job #${data.jobId?.slice(-6)})`,
+        message: isAr ? `تم إرسال الفاتورة بنجاح! تم توجيه المهمة لحظياً للـ Desktop Runner (Job #${data.jobId?.slice(-6)})` : `Invoice dispatched! Routed to Desktop Runner (Job #${data.jobId?.slice(-6)})`,
         jobId: data.jobId,
         normalizedPhone: data.recipient?.cleanPhone,
       });
     } catch (err: any) {
       setTestResult({
         success: false,
-        message: err.message || "حدث خطأ غير متوقع أثناء إرسال الفاتورة",
+        message: err.message || (isAr ? "حدث خطأ غير متوقع أثناء إرسال الفاتورة" : "Unexpected error during dispatch"),
       });
     } finally {
       setIsSending(false);
@@ -313,7 +315,7 @@ export default function IntegrationsPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل إرسال الدفعة");
+      if (!res.ok) throw new Error(data.error || (isAr ? "فشل إرسال الدفعة" : "Failed to dispatch batch"));
 
       setBulkResult({
         total: data.totalCount,
@@ -413,10 +415,10 @@ echo $response;`
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
             <Receipt className="w-8 h-8 text-[var(--color-quaz-cyan)]" />
-            WhatsApp Invoicing &amp; Messaging Portal
+            {isAr ? "بوابة فواتير ورسائل الواتساب والربط البرمجي" : "WhatsApp Invoicing & Messaging Portal"}
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            أرسل فواتير ورسائل ترحيب وشكر لعملائك عبر واتساب يدوياً بنقرة واحدة، أو اربط متجرك الإلكتروني تلقائياً عبر الـ Webhook &amp; API.
+            {isAr ? "أرسل فواتير ورسائل ترحيب وشكر لعملائك عبر واتساب يدوياً بنقرة واحدة، أو اربط متجرك الإلكتروني تلقائياً عبر الـ Webhook & API." : "Dispatch invoices, receipts, and custom WhatsApp messages manually, or connect your online store via Webhooks & API."}
           </p>
         </div>
 
@@ -429,12 +431,12 @@ echo $response;`
               {config?.activeWhatsApp ? (
                 <>
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  حساب واتساب نشط ومتصل
+                  {isAr ? "حساب واتساب نشط ومتصل" : "Active WhatsApp Connected"}
                 </>
               ) : (
                 <>
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  جاهز عبر جلسة Desktop Runner
+                  {isAr ? "جاهز عبر جلسة Desktop Runner" : "Ready via Desktop Runner"}
                 </>
               )}
             </span>
@@ -453,7 +455,7 @@ echo $response;`
           }`}
         >
           <Send className="w-4 h-4" />
-          الإرسال اليدوي المباشر (Manual Sender)
+          {isAr ? "الإرسال اليدوي المباشر" : "Manual Single Send"}
         </button>
 
         <button
@@ -465,7 +467,7 @@ echo $response;`
           }`}
         >
           <Users className="w-4 h-4" />
-          إرسال يدوي لعدة أرقام (Bulk Numbers)
+          {isAr ? "إرسال يدوي لعدة أرقام" : "Bulk Numbers Send"}
         </button>
 
         <button
@@ -477,7 +479,7 @@ echo $response;`
           }`}
         >
           <Code2 className="w-4 h-4" />
-          الربط التلقائي والـ API (Integration &amp; Keys)
+          {isAr ? "الربط التلقائي ومفاتيح API" : "Integration & API Keys"}
         </button>
 
         <button
@@ -489,7 +491,7 @@ echo $response;`
           }`}
         >
           <History className="w-4 h-4" />
-          سجل الرسائل المرسلة (Delivery Logs)
+          {isAr ? "سجل الرسائل المرسلة" : "Dispatch History"}
         </button>
       </div>
 
@@ -503,10 +505,10 @@ echo $response;`
                 <div>
                   <h2 className="text-lg font-bold text-white flex items-center gap-2">
                     <Send className="w-5 h-5 text-cyan-400" />
-                    بيانات العميل والفاتورة (إرسال يدوي فوري)
+                    {isAr ? "بيانات العميل والفاتورة (إرسال يدوي فوري)" : "Customer & Invoice Details (Instant Send)"}
                   </h2>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    اكتب بيانات العميل، وسيفتح المحرك شات الواتساب مباشرة لإرسال الرسالة.
+                    {isAr ? "اكتب بيانات العميل، وسيفتح المحرك شات الواتساب مباشرة لإرسال الرسالة." : "Enter customer details and the runner will open chat directly to send."}
                   </p>
                 </div>
                 <button
@@ -515,7 +517,7 @@ echo $response;`
                   className="px-3 py-1.5 text-xs font-mono bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  رقم فاتورة عشوائي
+                  {isAr ? "رقم فاتورة عشوائي" : "Random Invoice #"}
                 </button>
               </div>
 
@@ -524,7 +526,7 @@ echo $response;`
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      رقم واتساب العميل *
+                      {isAr ? "رقم واتساب العميل *" : "Customer WhatsApp Number *"}
                     </label>
                     <div className="relative">
                       <input
@@ -532,7 +534,7 @@ echo $response;`
                         required
                         value={form.phone}
                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        placeholder="01012345678 أو 2010..."
+                        placeholder={isAr ? "01012345678 أو 2010..." : "e.g. 01012345678 or +2010..."}
                         dir="ltr"
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                       />
@@ -542,11 +544,11 @@ echo $response;`
                       {phoneValidation.isValid ? (
                         <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                           <Check className="w-3 h-3" />
-                          {phoneValidation.isEgypt ? "🇪🇬 مصر:" : "🌐 دولي:"} {phoneValidation.formatted}
+                          {phoneValidation.isEgypt ? (isAr ? "🇪🇬 مصر:" : "🇪🇬 Egypt:") : (isAr ? "🌐 دولي:" : "🌐 Int:")} {phoneValidation.formatted}
                         </span>
                       ) : (
                         <span className="text-[11px] text-gray-500 font-mono">
-                          يقبل 010... محلي مصري أو رقم دولي كامل
+                          {isAr ? "يقبل 010... محلي مصري أو رقم دولي كامل" : "Accepts local 010... or international format"}
                         </span>
                       )}
                     </div>
@@ -554,14 +556,14 @@ echo $response;`
 
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      اسم العميل
+                      {isAr ? "اسم العميل" : "Customer Name"}
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         value={form.customerName}
                         onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-                        placeholder="مثال: أحمد مصطفى"
+                        placeholder={isAr ? "مثال: أحمد مصطفى" : "e.g. John Doe"}
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                       />
                     </div>
@@ -572,7 +574,7 @@ echo $response;`
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      رقم الفاتورة / المرجع
+                      {isAr ? "رقم الفاتورة / المرجع" : "Invoice # / Reference"}
                     </label>
                     <input
                       type="text"
@@ -586,7 +588,7 @@ echo $response;`
 
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      إجمالي المبلغ
+                      {isAr ? "إجمالي المبلغ" : "Total Amount"}
                     </label>
                     <input
                       type="text"
@@ -599,7 +601,7 @@ echo $response;`
 
                   <div>
                     <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                      العملة
+                      {isAr ? "العملة" : "Currency"}
                     </label>
                     <select
                       value={form.currency}
@@ -617,7 +619,7 @@ echo $response;`
                 {/* Preset Templates Selector */}
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-2">
-                    اختيار نموذج الرسالة السريع
+                    {isAr ? "اختيار نموذج الرسالة السريع" : "Choose Quick Message Template"}
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-2 gap-2">
                     {PRESET_TEMPLATES.map((tpl) => (
@@ -641,10 +643,10 @@ echo $response;`
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-medium text-gray-300">
-                      نص الرسالة المرسلة
+                      {isAr ? "نص الرسالة المرسلة" : "Sent Message Text"}
                     </label>
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-gray-500">إدراج متغير:</span>
+                      <span className="text-[10px] text-gray-500">{isAr ? "إدراج متغير:" : "Insert variable:"}</span>
                       {["{customerName}", "{invoiceNumber}", "{amount}", "{currency}"].map((tag) => (
                         <button
                           type="button"
@@ -661,7 +663,7 @@ echo $response;`
                     rows={4}
                     value={form.customMessage}
                     onChange={(e) => setForm({ ...form, customMessage: e.target.value })}
-                    placeholder="اكتب نص الرسالة هنا..."
+                    placeholder={isAr ? "اكتب نص الرسالة هنا..." : "Type custom message here..."}
                     className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-white text-sm focus:outline-none focus:border-cyan-400 transition-colors leading-relaxed"
                   />
                 </div>
@@ -670,7 +672,7 @@ echo $response;`
                 <div>
                   <label className="block text-xs font-medium text-gray-300 mb-1.5 flex items-center gap-1.5">
                     <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
-                    رابط صورة الفاتورة أو المنتج (اختياري)
+                    {isAr ? "رابط صورة الفاتورة أو المنتج (اختياري)" : "Invoice or Product Image URL (Optional)"}
                   </label>
                   <input
                     type="url"
@@ -691,12 +693,12 @@ echo $response;`
                   {isSending ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      جاري توجيه الفاتورة إلى واتساب...
+                      {isAr ? "جاري توجيه الفاتورة إلى واتساب..." : "Routing invoice to WhatsApp..."}
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      إرسال الفاتورة عبر واتساب الآن (Send WhatsApp Now)
+                      {isAr ? "إرسال الفاتورة عبر واتساب الآن (Send WhatsApp Now)" : "Send WhatsApp Invoice Now"}
                     </>
                   )}
                 </button>
@@ -719,7 +721,7 @@ echo $response;`
                       <p className="font-semibold">{testResult.message}</p>
                       {testResult.normalizedPhone && (
                         <p className="text-xs text-emerald-400/80 mt-1 font-mono">
-                          الرقم المستهدف في واتساب: +{testResult.normalizedPhone}
+                          {isAr ? `الرقم المستهدف في واتساب: +${testResult.normalizedPhone}` : `Target WhatsApp Number: +${testResult.normalizedPhone}`}
                         </p>
                       )}
                     </div>
@@ -739,7 +741,7 @@ echo $response;`
                   </div>
                   <div>
                     <span className="text-xs font-bold text-white block">
-                      {form.customerName || "عميلنا العزيز"}
+                      {form.customerName || (isAr ? "عميلنا العزيز" : "Valued Customer")}
                     </span>
                     <span className="text-[10px] text-emerald-400 font-mono">
                       {phoneValidation.isValid ? phoneValidation.formatted : form.phone}
@@ -747,7 +749,7 @@ echo $response;`
                   </div>
                 </div>
                 <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-2 py-1 rounded-md">
-                  معاينة مباشرة (Live WhatsApp)
+                  {isAr ? "معاينة مباشرة (Live WhatsApp)" : "Live Preview (WhatsApp)"}
                 </span>
               </div>
 
@@ -785,9 +787,9 @@ echo $response;`
               <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-400">
                 <span className="flex items-center gap-1">
                   <Zap className="w-3 h-3 text-cyan-400" />
-                  يتم الإرسال مباشرة من الـ Desktop Runner
+                  {isAr ? "يتم الإرسال مباشرة من الـ Desktop Runner" : "Dispatched directly via Desktop Runner"}
                 </span>
-                <span className="text-emerald-400 font-mono font-semibold">تشفير تام 100%</span>
+                <span className="text-emerald-400 font-mono font-semibold">{isAr ? "تشفير تام 100%" : "100% Secure Encryption"}</span>
               </div>
             </SpotlightCard>
 
@@ -795,13 +797,13 @@ echo $response;`
             <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-cyan-400" />
-                كيف تتم الأتمتة اليدوية؟
+                {isAr ? "كيف تتم الأتمتة اليدوية؟" : "How does automated dispatch work?"}
               </h3>
               <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside leading-relaxed">
-                <li>عند الضغط على <strong className="text-white">إرسال الفاتورة</strong>، يتم إنشاء أمر الإرسال فوراً.</li>
-                <li>يستقبل الـ <strong className="text-cyan-300">Desktop Runner</strong> الأمر عبر الـ WebSocket في 0 ثانية.</li>
-                <li>يفتح المتصفح محادثة الرقم مباشرة ويكتب الرسالة ويرفق الصورة إن وجدت.</li>
-                <li>ينتظر اكتمال تسليم الرسالة، ويلتقط لقطة شاشة لإثبات التسليم.</li>
+              <li>{isAr ? <>عند الضغط على <strong className="text-white">إرسال الفاتورة</strong>، يتم إنشاء أمر الإرسال فوراً.</> : <>When clicking <strong className="text-white">Send Invoice</strong>, the job is generated immediately.</>}</li>
+              <li>{isAr ? <>يستقبل الـ <strong className="text-cyan-300">Desktop Runner</strong> الأمر عبر الـ WebSocket في 0 ثانية.</> : <>The <strong className="text-cyan-300">Desktop Runner</strong> receives the task via WebSocket in 0s.</>}</li>
+              <li>{isAr ? <>يفتح المتصفح محادثة الرقم مباشرة ويكتب الرسالة ويرفق الصورة إن وجدت.</> : <>The browser opens the target chat directly, types message and attaches media.</>}</li>
+              <li>{isAr ? <>ينتظر اكتمال تسليم الرسالة، ويلتقط لقطة شاشة لإثبات التسليم.</> : <>Waits for delivery confirmation and takes a screenshot for proof of dispatch.</>}</li>
               </ol>
             </div>
           </div>
@@ -815,17 +817,17 @@ echo $response;`
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-cyan-400" />
-                إرسال يدوي جماعي لعدة أرقام (Bulk Recipients)
+                {isAr ? "إرسال يدوي جماعي لعدة أرقام (Bulk Recipients)" : "Bulk Send to Multiple Numbers"}
               </h2>
               <p className="text-xs text-gray-400 mt-1">
-                الصق قائمة بأرقام العملاء (رقم في كل سطر أو مفصولة بفواصل)، وسيتم إرسال الرسالة لكل رقم تباعاً وبأمان.
+                {isAr ? "الصق قائمة بأرقام العملاء (رقم في كل سطر أو مفصولة بفواصل)، وسيتم إرسال الرسالة لكل رقم تباعاً وبأمان." : "Paste phone numbers (one per line or comma-separated); the Runner will dispatch them securely."}
               </p>
             </div>
 
             <form onSubmit={handleBulkSend} className="space-y-5">
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                  قائمة أرقام الهواتف (رقم في كل سطر)
+                  {isAr ? "قائمة أرقام الهواتف (رقم في كل سطر)" : "Phone Numbers List (one per line)"}
                 </label>
                 <textarea
                   rows={6}
@@ -837,26 +839,26 @@ echo $response;`
                   className="w-full bg-black/40 border border-white/10 rounded-xl p-3.5 text-white font-mono text-xs focus:outline-none focus:border-cyan-400 transition-colors leading-relaxed"
                 />
                 <div className="mt-1 text-[11px] text-gray-400">
-                  الأرقام المكتوبة: {bulkNumbers.split(/[\n,;]+/).filter(s => s.trim()).length} رقم
+                  {isAr ? `الأرقام المكتوبة: ${bulkNumbers.split(/[\n,;]+/).filter(s => s.trim()).length} رقم` : `Entered numbers: ${bulkNumbers.split(/[\n,;]+/).filter(s => s.trim()).length}`}
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                  اسم العميل الافتراضي (إذا لم يُحدد)
+                  {isAr ? "اسم العميل" : "Customer Name"} {isAr ? " (إذا لم يُحدد)" : " (Default if unstated)"}
                 </label>
                 <input
                   type="text"
                   value={bulkCustomerName}
                   onChange={(e) => setBulkCustomerName(e.target.value)}
-                  placeholder="عميلنا العزيز"
+                  placeholder={isAr ? "عميلنا العزيز" : "Valued Customer"}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-400 transition-colors"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-300 mb-1.5">
-                  نص الرسالة الموحدة
+                  {isAr ? "نص الرسالة الموحدة" : "Broadcast Message Content"}
                 </label>
                 <textarea
                   rows={4}
@@ -875,12 +877,12 @@ echo $response;`
                 {isBulkSending ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    جاري إرسال الدفعة...
+                    {isAr ? "جاري إرسال الدفعة..." : "Dispatching batch..."}
                   </>
                 ) : (
                   <>
                     <Users className="w-4 h-4" />
-                    إرسال إلى جميع الأرقام المحددة (Send to All)
+                    {isAr ? "إرسال إلى جميع الأرقام المحددة (Send to All)" : "Send to All Target Numbers"}
                   </>
                 )}
               </button>
@@ -889,7 +891,7 @@ echo $response;`
                 <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                   <span>
-                    تم توجيه <strong>{bulkResult.dispatched}</strong> من أصل <strong>{bulkResult.total}</strong> للـ Desktop Runner بنجاح!
+                  {isAr ? <>تم توجيه <strong>{bulkResult.dispatched}</strong> من أصل <strong>{bulkResult.total}</strong> للـ Desktop Runner بنجاح!</> : <>Dispatched <strong>{bulkResult.dispatched}</strong> of <strong>{bulkResult.total}</strong> to Desktop Runner successfully!</>}
                   </span>
                 </div>
               )}
@@ -909,21 +911,21 @@ echo $response;`
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-purple-400" />
-                    <h3 className="text-base font-bold text-white">مفتاح الربط البرمجي (Integration Key)</h3>
+                    <h3 className="text-base font-bold text-white">{isAr ? "مفتاح الربط البرمجي (Integration Key)" : "Integration API Key"}</h3>
                   </div>
                   <span className="px-2 py-0.5 text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/30 rounded-md">
                     Permanent API Key
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed mb-4">
-                  استخدم هذا المفتاح في هيدر الطلبات (`X-API-Key`) لربط متجر Gallary NextJS أو أي تطبيق خارجي.
+                  {isAr ? "استخدم هذا المفتاح في هيدر الطلبات (`X-API-Key`) لربط متجر Gallary NextJS أو أي تطبيق خارجي." : "Use this key in request headers (`X-API-Key`) to connect your Next.js store, POS, or ERP."}
                 </p>
 
                 <div className="p-3.5 rounded-xl bg-black/60 border border-white/10 flex items-center justify-between gap-3 font-mono text-xs">
                   <span className="truncate text-gray-300">
                     {showKey
                       ? config?.apiKey || "ql_live_..."
-                      : (config?.apiKey ? config.apiKey.slice(0, 14) + "••••••••••••••••••••••••" : "جاري التحميل...")}
+                      : (config?.apiKey ? config.apiKey.slice(0, 14) + "••••••••••••••••••••••••" : (isAr ? "جاري التحميل..." : "Loading..."))}
                   </span>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
@@ -938,14 +940,14 @@ echo $response;`
                       className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 transition-colors flex items-center gap-1 text-xs cursor-pointer"
                     >
                       {copiedKey ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedKey ? "تم النسخ" : "نسخ"}</span>
+                      <span>{copiedKey ? (isAr ? "تم النسخ" : "Copied") : (isAr ? "نسخ" : "Copy")}</span>
                     </button>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-[11px] text-gray-500">
-                <span>تشفير HS256 متطابق</span>
+                <span>{isAr ? "تشفير HS256 متطابق" : "Matched HS256 Encryption"}</span>
                 <span className="text-purple-400">Zero-DB Overhead</span>
               </div>
             </SpotlightCard>
@@ -956,14 +958,14 @@ echo $response;`
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Terminal className="w-5 h-5 text-cyan-400" />
-                    <h3 className="text-base font-bold text-white">رابط استقبال الفواتير (Inbound Webhook)</h3>
+                    <h3 className="text-base font-bold text-white">{isAr ? "رابط استقبال الفواتير (Inbound Webhook)" : "Inbound Webhook Endpoint"}</h3>
                   </div>
                   <span className="px-2 py-0.5 text-[10px] font-mono bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-md">
                     POST Webhook
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 leading-relaxed mb-4">
-                  أرسل طلبات الـ POST المحتوية على رقم الهاتف واسم العميل إلى هذا المسار:
+              {isAr ? "أرسل طلبات الـ POST المحتوية على رقم الهاتف واسم العميل إلى هذا المسار:" : "Send POST requests containing phone number and customer name to this endpoint:"}
                 </p>
 
                 <div className="p-3.5 rounded-xl bg-black/60 border border-white/10 flex items-center justify-between gap-3 font-mono text-xs">
@@ -973,7 +975,7 @@ echo $response;`
                     className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 transition-colors flex items-center gap-1 text-xs flex-shrink-0 cursor-pointer"
                   >
                     {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedUrl ? "تم النسخ" : "نسخ الرابط"}</span>
+                    <span>{copiedUrl ? (isAr ? "تم النسخ" : "Copied") : (isAr ? "نسخ الرابط" : "Copy URL")}</span>
                   </button>
                 </div>
               </div>
@@ -990,7 +992,7 @@ echo $response;`
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <Code2 className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-bold text-white">كود الربط الجاهز (Ready Code Snippets)</h3>
+                <h3 className="text-base font-bold text-white">{isAr ? "كود الربط الجاهز (Ready Code Snippets)" : "Ready Integration Code Snippets"}</h3>
               </div>
 
               <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/10">
@@ -1024,7 +1026,7 @@ echo $response;`
                 className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-xs font-mono flex items-center gap-1 transition-colors cursor-pointer"
               >
                 {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCode ? "تم النسخ" : "نسخ الكود"}</span>
+                <span>{copiedCode ? (isAr ? "تم النسخ" : "Copied") : (isAr ? "نسخ الكود" : "Copy Code")}</span>
               </button>
             </div>
           </SpotlightCard>
@@ -1038,7 +1040,7 @@ echo $response;`
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div className="flex items-center gap-2">
                 <History className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-bold text-white">سجل العمليات والفواتير المرسلة (Recent Logs)</h3>
+                <h3 className="text-base font-bold text-white">{isAr ? "سجل العمليات والفواتير المرسلة (Recent Logs)" : "Recent Dispatch Logs"}</h3>
               </div>
               <button
                 onClick={loadHistory}
@@ -1046,29 +1048,29 @@ echo $response;`
                 className="px-3 py-1.5 text-xs bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-300 rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${historyLoading ? "animate-spin" : ""}`} />
-                تحديث السجل
+                {isAr ? "تحديث السجل" : "Refresh Logs"}
               </button>
             </div>
 
             {historyLoading ? (
               <div className="py-12 text-center text-gray-400 text-sm">
                 <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                جاري تحميل سجل الرسائل...
+                {isAr ? "جاري تحميل سجل الرسائل..." : "Loading message logs..."}
               </div>
             ) : historyItems.length === 0 ? (
               <div className="py-12 text-center text-gray-500 text-sm">
-                لا توجد رسائل مرسلة بعد. جرّب إرسال أول فاتورة من تبويب <strong className="text-cyan-400 cursor-pointer" onClick={() => setActiveMainTab("manual")}>الإرسال اليدوي المباشر</strong>!
+                {isAr ? <>لا توجد رسائل مرسلة بعد. جرّب إرسال أول فاتورة من تبويب <strong className="text-cyan-400 cursor-pointer" onClick={() => setActiveMainTab("manual")}>الإرسال اليدوي المباشر</strong>!</> : <>No messages dispatched yet. Send your first invoice from the <strong className="text-cyan-400 cursor-pointer" onClick={() => setActiveMainTab("manual")}>Manual Single Send</strong> tab!</>}
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-right text-xs">
                   <thead>
                     <tr className="border-b border-white/10 text-gray-400 font-mono">
-                      <th className="py-3 px-4">رقم المهمة</th>
-                      <th className="py-3 px-4">رقم الواتساب</th>
-                      <th className="py-3 px-4">الحالة</th>
-                      <th className="py-3 px-4">تاريخ الإرسال</th>
-                      <th className="py-3 px-4">محتوى الرسالة</th>
+                      <th className="py-3 px-4">{isAr ? "رقم المهمة" : "Job ID"}</th>
+                      <th className="py-3 px-4">{isAr ? "رقم الواتساب" : "WhatsApp Number"}</th>
+                      <th className="py-3 px-4">{isAr ? "الحالة" : "Status"}</th>
+                      <th className="py-3 px-4">{isAr ? "تاريخ الإرسال" : "Sent At"}</th>
+                      <th className="py-3 px-4">{isAr ? "محتوى الرسالة" : "Message Content"}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
@@ -1076,7 +1078,7 @@ echo $response;`
                       <tr key={item.id} className="hover:bg-white/5 transition-colors">
                         <td className="py-3 px-4 font-mono text-gray-400">#{item.id.slice(-6)}</td>
                         <td className="py-3 px-4 font-mono text-cyan-300" dir="ltr">
-                          {item.phone ? `+${item.phone}` : "مباشر"}
+                          {item.phone ? `+${item.phone}` : (isAr ? "مباشر" : "Direct")}
                         </td>
                         <td className="py-3 px-4">
                           <span
@@ -1088,7 +1090,7 @@ echo $response;`
                                 : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
                             }`}
                           >
-                            {item.status === "completed" || item.status === "success" ? "تم التسليم بنجاح ✅" : item.status === "failed" ? "فشل ❌" : "جاري التنفيذ ⏳"}
+                        {item.status === "completed" || item.status === "success" ? (isAr ? "تم التسليم بنجاح ✅" : "Delivered Successfully ✅") : item.status === "failed" ? (isAr ? "فشل ❌" : "Failed ❌") : (isAr ? "جاري التنفيذ ⏳" : "In Progress ⏳")}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-gray-400 font-mono">
