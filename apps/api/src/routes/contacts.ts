@@ -185,14 +185,22 @@ router.post('/', async (req: Request, res: Response) => {
  */
 router.get('/my', requireAuth, async (req: Request, res: Response) => {
   try {
-    const user = (req as any).user;
-    const userId = user?.id;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized: Authentication required.' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+
     const userEmail = user?.email?.toLowerCase();
 
     const items = await prisma.contactMessage.findMany({
       where: {
         OR: [
-          ...(userId ? [{ userId }] : []),
+          { userId },
           ...(userEmail ? [{ email: userEmail }] : []),
         ],
       },
@@ -370,8 +378,13 @@ router.post('/admin/:id/reply', requireAuth, requireAdmin, async (req: Request, 
       targetUserId = user.id;
     }
 
-    const adminUser = (req as any).user;
-    const adminIdentifier = adminUser?.name || adminUser?.email || 'QuazLink Management';
+    const adminUser = (req as any).currentUser || (req as any).user;
+    let adminIdentifier = adminUser?.name || adminUser?.email;
+    if (!adminIdentifier && req.userId) {
+      const u = await prisma.user.findUnique({ where: { id: req.userId }, select: { name: true, email: true } });
+      adminIdentifier = u?.name || u?.email;
+    }
+    adminIdentifier = adminIdentifier || 'QuazLink Management';
 
     const updated = await prisma.contactMessage.update({
       where: { id },

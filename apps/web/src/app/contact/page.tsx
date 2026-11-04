@@ -88,21 +88,7 @@ export default function ContactPage() {
   const [myInquiries, setMyInquiries] = React.useState<ContactMessageItem[]>([]);
   const [loadingMyInquiries, setLoadingMyInquiries] = React.useState(false);
 
-  // Check login on mount
-  React.useEffect(() => {
-    getMe()
-      .then((user) => {
-        if (user) {
-          setCurrentUser(user);
-          if (user.name) setName(user.name);
-          if (user.email) setEmail(user.email);
-          if ((user as any).phone) setPhone((user as any).phone);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  // Fetch my inquiries when switching to my_messages tab
+  // Fetch my inquiries when switching to my_messages tab or on mount
   const fetchMyInquiries = React.useCallback(async () => {
     setLoadingMyInquiries(true);
     try {
@@ -113,6 +99,26 @@ export default function ContactPage() {
     } finally {
       setLoadingMyInquiries(false);
     }
+  }, []);
+
+  // Check login on mount & pre-load inquiries
+  React.useEffect(() => {
+    getMe()
+      .then((user) => {
+        if (user) {
+          setCurrentUser(user);
+          if (user.name) setName(user.name);
+          if (user.email) setEmail(user.email);
+          if ((user as any).phone) setPhone((user as any).phone);
+          // Pre-load user inquiries
+          getMyContactMessages()
+            .then((res) => {
+              if (res.items) setMyInquiries(res.items);
+            })
+            .catch(() => {});
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Real-time live hub listener (instant push without page refresh)
@@ -441,7 +447,10 @@ export default function ContactPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab("my_messages")}
+                onClick={() => {
+                  setActiveTab("my_messages");
+                  fetchMyInquiries();
+                }}
                 className={`flex-1 py-2 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   activeTab === "my_messages"
                     ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20"
@@ -450,6 +459,13 @@ export default function ContactPage() {
               >
                 <Inbox className="w-3.5 h-3.5" />
                 <span>{isAr ? "استفساراتي وردود الإدارة" : "My Inquiries & Replies"}</span>
+                {myInquiries.length > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    activeTab === "my_messages" ? "bg-black text-cyan-300" : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                  }`}>
+                    {myInquiries.length}
+                  </span>
+                )}
               </button>
             </div>
           )}

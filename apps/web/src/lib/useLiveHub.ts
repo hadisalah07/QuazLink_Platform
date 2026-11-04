@@ -135,6 +135,29 @@ export function useLiveHub(options: UseLiveHubOptions = {}) {
     };
   }, [connect]);
 
+  // Sync authentication and subscriptions whenever options change (e.g. user loads)
+  React.useEffect(() => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      if (options.userId || options.role) {
+        socketRef.current.send(
+          JSON.stringify({
+            type: "auth",
+            userId: options.userId,
+            role: options.role,
+          })
+        );
+      }
+      if (options.contactId) {
+        socketRef.current.send(
+          JSON.stringify({
+            type: "subscribe_contact",
+            contactId: options.contactId,
+          })
+        );
+      }
+    }
+  }, [options.userId, options.role, options.contactId]);
+
   const sendAck = React.useCallback((contactId: string, status: "delivered" | "read") => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(
@@ -164,3 +187,4 @@ export function useLiveHub(options: UseLiveHubOptions = {}) {
     subscribeContact,
   };
 }
+

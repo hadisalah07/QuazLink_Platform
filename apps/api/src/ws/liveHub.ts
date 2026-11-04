@@ -49,20 +49,34 @@ class LiveHub {
       ws.isAlive = true;
     });
 
-    // Parse initial query parameters
+    // Parse initial query parameters and session cookies
     try {
       const url = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
-      const token = url.searchParams.get('token');
+      let token = url.searchParams.get('token');
       const contactId = url.searchParams.get('contactId');
       const role = url.searchParams.get('role');
+
+      // Try extract token from HTTP-only cookie if query param missing
+      if (!token && req.headers.cookie) {
+        const match = req.headers.cookie.match(/(?:^|;\s*)ql_session=([^;]+)/);
+        if (match) {
+          token = decodeURIComponent(match[1]);
+        }
+      }
 
       if (token) {
         const payload = verifyToken(token);
         if (payload?.userId) {
-          this.authenticateClient(ws, payload.userId, role || undefined);
+          prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: { role: true },
+          }).then((u) => {
+            const userRole = u?.role || role || 'user';
+            this.authenticateClient(ws, payload.userId, userRole);
+          }).catch(() => {
+            this.authenticateClient(ws, payload.userId, role || undefined);
+          });
         }
-      } else if (role === 'admin') {
-        // Can be authenticated via cookie or later auth message
       }
 
       if (contactId) {
@@ -91,9 +105,14 @@ class LiveHub {
               } else {
                 ws.send(JSON.stringify({ type: 'auth:error', message: 'Invalid token' }));
               }
-            } else if (msg.role === 'admin' && msg.userId) {
-              await this.authenticateClient(ws, msg.userId, 'admin');
-              ws.send(JSON.stringify({ type: 'auth:success', userId: msg.userId, role: 'admin' }));
+            } else if (msg.userId) {
+              const user = await prisma.user.findUnique({
+                where: { id: msg.userId },
+                select: { role: true },
+              }).catch(() => null);
+              const role = user?.role || msg.role || 'user';
+              await this.authenticateClient(ws, msg.userId, role);
+              ws.send(JSON.stringify({ type: 'auth:success', userId: msg.userId, role }));
             }
             break;
           }
