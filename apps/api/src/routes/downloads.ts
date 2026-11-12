@@ -96,13 +96,13 @@ router.get('/info', (_req, res) => {
     },
     runner: {
       name: 'QuazLink Automation Runner',
-      version: '26.10.14',
+      version: '26.10.16',
       description: 'محرك الأتمتة المكتبي الخفيف لتنفيذ فواتير الواتساب ومنشورات السوشيال ميديا',
       recommended: false,
       installer: {
-        filename: 'QuazLink-Runner-Setup-v26.10.14.exe',
-        downloadUrl: '/downloads/QuazLink-Runner-Setup-v26.10.14.exe',
-        apiDownloadUrl: '/api/downloads/file/QuazLink-Runner-Setup-v26.10.14.exe',
+        filename: 'QuazLink-Runner-Setup-v26.10.16.exe',
+        downloadUrl: '/downloads/QuazLink-Runner-Setup-v26.10.16.exe',
+        apiDownloadUrl: '/api/downloads/file/QuazLink-Runner-Setup-v26.10.16.exe',
         ...runnerInfo,
       },
     },
@@ -191,6 +191,7 @@ router.get('/file/:filename', (req, res) => {
     'QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip',
     'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip',
     'QuazLink-Runner-Setup.exe',
+    'QuazLink-Runner-Setup-v26.10.16.exe',
     'QuazLink-Runner-Setup-v26.10.14.exe',
     'QuazLink-Runner-Setup-v26.10.13.exe',
   ];
@@ -200,7 +201,10 @@ router.get('/file/:filename', (req, res) => {
     return res.status(404).json({ error: 'الملف المطلوب غير موجود أو غير مصرح به.' });
   }
 
-  const filePath = path.join(WEB_DOWNLOADS_DIR, filename);
+    let filePath = path.join('/data/downloads', filename);
+  if (!fs.existsSync(filePath)) {
+    filePath = path.join(WEB_DOWNLOADS_DIR, filename);
+  }
   if (!fs.existsSync(filePath)) {
     const cdnMap: Record<string, string> = {
       'QuazLink-POS-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.3.4/QuazLink-POS-Setup-v1.3.4.exe',
@@ -260,8 +264,9 @@ router.get('/file/:filename', (req, res) => {
       'QuazLink-POS-Legacy-Win7-Portable-v1.2.1.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.2.1/QuazLink-POS-Legacy-Win7-Portable-v1.2.1.zip',
       'QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.2.0/QuazLink-POS-Legacy-Win7-Portable-v1.2.0.zip',
       'QuazLink-POS-Legacy-Win7-Portable-v1.1.0.zip': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.1.0/QuazLink-POS-Legacy-Win7-Portable.zip',
-      'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.14/QuazLink-Runner-Setup-v26.10.14.exe',
-      'QuazLink-Runner-Setup-v26.10.14.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.14/QuazLink-Runner-Setup-v26.10.14.exe',
+      'QuazLink-Runner-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.16/QuazLink-Runner-Setup.exe',
+      'QuazLink-Runner-Setup-v26.10.16.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.16/QuazLink-Runner-Setup-v26.10.16.exe',
+      'QuazLink-Runner-Setup-v26.10.14.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.16/QuazLink-Runner-Setup.exe',
       'QuazLink-Runner-Setup-v26.10.13.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/v26.10.13/QuazLink-Runner-Setup-v26.10.13.exe',
     };
 
