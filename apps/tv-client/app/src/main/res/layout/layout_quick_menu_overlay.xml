@@ -64,7 +64,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="QuazHome TV v1.0.5 • [Back] إغلاق • [OK] تبديل"
+        android:text="QuazHome TV v1.0.6 • [Back] إغلاق • [OK] تبديل"
         android:textColor="@color/text_secondary"
         android:textSize="11sp"
         android:gravity="center"

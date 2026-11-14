@@ -36,7 +36,7 @@ export default function TvPortalPage() {
     }
   }, []);
 
-  const downloadUrl = `${hostOrigin}/downloads/QuazHomeTV.apk?v=1.0.5`;
+  const downloadUrl = `${hostOrigin}/downloads/QuazHomeTV.apk?v=1.0.6`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(downloadUrl).then(() => {
@@ -104,7 +104,7 @@ export default function TvPortalPage() {
             {isAr ? "المنظومة الذكية لشاشات أندرويد تي في" : "Next-Gen Android TV & Smart Home Engine"}
           </span>
           <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-            TV App v1.0.5
+            TV App v1.0.6
           </span>
         </div>
 
@@ -127,7 +127,7 @@ export default function TvPortalPage() {
             className="w-full sm:w-auto px-8 py-3.5 bg-white text-black font-bold text-sm sm:text-base rounded-full hover:bg-gray-200 transition-all shadow-[0_0_25px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2.5 group"
           >
             <Download className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
-            <span>{isAr ? "تحميل ملف APK المباشر للشاشة (v1.0.5)" : "Download TV APK v1.0.5"}</span>
+            <span>{isAr ? "تحميل ملف APK المباشر للشاشة (v1.0.6)" : "Download TV APK v1.0.6"}</span>
           </a>
 
           <Link

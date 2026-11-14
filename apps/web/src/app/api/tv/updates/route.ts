@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.0.5";
+export const TV_LATEST_VERSION = "1.0.6";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
-export const TV_RELEASE_DATE = "2026-11-14";
-export const TV_RELEASE_NOTES = `• حل نهائي وثابت لمشكلة إغلاق خدمة إمكانية الوصول (Accessibility Snap-Off Fix).
+export const TV_RELEASE_DATE = "2026-11-15";
+export const TV_RELEASE_NOTES = `• ربط زر Configuration الرسمي في شاشة إمكانية الوصول بالشاشة الرئيسية (Settings Activity Integration).
+• حل نهائي وثابت لمشكلة إغلاق خدمة إمكانية الوصول (Accessibility Snap-Off Fix).
 • قسم جديد مخصص لتسجيل أي زرار في ريموت التلفزيون لفتح القائمة العائمة (Remote Key Learner).
-• دعم 3 أنماط للضغط على الزر: ضغطة عادية (Single)، ضغطة مطولة 500ms (Hold)، أو ضغطتان متتاليتان 350ms (Double Click).
-• حماية أزرار التنقل الأساسية (D-Pad و Back) من التعارض العرضي.`;
+• دعم 3 أنماط للضغط على الزر: ضغطة عادية (Single)، ضغطة مطولة 500ms (Hold)، أو ضغطتان متتاليتان 350ms (Double Click).`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

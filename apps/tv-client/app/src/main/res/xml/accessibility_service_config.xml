@@ -6,4 +6,5 @@
     android:canRequestFilterKeyEvents="true"
     android:canRetrieveWindowContent="false"
     android:description="@string/accessibility_service_desc"
+    android:settingsActivity="com.quazcode.quazhome.tv.ui.MainActivity"
     android:notificationTimeout="100" />
