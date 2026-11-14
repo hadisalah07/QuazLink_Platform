@@ -32,17 +32,22 @@ jobs:
           cd apps/tv-client
           chmod +x gradlew
 
-      - name: Generate Official Release Keystore
+      - name: Verify or Generate Release Keystore
         run: |
-          keytool -genkeypair -v \
-            -keystore apps/tv-client/app/release.jks \
-            -alias quazhome \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass quazlink2026 \
-            -keypass quazlink2026 \
-            -dname "CN=QuazHome TV, OU=Smart Home, O=QuazLink, L=Cairo, ST=Cairo, C=EG"
+          if [ -f apps/tv-client/app/release.jks ]; then
+            echo "Using committed permanent release keystore"
+          else
+            echo "Generating new keystore fallback"
+            keytool -genkeypair -v \
+              -keystore apps/tv-client/app/release.jks \
+              -alias quazhome \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass quazlink2026 \
+              -keypass quazlink2026 \
+              -dname "CN=QuazHome TV, OU=Smart Home, O=QuazLink, L=Cairo, ST=Cairo, C=EG"
+          fi
 
       - name: Build Release APK
         run: |
