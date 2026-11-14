@@ -189,7 +189,7 @@ object OverlayManager {
                     MenuItem.Header("الإضاءة (Offline Fallback)"),
                     MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة", "light", "lamp", "off", false, null, null, null, null, null, null)),
                     MenuItem.Header("التكييف"),
-                    MenuItem.Device(DeviceItem("climate.living_room", "تكييف الصالة", "climate", "air-conditioner", "22°C", true, 22.0, 24.0, "cool", "auto", null, null)),
+                    MenuItem.Device(DeviceItem("climate.living_room", "تكييف الصالة", "climate", "air-conditioner", "22°C", true, null, 24.0, 22.0, 16.0, 30.0, null)),
                     MenuItem.Header("السيناريوهات"),
                     MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما", "scene", "movie", "active", false, null, null, null, null, null, null))
                 )
@@ -199,9 +199,9 @@ object OverlayManager {
     }
 
     private fun handleDeviceToggle(device: DeviceItem) {
-        if (device.domain == "scene") {
+        if (device.type == "scene") {
             scope.launch {
-                repository.activateScene(device.entityId)
+                repository.triggerScene(device.entityId)
                 dismiss() // Auto close on scene activate
             }
             return
