@@ -13,6 +13,8 @@ class QuazHomeApp : Application() {
         private const val PREFS_NAME = "quazhome_prefs"
         private const val KEY_GATEWAY_URL = "gateway_url"
         private const val KEY_TRIGGER_KEY = "trigger_keycode"
+        private const val KEY_TRIGGER_KEY_NAME = "trigger_key_name"
+        private const val KEY_TRIGGER_MODE = "trigger_mode"
         private const val KEY_DEVICE_TOKEN = "device_token"
         private const val KEY_PAIRING_CODE = "pairing_code"
         private const val KEY_PAIRING_SECRET = "pairing_secret"
@@ -21,7 +23,13 @@ class QuazHomeApp : Application() {
         // Default to production QuazLink Cloud Hub
         const val DEFAULT_CLOUD_URL = "https://api.quazlink.site"
         // Default trigger keycode (TV blue button = 134)
-        private const val DEFAULT_KEY = 134 
+        const val DEFAULT_KEY = 134
+        const val DEFAULT_KEY_NAME = "الزر الأزرق (Blue Key - 134)"
+
+        // Trigger Modes
+        const val MODE_SINGLE = "single"
+        const val MODE_LONG_PRESS = "long_press"
+        const val MODE_DOUBLE_PRESS = "double_press"
     }
 
     private lateinit var prefs: SharedPreferences
@@ -39,6 +47,14 @@ class QuazHomeApp : Application() {
     var triggerKeyCode: Int
         get() = prefs.getInt(KEY_TRIGGER_KEY, DEFAULT_KEY)
         set(value) = prefs.edit().putInt(KEY_TRIGGER_KEY, value).apply()
+
+    var triggerKeyName: String
+        get() = prefs.getString(KEY_TRIGGER_KEY_NAME, DEFAULT_KEY_NAME) ?: DEFAULT_KEY_NAME
+        set(value) = prefs.edit().putString(KEY_TRIGGER_KEY_NAME, value).apply()
+
+    var triggerMode: String
+        get() = prefs.getString(KEY_TRIGGER_MODE, MODE_SINGLE) ?: MODE_SINGLE
+        set(value) = prefs.edit().putString(KEY_TRIGGER_MODE, value).apply()
 
     var deviceToken: String
         get() = prefs.getString(KEY_DEVICE_TOKEN, "") ?: ""

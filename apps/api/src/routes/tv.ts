@@ -6,13 +6,13 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.0.4';
+export const TV_LATEST_VERSION = '1.0.5';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-14';
-export const TV_RELEASE_NOTES = `• تحديث محرك الكشف التلقائي للإصدارات بدقة عالية (Dynamic Version Resolver).
-• حل نهائي لمشكلة إغلاق الـ Accessibility التلقائي وتثبيت مفاتيح التوقيع الدائمة.
-• دعم بوابة تخصيص الأجهزة والأزرار لشاشات التلفزيون (Entity Customization Portal).
-• تحسينات استقرار فائقة للأجهزة والمكيفات.`;
+export const TV_RELEASE_NOTES = `• حل نهائي وثابت لمشكلة إغلاق خدمة إمكانية الوصول (Accessibility Snap-Off Fix).
+• قسم جديد مخصص لتسجيل أي زرار في ريموت التلفزيون لفتح القائمة العائمة (Remote Key Learner).
+• دعم 3 أنماط للضغط على الزر: ضغطة عادية (Single)، ضغطة مطولة 500ms (Hold)، أو ضغطتان متتاليتان 350ms (Double Click).
+• حماية أزرار التنقل الأساسية (D-Pad و Back) من التعارض العرضي.`;
 
 // Storage paths for persistent TV device configs
 const STORAGE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../../data');

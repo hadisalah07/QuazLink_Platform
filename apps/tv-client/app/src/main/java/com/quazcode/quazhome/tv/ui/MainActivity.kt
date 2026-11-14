@@ -1,6 +1,7 @@
 package com.quazcode.quazhome.tv.ui
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -41,6 +42,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnOpenAccessibility: Button
     private lateinit var btnResetPairing: Button
 
+    // Remote Button Customization UI elements
+    private lateinit var tvCurrentRemoteKey: TextView
+    private lateinit var btnCaptureRemoteKey: Button
+    private lateinit var btnModeSingle: Button
+    private lateinit var btnModeHold: Button
+    private lateinit var btnModeDouble: Button
+    private var isCapturingKey = false
+
     // OTA Update UI elements
     private lateinit var cardUpdateAvailable: LinearLayout
     private lateinit var tvUpdateTitle: TextView
@@ -63,7 +72,11 @@ class MainActivity : AppCompatActivity() {
             startPairingSession()
         }
 
-        // 2. Check for OTA in-app updates in the background
+        // 2. Refresh Remote Button & Mode UI
+        updateKeyDisplay()
+        updateModeUI()
+
+        // 3. Check for OTA in-app updates in the background
         checkForUpdates()
     }
 
@@ -76,6 +89,14 @@ class MainActivity : AppCompatActivity() {
         btnOpenAccessibility = findViewById(R.id.btnOpenAccessibility)
         btnResetPairing = findViewById(R.id.btnResetPairing)
 
+        // Remote Button Controls
+        tvCurrentRemoteKey = findViewById(R.id.tvCurrentRemoteKey)
+        btnCaptureRemoteKey = findViewById(R.id.btnCaptureRemoteKey)
+        btnModeSingle = findViewById(R.id.btnModeSingle)
+        btnModeHold = findViewById(R.id.btnModeHold)
+        btnModeDouble = findViewById(R.id.btnModeDouble)
+
+        // OTA
         cardUpdateAvailable = findViewById(R.id.cardUpdateAvailable)
         tvUpdateTitle = findViewById(R.id.tvUpdateTitle)
         btnUpdateNow = findViewById(R.id.btnUpdateNow)
@@ -99,10 +120,118 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "تم إعادة تعيين جلسة الاقتران", Toast.LENGTH_SHORT).show()
         }
 
+        // Remote Button Capture Trigger
+        btnCaptureRemoteKey.setOnClickListener {
+            if (!isCapturingKey) {
+                isCapturingKey = true
+                btnCaptureRemoteKey.text = "⏳ اضغط الآن على أي زر بالريموت..."
+                btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#065F46"))
+                Toast.makeText(this, "اضغط على الزر المراد تعيينه في الريموت الآن", Toast.LENGTH_SHORT).show()
+            } else {
+                isCapturingKey = false
+                btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
+                btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+            }
+        }
+
+        // Mode Selectors
+        btnModeSingle.setOnClickListener {
+            QuazHomeApp.instance.triggerMode = QuazHomeApp.MODE_SINGLE
+            updateModeUI()
+            Toast.makeText(this, "تم تفعيل: ضغطة عادية (Single Click)", Toast.LENGTH_SHORT).show()
+        }
+
+        btnModeHold.setOnClickListener {
+            QuazHomeApp.instance.triggerMode = QuazHomeApp.MODE_LONG_PRESS
+            updateModeUI()
+            Toast.makeText(this, "تم تفعيل: ضغطة مطولة 500ms (Hold)", Toast.LENGTH_SHORT).show()
+        }
+
+        btnModeDouble.setOnClickListener {
+            QuazHomeApp.instance.triggerMode = QuazHomeApp.MODE_DOUBLE_PRESS
+            updateModeUI()
+            Toast.makeText(this, "تم تفعيل: ضغطتان متتاليتان 350ms (Double Click)", Toast.LENGTH_SHORT).show()
+        }
+
         btnUpdateNow.setOnClickListener {
             val update = activeUpdate ?: return@setOnClickListener
             triggerOtaUpdate(update.downloadUrl)
         }
+    }
+
+    private fun updateKeyDisplay() {
+        tvCurrentRemoteKey.text = QuazHomeApp.instance.triggerKeyName
+    }
+
+    private fun updateModeUI() {
+        val currentMode = QuazHomeApp.instance.triggerMode
+        val activeBg = ColorStateList.valueOf(Color.parseColor("#22D3EE"))
+        val inactiveBg = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+        val activeText = Color.parseColor("#0F172A")
+        val inactiveText = Color.parseColor("#9CA3AF")
+
+        val isSingle = currentMode == QuazHomeApp.MODE_SINGLE
+        btnModeSingle.backgroundTintList = if (isSingle) activeBg else inactiveBg
+        btnModeSingle.setTextColor(if (isSingle) activeText else inactiveText)
+
+        val isHold = currentMode == QuazHomeApp.MODE_LONG_PRESS
+        btnModeHold.backgroundTintList = if (isHold) activeBg else inactiveBg
+        btnModeHold.setTextColor(if (isHold) activeText else inactiveText)
+
+        val isDouble = currentMode == QuazHomeApp.MODE_DOUBLE_PRESS
+        btnModeDouble.backgroundTintList = if (isDouble) activeBg else inactiveBg
+        btnModeDouble.setTextColor(if (isDouble) activeText else inactiveText)
+    }
+
+    private fun getFriendlyKeyName(keyCode: Int): String {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_PROG_BLUE, 134 -> "الزر الأزرق (Blue Key - 134)"
+            KeyEvent.KEYCODE_PROG_RED, 183 -> "الزر الأحمر (Red Key - 183)"
+            KeyEvent.KEYCODE_PROG_GREEN, 184 -> "الزر الأخضر (Green Key - 184)"
+            KeyEvent.KEYCODE_PROG_YELLOW, 185 -> "الزر الأصفر (Yellow Key - 185)"
+            KeyEvent.KEYCODE_MENU, 82 -> "زر القائمة (Menu Key - 82)"
+            KeyEvent.KEYCODE_GUIDE, 172 -> "دليل القنوات (Guide - 172)"
+            KeyEvent.KEYCODE_INFO, 165 -> "معلومات (Info - 165)"
+            KeyEvent.KEYCODE_BOOKMARK, 174 -> "إشارة مرجعية (Bookmark - 174)"
+            KeyEvent.KEYCODE_CAPTIONS, 175 -> "الترجمة (Captions - 175)"
+            KeyEvent.KEYCODE_HELP, 259 -> "مساعدة (Help - 259)"
+            KeyEvent.KEYCODE_SETTINGS, 176 -> "إعدادات (Settings - 176)"
+            KeyEvent.KEYCODE_WINDOW, 171 -> "النوافذ (Window - 171)"
+            KeyEvent.KEYCODE_CHANNEL_UP, 166 -> "القناة للأعلى (Ch Up - 166)"
+            KeyEvent.KEYCODE_CHANNEL_DOWN, 167 -> "القناة للأسفل (Ch Down - 167)"
+            else -> {
+                val label = KeyEvent.keyCodeToString(keyCode).removePrefix("KEYCODE_")
+                "زر الريموت ($label - $keyCode)"
+            }
+        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (isCapturingKey) {
+            // Cancel capturing if Back is pressed
+            if (keyCode == KeyEvent.KEYCODE_BACK) {
+                isCapturingKey = false
+                btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
+                btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+                Toast.makeText(this, "تم إلغاء التقاط الزر", Toast.LENGTH_SHORT).show()
+                return true
+            }
+
+            // Capture the pressed key
+            val friendlyName = getFriendlyKeyName(keyCode)
+            QuazHomeApp.instance.triggerKeyCode = keyCode
+            QuazHomeApp.instance.triggerKeyName = friendlyName
+
+            isCapturingKey = false
+            btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
+            btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+            updateKeyDisplay()
+
+            Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName", Toast.LENGTH_LONG).show()
+            return true
+        }
+
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun startPairingSession() {
@@ -180,9 +309,9 @@ class MainActivity : AppCompatActivity() {
     private fun checkForUpdates() {
         lifecycleScope.launch {
             val currentVersion = try {
-                packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.4"
+                packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.5"
             } catch (e: Exception) {
-                "1.0.4"
+                "1.0.5"
             }
 
             // Sync visual version badge with actual installed version
@@ -242,24 +371,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             OverlayManager.toggle(this)
         }
-    }
-
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        // Ignore navigation keys inside settings
-        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER ||
-            keyCode == KeyEvent.KEYCODE_DPAD_UP ||
-            keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
-            keyCode == KeyEvent.KEYCODE_DPAD_LEFT ||
-            keyCode == KeyEvent.KEYCODE_DPAD_RIGHT ||
-            keyCode == KeyEvent.KEYCODE_BACK
-        ) {
-            return super.onKeyDown(keyCode, event)
-        }
-
-        // Save custom remote button
-        QuazHomeApp.instance.triggerKeyCode = keyCode
-        Toast.makeText(this, "تم تعيين زرار الريموت (KeyCode: $keyCode) لفتح القائمة في أي وقت!", Toast.LENGTH_SHORT).show()
-        return true
     }
 
     override fun onDestroy() {

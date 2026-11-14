@@ -41,7 +41,7 @@
                 android:id="@+id/tvAppVersion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="الإصدار: v1.0.4 (Official Edition)"
+                android:text="الإصدار: v1.0.5 (Official Edition)"
                 android:textColor="@color/quaz_cyan"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -196,6 +196,130 @@
                     android:textColor="#FBBF24"
                     android:textSize="13sp"
                     android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Quick Menu Remote Button Customization Card -->
+        <LinearLayout
+            android:id="@+id/cardRemoteConfig"
+            android:layout_width="640dp"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_device_card_normal"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:layout_marginBottom="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🎮 تخصيص زر القائمة السريعة للريموت"
+                android:textColor="@color/quaz_cyan"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="حدد الزر المفضل بالريموت ونوع الضغطة لفتح قائمة أجهزة المنزل فوراً فوق أي تطبيق أو فيديو."
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="14dp" />
+
+            <!-- Current Key Display & Capture Button -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="14dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="الزر المسجل حالياً:"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tvCurrentRemoteKey"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="الزر الأزرق (Blue Key - 134)"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnCaptureRemoteKey"
+                    android:layout_width="wrap_content"
+                    android:layout_height="44dp"
+                    android:backgroundTint="#1F2937"
+                    android:text="🎯 تسجيل زر جديد من الريموت"
+                    android:textColor="@color/quaz_cyan"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:focusable="true" />
+            </LinearLayout>
+
+            <!-- Mode Selection Header -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="نوع الضغطة لفتح القائمة (Trigger Mode):"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Mode Selection Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnModeSingle"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="@color/quaz_cyan"
+                    android:text="ضغطة عادية (Single)"
+                    android:textColor="@color/quaz_bg"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="6dp"
+                    android:focusable="true" />
+
+                <Button
+                    android:id="@+id/btnModeHold"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="#1F2937"
+                    android:text="مطولة 500ms (Hold)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:layout_marginEnd="6dp"
+                    android:focusable="true" />
+
+                <Button
+                    android:id="@+id/btnModeDouble"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_weight="1"
+                    android:backgroundTint="#1F2937"
+                    android:text="ضغطتان 350ms (Double)"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:focusable="true" />
             </LinearLayout>
         </LinearLayout>
 
