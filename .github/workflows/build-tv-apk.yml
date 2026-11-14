@@ -62,5 +62,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view tv-v1.0.0 || gh release create tv-v1.0.0 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.0 (Android TV Edition)" --notes "Official signed release Android TV APK for QuazHome & QuazLink platform."
-          gh release upload tv-v1.0.0 dist-apk/QuazHomeTV.apk --clobber
+          gh release view tv-v1.0.1 || gh release create tv-v1.0.1 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.1 (Official Edition)" --notes "Official signed release Android TV APK for QuazHome & QuazLink platform with official brand icon and version badges."
+          gh release upload tv-v1.0.1 dist-apk/QuazHomeTV.apk --clobber
+          gh release upload tv-v1.0.0 dist-apk/QuazHomeTV.apk --clobber || true

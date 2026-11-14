@@ -17,6 +17,13 @@
         android:gravity="center_vertical"
         android:layout_marginBottom="16dp">
 
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/quazlink_logo"
+            android:contentDescription="QuazLink Logo"
+            android:layout_marginEnd="8dp" />
+
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="0dp"
@@ -57,9 +64,9 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="اضغط [Back] للإغلاق • [OK] للتبديل"
+        android:text="QuazHome TV v1.0.1 • [Back] إغلاق • [OK] تبديل"
         android:textColor="@color/text_secondary"
-        android:textSize="12sp"
+        android:textSize="11sp"
         android:gravity="center"
         android:layout_marginTop="8dp" />
 

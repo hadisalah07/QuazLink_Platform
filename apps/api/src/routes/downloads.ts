@@ -207,7 +207,8 @@ router.get('/file/:filename', (req, res) => {
   }
   if (!fs.existsSync(filePath)) {
     const cdnMap: Record<string, string> = {
-      'QuazHomeTV.apk': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.0/QuazHomeTV.apk',
+      'QuazHomeTV.apk': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.1/QuazHomeTV.apk',
+      'QuazHomeTV-v1.0.1.apk': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.1/QuazHomeTV.apk',
       'QuazLink-POS-Setup.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.3.4/QuazLink-POS-Setup-v1.3.4.exe',
       'QuazLink-POS-Setup-v1.3.4.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.3.4/QuazLink-POS-Setup-v1.3.4.exe',
       'QuazLink-POS-Setup-v1.3.3.exe': 'https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.3.3/QuazLink-POS-Setup-v1.3.3.exe',

@@ -7,24 +7,46 @@
     android:orientation="vertical"
     android:padding="32dp">
 
+    <!-- Official QuazLink Logo -->
+    <ImageView
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:src="@drawable/quazlink_logo"
+        android:contentDescription="QuazLink Logo"
+        android:layout_marginBottom="8dp" />
+
     <!-- Logo / Brand -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="QUAZHOME TV"
         android:textColor="@color/quaz_cyan"
-        android:textSize="32sp"
+        android:textSize="28sp"
         android:textStyle="bold"
         android:letterSpacing="0.08" />
+
+    <!-- App Version Badge -->
+    <TextView
+        android:id="@+id/tvAppVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="الإصدار: v1.0.1 (Official Edition)"
+        android:textColor="@color/quaz_cyan"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:background="#2022D3EE"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="4dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="8dp" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="إعدادات القائمة العائمة والريموت لكنترول المنزل الذكي"
         android:textColor="@color/text_secondary"
-        android:textSize="16sp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="32dp" />
+        android:textSize="14sp"
+        android:layout_marginBottom="24dp" />
 
     <!-- Gateway IP Input Card -->
     <LinearLayout
