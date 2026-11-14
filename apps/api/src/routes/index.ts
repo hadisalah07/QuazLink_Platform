@@ -14,6 +14,7 @@ import posRouter from './pos';
 import contactsRouter from './contacts';
 import notificationsRouter from './notifications';
 import telegramRouter from './telegram';
+import tvRouter from './tv';
 import { requireAuth } from '../middleware/auth';
 
 const router = Router();
@@ -35,6 +36,9 @@ router.use('/telegram', telegramRouter);
 
 // POS & ERP Telemetry and Updates (Public endpoints for retail client machines)
 router.use('/pos', posRouter);
+
+// TV & Smart Home Hub (Pairing, OTA Updates, and Home Assistant Bridge)
+router.use('/tv', tvRouter);
 
 // Dedicated Admin Control Center (Self-guarded with requireAuth + requireAdmin)
 router.use('/admin', adminRouter);

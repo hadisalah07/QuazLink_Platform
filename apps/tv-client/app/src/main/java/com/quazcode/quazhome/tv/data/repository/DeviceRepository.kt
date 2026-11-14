@@ -3,9 +3,12 @@ package com.quazcode.quazhome.tv.data.repository
 import com.quazcode.quazhome.tv.QuazHomeApp
 import com.quazcode.quazhome.tv.data.api.QuazHomeApi
 import com.quazcode.quazhome.tv.data.model.ClimateSetTempRequest
+import com.quazcode.quazhome.tv.data.model.PairInitResponse
+import com.quazcode.quazhome.tv.data.model.PairStatusResponse
 import com.quazcode.quazhome.tv.data.model.QuickMenuResponse
 import com.quazcode.quazhome.tv.data.model.SceneTriggerRequest
 import com.quazcode.quazhome.tv.data.model.ToggleRequest
+import com.quazcode.quazhome.tv.data.model.UpdateCheckResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -26,8 +29,8 @@ class DeviceRepository {
         }
 
         val client = OkHttpClient.Builder()
-            .connectTimeout(2, TimeUnit.SECONDS)
-            .readTimeout(2, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
             .addInterceptor(logging)
             .build()
 
@@ -39,9 +42,51 @@ class DeviceRepository {
             .create(QuazHomeApi::class.java)
     }
 
+    private val deviceToken: String
+        get() = QuazHomeApp.instance.deviceToken
+
+    suspend fun initPairing(): Result<PairInitResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = getApi().initPairing()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Pairing init failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPairStatus(code: String, secret: String): Result<PairStatusResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = getApi().getPairStatus(code, secret)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Pairing status check failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun checkUpdate(currentVersion: String): Result<UpdateCheckResponse> = withContext(Dispatchers.IO) {
+        try {
+            val response = getApi().checkUpdate(currentVersion)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Update check failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getQuickMenu(): Result<QuickMenuResponse> = withContext(Dispatchers.IO) {
         try {
-            val response = getApi().getTvQuickMenu()
+            val response = getApi().getTvQuickMenu(deviceToken)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
@@ -54,7 +99,7 @@ class DeviceRepository {
 
     suspend fun toggle(entityId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val response = getApi().toggleDevice(ToggleRequest(entityId))
+            val response = getApi().toggleDevice(deviceToken, ToggleRequest(entityId))
             if (response.isSuccessful) {
                 Result.success(true)
             } else {
@@ -67,7 +112,7 @@ class DeviceRepository {
 
     suspend fun setClimateTemp(entityId: String, temperature: Double): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val response = getApi().setClimateTemp(ClimateSetTempRequest(entityId, temperature))
+            val response = getApi().setClimateTemp(deviceToken, ClimateSetTempRequest(entityId, temperature))
             Result.success(response.isSuccessful)
         } catch (e: Exception) {
             Result.failure(e)
@@ -76,7 +121,7 @@ class DeviceRepository {
 
     suspend fun triggerScene(sceneId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val response = getApi().triggerScene(SceneTriggerRequest(sceneId))
+            val response = getApi().triggerScene(deviceToken, SceneTriggerRequest(sceneId))
             Result.success(response.isSuccessful)
         } catch (e: Exception) {
             Result.failure(e)
