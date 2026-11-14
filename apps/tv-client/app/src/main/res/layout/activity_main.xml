@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/quaz_bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="32dp">
+
+    <!-- Logo / Brand -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="QUAZHOME TV"
+        android:textColor="@color/quaz_cyan"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="إعدادات القائمة العائمة والريموت لكنترول المنزل الذكي"
+        android:textColor="@color/text_secondary"
+        android:textSize="16sp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="32dp" />
+
+    <!-- Gateway IP Input Card -->
+    <LinearLayout
+        android:layout_width="500dp"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_device_card_normal"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="عنوان سيرفر الباكيند (Gateway IP):"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/etGatewayUrl"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:background="#26FFFFFF"
+            android:hint="http://192.168.1.2:3001"
+            android:textColorHint="#66FFFFFF"
+            android:paddingHorizontal="12dp"
+            android:textColor="@color/text_primary"
+            android:inputType="textUri" />
+    </LinearLayout>
+
+    <!-- Test Overlay Button -->
+    <Button
+        android:id="@+id/btnTestOverlay"
+        android:layout_width="500dp"
+        android:layout_height="52dp"
+        android:backgroundTint="@color/quaz_cyan"
+        android:text="تجربة فتح القائمة العائمة الآن (Test Overlay)"
+        android:textColor="@color/quaz_bg"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"
+        android:focusable="true" />
+
+    <!-- Open Accessibility Settings Button -->
+    <Button
+        android:id="@+id/btnOpenAccessibility"
+        android:layout_width="500dp"
+        android:layout_height="52dp"
+        android:backgroundTint="@color/quaz_bg_card"
+        android:text="تفعيل خدمة التقاط الريموت (Accessibility)"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:layout_marginBottom="12dp"
+        android:focusable="true" />
+
+    <!-- Status message -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="الحالة: جاهز"
+        android:textColor="@color/quaz_cyan"
+        android:textSize="14sp" />
+
+</LinearLayout>

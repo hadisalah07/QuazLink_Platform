@@ -17,6 +17,7 @@ import {
   Building2,
   Activity,
   Layers,
+  Tv,
 } from "lucide-react";
 import Link from "next/link";
 import { APP_VERSION } from "@/lib/version";
@@ -195,6 +196,10 @@ export default function LandingPage() {
                 <Link href="/download" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-[#0B101D] text-white font-semibold text-sm sm:text-base rounded-full border border-white/10 hover:border-white/30 hover:bg-[#121929] transition-colors shadow-lg flex items-center gap-2">
                   <Download className="w-4 h-4" />
                   <span>{t.downloads}</span>
+                </Link>
+                <Link href="/tv" className="px-6 py-3 sm:px-7 sm:py-3.5 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 font-semibold text-sm sm:text-base rounded-full border border-cyan-500/40 hover:border-cyan-500/80 transition-colors shadow-lg flex items-center gap-2">
+                  <Tv className="w-4 h-4 text-cyan-400" />
+                  <span>{isAr ? "نظام الشاشة (TV)" : "TV Platform"}</span>
                 </Link>
               </div>
             </div>

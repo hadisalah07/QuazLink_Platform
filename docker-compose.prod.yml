@@ -77,6 +77,23 @@ services:
         aliases:
           - web
 
+  quazhome-gateway:
+    build:
+      context: apps/quazhome-gateway
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      PORT: 3002
+      HOST: 0.0.0.0
+      HA_BASE_URL: ${HA_BASE_URL:-http://192.168.1.100:8123}
+      HA_ACCESS_TOKEN: ${HA_ACCESS_TOKEN:-}
+    ports:
+      - "3002:3002"
+    networks:
+      quazlink_net:
+        aliases:
+          - quazhome-gateway
+
 volumes:
   postgres_data:
   redis_data:

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuazLink - QuazHome Android TV & Smart Home Engine</title>
+  <link rel="icon" href="/static/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --color-quaz-cyan: #22D3EE;
+      --color-quaz-purple: #8B5CF6;
+      --color-quaz-emerald: #10B981;
+      --color-quaz-bg: #060913;
+      --color-quaz-glass: rgba(255, 255, 255, 0.04);
+      --color-quaz-border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Cairo', sans-serif;
+    }
+
+    body {
+      background-color: var(--color-quaz-bg);
+      color: #FFFFFF;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── NEBULA GPU BACKGROUND ── */
+    .nebula-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-color: #060913;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0.03) 35%, transparent 65%),
+        radial-gradient(circle at 85% 65%, rgba(139, 92, 246, 0.15) 0%, rgba(139, 92, 246, 0.03) 40%, transparent 70%),
+        radial-gradient(circle at 50% 90%, rgba(16, 185, 129, 0.09) 0%, transparent 50%);
+    }
+
+    /* ── STARFIELD / CONSTELLATION CANVAS ── */
+    #starfield-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── FLOATING LANGUAGE SWITCHER ── */
+    .lang-switcher {
+      position: fixed;
+      top: 24px;
+      left: 32px;
+      z-index: 50;
+      background: #0B101D;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px 14px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #E2E8F0;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .lang-switcher:hover {
+      border-color: rgba(255, 255, 255, 0.25);
+      background: #111827;
+    }
+
+    .lang-icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.8;
+    }
+
+    .lang-active {
+      color: var(--color-quaz-cyan);
+      font-weight: 700;
+    }
+
+    .lang-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 2px 6px;
+      background: rgba(34, 211, 238, 0.15);
+      color: var(--color-quaz-cyan);
+      border-radius: 6px;
+      border: 1px solid rgba(34, 211, 238, 0.3);
+    }
+
+    /* ── HERO SECTION ── */
+    .hero-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 24px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* Glowing QuazLink Logo */
+    .logo-wrapper {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .logo-wrapper:hover {
+      transform: scale(1.08);
+    }
+
+    .logo-glow {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34, 211, 238, 0.45) 0%, rgba(139, 92, 246, 0.35) 45%, transparent 70%);
+      filter: blur(18px);
+      opacity: 0.85;
+      animation: logoPulse 4s infinite alternate ease-in-out;
+    }
+
+    @keyframes logoPulse {
+      0% { opacity: 0.7; transform: scale(0.95); }
+      100% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .logo-img {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 25px rgba(34, 211, 238, 0.45));
+    }
+
+    /* Pill Badge */
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #0B101D;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 6px 16px;
+      border-radius: 9999px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .pulsing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-quaz-cyan);
+      box-shadow: 0 0 10px var(--color-quaz-cyan);
+      animation: pulseDot 2s infinite;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .badge-text {
+      font-size: 13px;
+      font-weight: 600;
+      color: #D1D5DB;
+    }
+
+    .version-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      background: rgba(34, 211, 238, 0.15);
+      color: #67E8F9;
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 9999px;
+    }
+
+    /* Hero Heading & Subtitle */
+    h1.hero-title {
+      font-size: 64px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 60%, #94A3B8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p.hero-subtitle {
+      font-size: 17px;
+      line-height: 1.7;
+      color: #94A3B8;
+      max-width: 620px;
+      margin-bottom: 32px;
+    }
+
+    /* Action Buttons (Pill Buttons) */
+    .actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 48px;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #FFFFFF;
+      color: #000000;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 30px;
+      border-radius: 9999px;
+      text-decoration: none;
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.3);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary:hover {
+      background: #F1F5F9;
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(6, 78, 59, 0.6);
+      color: #6EE7B7;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 9999px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(6, 78, 59, 0.9);
+      border-color: rgba(16, 185, 129, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .btn-simulator {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #0B101D;
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 14px 28px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      text-decoration: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-simulator:hover {
+      background: #151D30;
+      border-color: rgba(34, 211, 238, 0.5);
+      color: var(--color-quaz-cyan);
+      transform: translateY(-2px);
+    }
+
+    /* ── BENTO PREMIER ENGINES (2 CARDS) ── */
+    .bento-grid {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 1140px;
+      margin: 0 auto 60px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 24px;
+    }
+
+    .bento-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      padding: 32px;
+      background: linear-gradient(135deg, rgba(10, 16, 29, 0.85) 0%, rgba(6, 10, 20, 0.95) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .bento-card:hover {
+      border-color: rgba(34, 211, 238, 0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(34, 211, 238, 0.1);
+    }
+
+    .card-glow-blob {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 260px;
+      height: 260px;
+      border-radius: 50%;
+      filter: blur(60px);
+      pointer-events: none;
+      opacity: 0.15;
+    }
+
+    .blob-cyan { background: var(--color-quaz-cyan); }
+    .blob-purple { background: var(--color-quaz-purple); }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .engine-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .icon-cyan-theme {
+      background: rgba(34, 211, 238, 0.15);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      color: var(--color-quaz-cyan);
+    }
+
+    .icon-purple-theme {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      color: var(--color-quaz-purple);
+    }
+
+    .engine-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .engine-tag.cyan { color: var(--color-quaz-cyan); }
+    .engine-tag.purple { color: var(--color-quaz-purple); }
+
+    .engine-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+
+    .engine-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+
+    .badge-cyan-live {
+      background: rgba(34, 211, 238, 0.15);
+      border: 1px solid rgba(34, 211, 238, 0.35);
+      color: #67E8F9;
+    }
+
+    .badge-purple-ready {
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.35);
+      color: #C4B5FD;
+    }
+
+    .card-desc {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #CBD5E1;
+      margin-bottom: 24px;
+    }
+
+    /* Highlight Feature Pills inside Cards */
+    .features-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .feature-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      font-weight: 600;
+      color: #E2E8F0;
+    }
+
+    .feature-pill-icon {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    /* URL Code Box for Downloader App */
+    .downloader-code-box {
+      background: #020617;
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: auto;
+    }
+
+    .code-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--color-quaz-cyan);
+      word-break: break-all;
+      direction: ltr;
+      text-align: left;
+    }
+
+    .btn-copy {
+      background: rgba(34, 211, 238, 0.15);
+      color: var(--color-quaz-cyan);
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: var(--color-quaz-cyan);
+      color: #0A0E1A;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      h1.hero-title { font-size: 42px; }
+      .lang-switcher { top: 16px; left: 16px; }
+      .bento-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. Nebula GPU Mesh -->
+  <div class="nebula-bg" aria-hidden="true"></div>
+
+  <!-- 2. Interactive Constellation Canvas (Exact QuazLink StarField) -->
+  <canvas id="starfield-canvas" aria-hidden="true"></canvas>
+
+  <!-- 3. Floating Language Switcher -->
+  <div class="lang-switcher" title="QuazLink Multilingual Platform">
+    <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="2" y1="12" x2="22" y2="12"></line>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+    </svg>
+    <span class="lang-active">العربية</span>
+    <span style="opacity: 0.4;">|</span>
+    <span style="opacity: 0.7;">EN</span>
+    <span class="lang-badge">v26.10.27</span>
+  </div>
+
+  <!-- 4. Hero Section -->
+  <main class="hero-container">
+    
+    <!-- Persistent Glowing QuazLink Logo -->
+    <div class="logo-wrapper" title="QuazLink Ecosystem">
+      <div class="logo-glow"></div>
+      <img src="/static/logo.png" alt="QuazLink Logo" class="logo-img">
+    </div>
+
+    <!-- Pulsing Status Badge -->
+    <div class="hero-badge">
+      <span class="pulsing-dot"></span>
+      <span class="badge-text">Next-Gen Workflow & Smart TV Automation</span>
+      <span class="version-tag">v26.10.27</span>
+    </div>
+
+    <!-- Hero Title -->
+    <h1 class="hero-title">QuazLink</h1>
+
+    <!-- Hero Subtitle -->
+    <p class="hero-subtitle">
+      المنظومة المتكاملة للتحكم في المنزل الذكي عبر شاشات <b>Android TV</b> والويب، بأداء فائق السرعة وبنية معمارية محلية ترتبط مباشرة بـ <b>Home Assistant</b>.
+    </p>
+
+    <!-- Hero CTA Buttons -->
+    <div class="actions-row">
+      <a href="/downloads/QuazHomeTV.apk" class="btn-primary" id="directDownloadBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>تحميل ملف APK المباشر للشاشة</span>
+      </a>
+
+      <a href="/preview" class="btn-simulator">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="2" y="7" width="20" height="15" rx="2" ry="2"></rect>
+          <polyline points="17 2 12 7 7 2"></polyline>
+        </svg>
+        <span>تشغيل محاكي الريموت والشاشة (PC Preview)</span>
+      </a>
+
+      <a href="http://192.168.1.2:3001/api/tv/quick-menu" target="_blank" class="btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        <span>Fastify Gateway API</span>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- 5. Dual Premier Engines (Bento Grid) -->
+  <section class="bento-grid">
+
+    <!-- Bento Card 1: Android TV Overlay Engine -->
+    <div class="bento-card">
+      <div class="card-glow-blob blob-purple"></div>
+
+      <div>
+        <div class="card-top">
+          <div class="card-title-group">
+            <div class="engine-icon icon-purple-theme">📺</div>
+            <div>
+              <span class="engine-tag purple">TV REMOTE OVERLAY ENGINE</span>
+              <h3 class="engine-title">QuazHome Android TV App</h3>
+            </div>
+          </div>
+          <span class="engine-badge badge-purple-ready">D-Pad 100%</span>
+        </div>
+
+        <p class="card-desc">
+          تطبيق مصمم بنظام <b>WindowManager Overlay</b> وخدمة <b>Accessibility</b> للعمل فوق أي فيلم على Netflix أو YouTube، مع قائمة جانبية زجاجية تفتح بضغطة زرار الريموت.
+        </p>
+
+        <div class="features-list">
+          <div class="feature-pill">
+            <span class="feature-pill-icon">⚡</span>
+            <span>التقاط أزرار الريموت في أي وقت دون مقاطعة المشاهدة</span>
+          </div>
+          <div class="feature-pill">
+            <span class="feature-pill-icon">✨</span>
+            <span>تصميم Glassmorphic بهوية QuazLink و Glow نيون</span>
+          </div>
+          <div class="feature-pill">
+            <span class="feature-pill-icon">🎯</span>
+            <span>ميزة Remote Key Learning لتعيين أي زرار تريده</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Downloader App Direct URL Box -->
+      <div class="downloader-code-box">
+        <div>
+          <div style="font-size: 11px; color: #94A3B8; margin-bottom: 4px;">رابط تطبيق Downloader على الشاشة:</div>
+          <div class="code-text" id="tvDownloadUrl">http://.../downloads/QuazHomeTV.apk</div>
+        </div>
+        <button class="btn-copy" onclick="copyUrl()">نسخ الرابط</button>
+      </div>
+    </div>
+
+    <!-- Bento Card 2: Home Assistant Local Gateway -->
+    <div class="bento-card">
+      <div class="card-glow-blob blob-cyan"></div>
+
+      <div>
+        <div class="card-top">
+          <div class="card-title-group">
+            <div class="engine-icon icon-cyan-theme">⚡</div>
+            <div>
+              <span class="engine-tag cyan">HOME ASSISTANT LOCAL GATEWAY</span>
+              <h3 class="engine-title">Fastify Ultra-Low Latency Hub</h3>
+            </div>
+          </div>
+          <span class="engine-badge badge-cyan-live">1.2ms Response</span>
+        </div>
+
+        <p class="card-desc">
+          بوابة وسيطة مبنية بـ Fastify و TypeScript تعمل محلياً لعزل التوكن، وتقديم بيانات خفيفة وسريعة جداً لشاشة التلفزيون ولتطبيقات React و Flutter القادمة.
+        </p>
+
+        <div class="features-list">
+          <div class="feature-pill">
+            <span class="feature-pill-icon">🛡️</span>
+            <span>عزل وحماية الـ Long-Lived Access Token</span>
+          </div>
+          <div class="feature-pill">
+            <span class="feature-pill-icon">🚀</span>
+            <span>استجابة فائقة السرعة للأوامر (Lights & Climate Toggles)</span>
+          </div>
+          <div class="feature-pill">
+            <span class="feature-pill-icon">🔄</span>
+            <span>جاهزية كاملة لربط تطبيق React Web والموبايل بنفس الـ APIs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Server Status indicator -->
+      <div class="downloader-code-box" style="border-color: rgba(16, 185, 129, 0.4);">
+        <div>
+          <div style="font-size: 11px; color: #94A3B8; margin-bottom: 4px;">حالة السيرفر المحلي:</div>
+          <div class="code-text" style="color: #6EE7B7;">● ONLINE • Listening on 0.0.0.0:3001</div>
+        </div>
+        <a href="/api/health" target="_blank" class="btn-copy" style="background: rgba(16, 185, 129, 0.2); color: #6EE7B7; border-color: rgba(16, 185, 129, 0.4); text-decoration: none;">فحص الاتصال</a>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── CONSTELLATION PARTICLES SCRIPT (1:1 PORT OF QuazLink StarField.tsx) ── -->
+  <script>
+    (function initStarField() {
+      const canvas = document.getElementById("starfield-canvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d", { alpha: true });
+      if (!ctx) return;
+
+      let width = 0;
+      let height = 0;
+      let animationFrameId;
+
+      const updateSize = () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+      };
+      updateSize();
+      window.addEventListener("resize", updateSize, { passive: true });
+
+      const count = width > 768 ? 42 : 24;
+      const particles = [];
+      const colors = ["#22D3EE", "#818CF8", "#A78BFA", "#38BDF8"];
+
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: (Math.random() - 0.5) * 0.4,
+          radius: Math.random() * 1.3 + 1.2,
+          color: colors[i % colors.length]
+        });
+      }
+
+      const mouse = { x: -1000, y: -1000, active: false };
+      window.addEventListener("mousemove", (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+        mouse.active = true;
+      }, { passive: true });
+
+      window.addEventListener("mouseleave", () => {
+        mouse.active = false;
+      }, { passive: true });
+
+      const maxDistance = 140;
+      const maxDistSq = maxDistance * maxDistance;
+      const mouseDistSq = 160 * 160;
+      let lastTime = performance.now();
+
+      function render(now) {
+        const elapsed = (now - lastTime) / 1000;
+        const dt = Math.min(elapsed, 0.1);
+        lastTime = now;
+        const speed = dt * 60;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // 1. Move
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          p.x += p.vx * speed;
+          p.y += p.vy * speed;
+          if (p.x < -10) p.x = width + 10;
+          else if (p.x > width + 10) p.x = -10;
+          if (p.y < -10) p.y = height + 10;
+          else if (p.y > height + 10) p.y = -10;
+        }
+
+        // 2. Lines
+        ctx.beginPath();
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            if (dx * dx + dy * dy < maxDistSq) {
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+            }
+          }
+        }
+        ctx.strokeStyle = "rgba(139, 92, 246, 0.18)";
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        // 3. Mouse Interactive
+        if (mouse.active) {
+          ctx.beginPath();
+          for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            const mdx = p.x - mouse.x;
+            const mdy = p.y - mouse.y;
+            if (mdx * mdx + mdy * mdy < mouseDistSq) {
+              ctx.moveTo(p.x, p.y);
+              ctx.lineTo(mouse.x, mouse.y);
+            }
+          }
+          ctx.strokeStyle = "rgba(34, 211, 238, 0.38)";
+          ctx.lineWidth = 1.0;
+          ctx.stroke();
+        }
+
+        // 4. Dots
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = 0.6;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1.0;
+
+        animationFrameId = requestAnimationFrame(render);
+      }
+      animationFrameId = requestAnimationFrame(render);
+    })();
+
+    // Dynamic Host URL Setup
+    const downloadUrl = `${window.location.origin}/downloads/QuazHomeTV.apk`;
+    document.getElementById("tvDownloadUrl").textContent = downloadUrl;
+    document.getElementById("directDownloadBtn").href = downloadUrl;
+
+    function copyUrl() {
+      navigator.clipboard.writeText(downloadUrl).then(() => {
+        alert("تم نسخ رابط التحميل المباشر للـ TV بنجاح!");
+      });
+    }
+  </script>
+</body>
+</html>

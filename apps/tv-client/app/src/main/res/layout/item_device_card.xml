@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_device_card_selector"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="14dp">
+
+    <!-- Status Indicator / Icon -->
+    <TextView
+        android:id="@+id/tvDeviceIcon"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="#2622D3EE"
+        android:gravity="center"
+        android:text="💡"
+        android:textSize="18sp" />
+
+    <!-- Info (Title + Subtitle) -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvDeviceName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="إضاءة الصالة"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvDeviceStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="مطفأة (OFF)"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- State Pill / Toggle Badge -->
+    <TextView
+        android:id="@+id/tvStateBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#33475569"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="4dp"
+        android:text="OFF"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:textStyle="bold" />
+
+</LinearLayout>

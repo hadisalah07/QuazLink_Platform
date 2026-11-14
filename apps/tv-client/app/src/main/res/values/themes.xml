@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.QuazHomeTV" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/quaz_cyan</item>
+        <item name="colorPrimaryVariant">@color/quaz_purple</item>
+        <item name="colorOnPrimary">@color/quaz_bg</item>
+        <item name="android:windowBackground">@color/quaz_bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+    </style>
+</resources>

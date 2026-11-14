@@ -1,0 +1,92 @@
+{
+  "title": "QuazHome TV Controls",
+  "theme": {
+    "accentColor": "#22D3EE",
+    "secondaryColor": "#8B5CF6",
+    "backgroundColor": "#0A0E1A"
+  },
+  "groups": [
+    {
+      "id": "lights",
+      "name": "الإضاءة (Lights)",
+      "icon": "lightbulb",
+      "entities": [
+        {
+          "entityId": "light.living_room_light",
+          "name": "إضاءة الصالة الرئيسية",
+          "type": "light",
+          "icon": "lamp-ceiling"
+        },
+        {
+          "entityId": "light.tv_ambient_light",
+          "name": "ليد الشاشة المحيطي",
+          "type": "light",
+          "icon": "tv"
+        },
+        {
+          "entityId": "light.dining_room_light",
+          "name": "إضاءة السفرة",
+          "type": "light",
+          "icon": "lamp"
+        }
+      ]
+    },
+    {
+      "id": "climate",
+      "name": "التكييف (Climate)",
+      "icon": "snowflake",
+      "entities": [
+        {
+          "entityId": "climate.living_room_ac",
+          "name": "تكييف الصالة",
+          "type": "climate",
+          "icon": "air-conditioner",
+          "minTemp": 18,
+          "maxTemp": 30,
+          "tempStep": 1
+        }
+      ]
+    },
+    {
+      "id": "scenes",
+      "name": "أوضاع سريعة (Scenes)",
+      "icon": "sparkles",
+      "entities": [
+        {
+          "entityId": "scene.movie_night",
+          "name": "وضع السينما (Movie Mode)",
+          "type": "scene",
+          "icon": "film",
+          "accentColor": "#8B5CF6"
+        },
+        {
+          "entityId": "scene.bright_day",
+          "name": "إضاءة نهارية كاملة",
+          "type": "scene",
+          "icon": "sun",
+          "accentColor": "#F59E0B"
+        },
+        {
+          "entityId": "scene.all_off",
+          "name": "إطفاء كافة الأنوار",
+          "type": "scene",
+          "icon": "power-off",
+          "accentColor": "#EF4444"
+        }
+      ]
+    },
+    {
+      "id": "switches",
+      "name": "أجهزة إضافية (Switches)",
+      "icon": "plug",
+      "entities": [
+        {
+          "entityId": "switch.soundbar_power",
+          "name": "مسرح الصوت (Soundbar)",
+          "type": "switch",
+          "icon": "speaker"
+        }
+      ]
+    }
+  ]
+}

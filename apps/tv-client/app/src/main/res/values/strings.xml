@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">QuazHome TV</string>
+    <string name="accessibility_service_desc">التقاط ضغطات زرار الريموت المخصص لفتح القائمة العائمة السريعة للتحكم في المنزل الذكي.</string>
+    <string name="gateway_ip_hint">192.168.1.2:3001</string>
+    <string name="status_connected">متصل بالسيرفر</string>
+    <string name="status_disconnected">غير متصل</string>
+</resources>

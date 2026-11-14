@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  quazhome-gateway:
+    build: .
+    container_name: quazhome-gateway
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - HOST=0.0.0.0
+      - HA_BASE_URL=http://192.168.1.100:8123
+      - HA_ACCESS_TOKEN=your_long_lived_token_here
+    volumes:
+      - ./src/config/tv-devices.json:/app/dist/config/tv-devices.json

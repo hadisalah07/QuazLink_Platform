@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- QuazLink Brand Tokens -->
+    <color name="quaz_bg">#0A0E1A</color>
+    <color name="quaz_bg_card">#131B2E</color>
+    <color name="quaz_overlay_bg">#E60A0E1A</color>
+    <color name="quaz_cyan">#22D3EE</color>
+    <color name="quaz_purple">#8B5CF6</color>
+    <color name="quaz_glass">#1AFFFFFF</color>
+    <color name="quaz_glass_border">#3322D3EE</color>
+    
+    <!-- State Colors -->
+    <color name="state_on">#22D3EE</color>
+    <color name="state_off">#475569</color>
+    <color name="text_primary">#F8FAFC</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="focus_glow">#6622D3EE</color>
+</resources>
