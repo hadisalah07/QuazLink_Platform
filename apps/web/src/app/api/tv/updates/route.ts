@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.0.3";
+export const TV_LATEST_VERSION = "1.0.4";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
 export const TV_RELEASE_DATE = "2026-11-14";
-export const TV_RELEASE_NOTES = `• حل مشكلة إغلاق خدمة الـ Accessibility التلقائي (Fix Accessibility auto-turn-off).
+export const TV_RELEASE_NOTES = `• تحديث محرك الكشف التلقائي للإصدارات بدقة عالية (Dynamic Version Resolver).
+• حل نهائي لمشكلة إغلاق الـ Accessibility التلقائي وتثبيت مفاتيح التوقيع الدائمة.
 • دعم بوابة تخصيص الأجهزة والأزرار لشاشات التلفزيون (Entity Customization Portal).
 • تحسينات استقرار فائقة للأجهزة والمكيفات.`;
 
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     minRequiredVersion: TV_MIN_REQUIRED_VERSION,
     releaseName: `QuazHome TV v${TV_LATEST_VERSION} (Official Edition)`,
     releaseNotes: TV_RELEASE_NOTES,
-    downloadUrl: `/downloads/QuazHomeTV.apk?v=${TV_LATEST_VERSION}`,
+    downloadUrl: `https://app.quazlink.site/downloads/QuazHomeTV.apk?v=${TV_LATEST_VERSION}`,
     publishedAt: new Date(TV_RELEASE_DATE).toISOString(),
     mandatory: false,
   });

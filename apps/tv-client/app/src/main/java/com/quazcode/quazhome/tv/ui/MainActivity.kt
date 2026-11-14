@@ -179,12 +179,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkForUpdates() {
         lifecycleScope.launch {
-            val currentVersion = "1.0.2"
+            val currentVersion = try {
+                packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.4"
+            } catch (e: Exception) {
+                "1.0.4"
+            }
+
+            // Sync visual version badge with actual installed version
+            findViewById<TextView>(R.id.tvAppVersion)?.text = "الإصدار: v$currentVersion (Official Edition)"
+
             val update = AppUpdater.checkForUpdate(currentVersion)
             if (update != null && update.hasUpdate) {
                 activeUpdate = update
                 cardUpdateAvailable.visibility = View.VISIBLE
                 tvUpdateTitle.text = "🚀 يتوفر تحديث جديد (${update.latestVersion})! اضغط للتحديث الفوري"
+            } else {
+                cardUpdateAvailable.visibility = View.GONE
             }
         }
     }

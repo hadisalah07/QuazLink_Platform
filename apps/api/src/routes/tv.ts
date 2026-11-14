@@ -6,10 +6,11 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.0.3';
+export const TV_LATEST_VERSION = '1.0.4';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-14';
-export const TV_RELEASE_NOTES = `• حل مشكلة إغلاق خدمة الـ Accessibility التلقائي (Fix Accessibility auto-turn-off).
+export const TV_RELEASE_NOTES = `• تحديث محرك الكشف التلقائي للإصدارات بدقة عالية (Dynamic Version Resolver).
+• حل نهائي لمشكلة إغلاق الـ Accessibility التلقائي وتثبيت مفاتيح التوقيع الدائمة.
 • دعم بوابة تخصيص الأجهزة والأزرار لشاشات التلفزيون (Entity Customization Portal).
 • تحسينات استقرار فائقة للأجهزة والمكيفات.`;
 

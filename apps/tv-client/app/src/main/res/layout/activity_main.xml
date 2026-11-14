@@ -41,7 +41,7 @@
                 android:id="@+id/tvAppVersion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="الإصدار: v1.0.3 (Official Edition)"
+                android:text="الإصدار: v1.0.4 (Official Edition)"
                 android:textColor="@color/quaz_cyan"
                 android:textSize="12sp"
                 android:textStyle="bold"
