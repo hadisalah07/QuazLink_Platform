@@ -74,6 +74,7 @@ export async function GET(
 
   // Fallback to GitHub Release CDN
   const cdnMap: Record<string, string> = {
+    "QuazHomeTV.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.0/QuazHomeTV.apk",
     "QuazLink-POS-Setup-v1.4.0.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Setup-v1.4.0.exe",
     "QuazLink-POS-Portable-v1.4.0.zip": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Portable-v1.4.0.zip",
     "QuazLink-POS-Legacy-Win7-Setup-v1.4.0.exe": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/pos-v1.4.0/QuazLink-POS-Legacy-Win7-Setup-v1.4.0.exe",
