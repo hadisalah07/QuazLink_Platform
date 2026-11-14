@@ -211,8 +211,18 @@ class MainActivity : AppCompatActivity() {
             }
 
             if (apkFile != null && apkFile.exists()) {
-                btnUpdateNow.text = "تثبيت الآن..."
-                AppUpdater.installApk(this@MainActivity, apkFile)
+                val launched = AppUpdater.installApk(this@MainActivity, apkFile)
+                if (launched) {
+                    btnUpdateNow.text = "تثبيت الآن..."
+                } else {
+                    btnUpdateNow.isEnabled = true
+                    btnUpdateNow.text = "السماح بالتثبيت ثم الضغط مجدداً"
+                    Toast.makeText(
+                        this@MainActivity,
+                        "يرجى السماح لـ QuazHome TV بتثبيت التطبيقات (Install unknown apps)",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             } else {
                 btnUpdateNow.isEnabled = true
                 btnUpdateNow.text = "فشل التنزيل - إعادة المحاولة"

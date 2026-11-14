@@ -82,8 +82,20 @@ object AppUpdater {
     /**
      * Launches the native Android Package Installer for 1-click update
      */
-    fun installApk(context: Context, apkFile: File) {
+    fun installApk(context: Context, apkFile: File): Boolean {
         try {
+            // Android 8.0+ (API 26+) check for unknown app install permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!context.packageManager.canRequestPackageInstalls()) {
+                    val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                        data = Uri.parse("package:${context.packageName}")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(settingsIntent)
+                    return false
+                }
+            }
+
             val authority = "${context.packageName}.provider"
             val apkUri: Uri = FileProvider.getUriForFile(context, authority, apkFile)
 
@@ -91,10 +103,27 @@ object AppUpdater {
                 setDataAndType(apkUri, "application/vnd.android.package-archive")
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                         Intent.FLAG_GRANT_READ_URI_PERMISSION
+                putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             }
+
+            // Explicitly grant read URI permission to all resolving package installer handlers
+            val resolvedActivities = context.packageManager.queryIntentActivities(
+                intent,
+                android.content.pm.PackageManager.MATCH_DEFAULT_ONLY
+            )
+            for (info in resolvedActivities) {
+                context.grantUriPermission(
+                    info.activityInfo.packageName,
+                    apkUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+
             context.startActivity(intent)
+            return true
         } catch (e: Exception) {
             e.printStackTrace()
+            return false
         }
     }
 }
