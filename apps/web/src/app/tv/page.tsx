@@ -36,7 +36,7 @@ export default function TvPortalPage() {
     }
   }, []);
 
-  const downloadUrl = `${hostOrigin}/downloads/QuazHomeTV.apk`;
+  const downloadUrl = `${hostOrigin}/downloads/QuazHomeTV.apk?v=1.0.0`;
 
   const copyUrl = () => {
     navigator.clipboard.writeText(downloadUrl).then(() => {

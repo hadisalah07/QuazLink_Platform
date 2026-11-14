@@ -165,5 +165,15 @@ export async function GET(
     return NextResponse.redirect(target, { status: 307 });
   }
 
-  return NextResponse.json({ error: "File not found" }, { status: 404 });
+  return NextResponse.json(
+    { error: "File not found" },
+    {
+      status: 404,
+      headers: {
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      },
+    }
+  );
 }
