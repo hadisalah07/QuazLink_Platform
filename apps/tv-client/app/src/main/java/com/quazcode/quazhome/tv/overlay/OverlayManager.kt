@@ -1,5 +1,6 @@
 package com.quazcode.quazhome.tv.overlay
 
+import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
@@ -51,8 +52,10 @@ object OverlayManager {
     fun show(context: Context) {
         if (isShowing) return
 
-        // Verify overlay permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+        val isAccessibility = context is AccessibilityService
+
+        // Verify overlay permission only if not an AccessibilityService (which has native overlay privileges)
+        if (!isAccessibility && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
             Toast.makeText(context, "الرجاء منح صلاحية الظهور فوق التطبيقات أولاً", Toast.LENGTH_LONG).show()
             return
         }
@@ -63,8 +66,10 @@ object OverlayManager {
         val view = inflater.inflate(R.layout.layout_quick_menu_overlay, null)
         overlayView = view
 
-        // Configure WindowManager LayoutParams for 10-foot TV experience
-        val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        // Use TYPE_ACCESSIBILITY_OVERLAY for AccessibilityService, TYPE_APPLICATION_OVERLAY for Activity
+        val layoutType = if (isAccessibility) {
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
             @Suppress("DEPRECATION")

@@ -67,8 +67,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view tv-v1.0.6 || gh release create tv-v1.0.6 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.6 (Official Edition)" --notes "Official signed release Android TV APK with settingsActivity accessibility configuration binding, snap-off bug elimination, remote quick menu button customization, and multi-mode triggers (Single, Long Press 500ms, Double Click 350ms)."
-          gh release upload tv-v1.0.6 dist-apk/QuazHomeTV.apk --clobber
+          gh release view tv-v1.0.7 || gh release create tv-v1.0.7 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.7 (Official Edition)" --notes "Official signed release Android TV APK with complete AccessibilityService stabilization (canRetrieveWindowContent=true, flagRequestFilterKeyEvents), TYPE_ACCESSIBILITY_OVERLAY native floating menu, in-app remote key testing, and dynamic status indicator."
+          gh release upload tv-v1.0.7 dist-apk/QuazHomeTV.apk --clobber
+          gh release upload tv-v1.0.6 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.0.5 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.0.4 dist-apk/QuazHomeTV.apk --clobber || true
-          gh release upload tv-v1.0.3 dist-apk/QuazHomeTV.apk --clobber || true

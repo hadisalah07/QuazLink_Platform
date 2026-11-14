@@ -30,16 +30,23 @@ class RemoteKeyInterceptorService : AccessibilityService() {
     // Double press tracking
     private var lastClickTime = 0L
 
-    override fun onServiceConnected() {
-        super.onServiceConnected()
-        // Crucial: All flags & capabilities (typeAllMask, flagRequestFilterKeyEvents, canRequestFilterKeyEvents)
-        // are defined statically in res/xml/accessibility_service_config.xml.
-        // DO NOT call setServiceInfo() dynamically here to avoid wiping XML capabilities or throwing
-        // IllegalArgumentException across Binder, which causes Android TV to immediately disable the service!
-        Log.i(TAG, "✨ QuazHome TV Accessibility Service connected successfully! Remote key interceptor is active.")
+    override fun onCreate() {
+        super.onCreate()
+        Log.i(TAG, "QuazHome TV RemoteKeyInterceptorService onCreate")
     }
 
-    override fun onKeyEvent(event: KeyEvent): Boolean {
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        try {
+            Log.i(TAG, "✨ QuazHome TV Accessibility Service connected successfully! Remote key interceptor is active.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in onServiceConnected: ${e.message}", e)
+        }
+    }
+
+    override fun onKeyEvent(event: KeyEvent?): Boolean {
+        if (event == null) return false
+
         try {
             val configuredKey = QuazHomeApp.instance.triggerKeyCode
             val mode = QuazHomeApp.instance.triggerMode
@@ -58,7 +65,7 @@ class RemoteKeyInterceptorService : AccessibilityService() {
                     (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134))
 
             if (!isTargetKey) {
-                return super.onKeyEvent(event)
+                return false
             }
 
             // 3. Handle configured trigger mode (Single, Long Press, or Double Click)
@@ -113,11 +120,11 @@ class RemoteKeyInterceptorService : AccessibilityService() {
             Log.e(TAG, "Error in onKeyEvent: ${e.message}", e)
         }
 
-        return super.onKeyEvent(event)
+        return false
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Not used - service is purely for global TV remote key filtering
+        // Safe no-op - service is purely for global TV remote key filtering
     }
 
     override fun onInterrupt() {

@@ -74,7 +74,8 @@ export async function GET(
 
   // Fallback to GitHub Release CDN
   const cdnMap: Record<string, string> = {
-    "QuazHomeTV.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.6/QuazHomeTV.apk",
+    "QuazHomeTV.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.7/QuazHomeTV.apk",
+    "QuazHomeTV-v1.0.7.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.7/QuazHomeTV.apk",
     "QuazHomeTV-v1.0.6.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.6/QuazHomeTV.apk",
     "QuazHomeTV-v1.0.5.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.5/QuazHomeTV.apk",
     "QuazHomeTV-v1.0.4.apk": "https://github.com/hadisalah07/QuazLink_Platform/releases/download/tv-v1.0.4/QuazHomeTV.apk",

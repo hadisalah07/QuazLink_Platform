@@ -1,14 +1,18 @@
 package com.quazcode.quazhome.tv.ui
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
+import android.view.accessibility.AccessibilityManager
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -50,6 +54,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnModeDouble: Button
     private var isCapturingKey = false
 
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var isLongPressTriggered = false
+    private val activityLongPressRunnable = Runnable {
+        isLongPressTriggered = true
+        OverlayManager.toggle(this)
+    }
+    private var lastClickTime = 0L
+
     // OTA Update UI elements
     private lateinit var cardUpdateAvailable: LinearLayout
     private lateinit var tvUpdateTitle: TextView
@@ -78,6 +90,32 @@ class MainActivity : AppCompatActivity() {
 
         // 3. Check for OTA in-app updates in the background
         checkForUpdates()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateAccessibilityStatus()
+    }
+
+    private fun updateAccessibilityStatus() {
+        val isEnabled = isAccessibilityServiceEnabled()
+        if (isEnabled) {
+            btnOpenAccessibility.text = "خدمة الريموت مفعّلة بنجاح (Accessibility: Active ✅)"
+            btnOpenAccessibility.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#065F46"))
+        } else {
+            btnOpenAccessibility.text = "تفعيل خدمة التقاط أزرار الريموت (Accessibility: Disabled ⚠️)"
+            btnOpenAccessibility.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+        }
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        return try {
+            val am = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
+            val enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+            enabledServices.any { it.resolveInfo?.serviceInfo?.packageName == packageName }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun initViews() {
@@ -206,32 +244,94 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // 1. If actively capturing a new remote button:
         if (isCapturingKey) {
-            // Cancel capturing if Back is pressed
-            if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                    isCapturingKey = false
+                    btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
+                    btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+                    Toast.makeText(this, "تم إلغاء التقاط الزر", Toast.LENGTH_SHORT).show()
+                    return true
+                }
+
+                val friendlyName = getFriendlyKeyName(event.keyCode)
+                QuazHomeApp.instance.triggerKeyCode = event.keyCode
+                QuazHomeApp.instance.triggerKeyName = friendlyName
+
                 isCapturingKey = false
                 btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
                 btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
-                Toast.makeText(this, "تم إلغاء التقاط الزر", Toast.LENGTH_SHORT).show()
+                updateKeyDisplay()
+
+                Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName - اضغط عليه الآن لتجربته!", Toast.LENGTH_LONG).show()
                 return true
             }
-
-            // Capture the pressed key
-            val friendlyName = getFriendlyKeyName(keyCode)
-            QuazHomeApp.instance.triggerKeyCode = keyCode
-            QuazHomeApp.instance.triggerKeyName = friendlyName
-
-            isCapturingKey = false
-            btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-            btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
-            updateKeyDisplay()
-
-            Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName", Toast.LENGTH_LONG).show()
             return true
         }
 
-        return super.onKeyDown(keyCode, event)
+        // 2. If Overlay is active and user presses BACK, dismiss it cleanly
+        if (OverlayManager.isOverlayShowing() && event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                OverlayManager.dismiss()
+                return true
+            }
+        }
+
+        // 3. Test configured trigger key directly inside MainActivity!
+        val configuredKey = QuazHomeApp.instance.triggerKeyCode
+        val isTargetKey = (event.keyCode == configuredKey) ||
+                (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134))
+
+        if (isTargetKey) {
+            val mode = QuazHomeApp.instance.triggerMode
+            when (mode) {
+                QuazHomeApp.MODE_LONG_PRESS -> {
+                    when (event.action) {
+                        KeyEvent.ACTION_DOWN -> {
+                            if (event.repeatCount == 0) {
+                                isLongPressTriggered = false
+                                mainHandler.removeCallbacks(activityLongPressRunnable)
+                                mainHandler.postDelayed(activityLongPressRunnable, 500L)
+                            }
+                            return true
+                        }
+                        KeyEvent.ACTION_UP -> {
+                            mainHandler.removeCallbacks(activityLongPressRunnable)
+                            if (isLongPressTriggered) {
+                                isLongPressTriggered = false
+                                return true
+                            }
+                            return true
+                        }
+                    }
+                }
+                QuazHomeApp.MODE_DOUBLE_PRESS -> {
+                    if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                        val now = System.currentTimeMillis()
+                        val delta = now - lastClickTime
+                        if (delta in 50..350) {
+                            lastClickTime = 0L
+                            OverlayManager.toggle(this)
+                            return true
+                        } else {
+                            lastClickTime = now
+                            return true
+                        }
+                    }
+                }
+                else -> {
+                    // Default Single click
+                    if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                        OverlayManager.toggle(this)
+                        return true
+                    }
+                }
+            }
+        }
+
+        return super.dispatchKeyEvent(event)
     }
 
     private fun startPairingSession() {

@@ -6,13 +6,13 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.0.6';
+export const TV_LATEST_VERSION = '1.0.7';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-15';
-export const TV_RELEASE_NOTES = `• ربط زر Configuration الرسمي في شاشة إمكانية الوصول بالشاشة الرئيسية (Settings Activity Integration).
-• حل نهائي وثابت لمشكلة إغلاق خدمة إمكانية الوصول (Accessibility Snap-Off Fix).
-• قسم جديد مخصص لتسجيل أي زرار في ريموت التلفزيون لفتح القائمة العائمة (Remote Key Learner).
-• دعم 3 أنماط للضغط على الزر: ضغطة عادية (Single)، ضغطة مطولة 500ms (Hold)، أو ضغطتان متتاليتان 350ms (Double Click).`;
+export const TV_RELEASE_NOTES = `• حل نهائي لثبات تفعيل خدمة الريموت وإمكانية الوصول (canRetrieveWindowContent & flagRequestFilterKeyEvents).
+• تفعيل القائمة العائمة بنمط TYPE_ACCESSIBILITY_OVERLAY للظهور الفوري فوق أي تطبيق أو فيديو بدون الحاجة لإذن خارجي.
+• اختبار وتفعيل زر الريموت مباشرة وفورياً من داخل شاشة التطبيق أو خارجها.
+• مؤشر حي ذكي لحالة الـ Accessibility يوضح في الشاشة ما إذا كانت الخدمة تعمل بنجاح.`;
 
 // Storage paths for persistent TV device configs
 const STORAGE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../../data');
