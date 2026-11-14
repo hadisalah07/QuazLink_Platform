@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.0.2";
+export const TV_LATEST_VERSION = "1.0.3";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
 export const TV_RELEASE_DATE = "2026-11-14";
-export const TV_RELEASE_NOTES = `• دعم الربط السريع بـ QR Code والاقتران من الهاتف المحمول.
-• التكامل المباشر مع سيرفرات Home Assistant OS الرسمية والتحكم اللحظي في الأجهزة.
-• نظام التحديثات الهوائية التلقائي (In-App OTA Auto-Update) بنقرة واحدة من الريموت.
-• واجهة عائمة محسنة وتحديثات استقرار فائق.`;
+export const TV_RELEASE_NOTES = `• حل مشكلة إغلاق خدمة الـ Accessibility التلقائي (Fix Accessibility auto-turn-off).
+• دعم بوابة تخصيص الأجهزة والأزرار لشاشات التلفزيون (Entity Customization Portal).
+• تحسينات استقرار فائقة للأجهزة والمكيفات.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

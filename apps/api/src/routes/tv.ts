@@ -6,13 +6,12 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.0.2';
+export const TV_LATEST_VERSION = '1.0.3';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-14';
-export const TV_RELEASE_NOTES = `• دعم الربط السريع بـ QR Code والاقتران من الهاتف المحمول.
-• التكامل المباشر مع سيرفرات Home Assistant OS الرسمية والتحكم اللحظي في الأجهزة.
-• نظام التحديثات الهوائية التلقائي (In-App OTA Auto-Update) بنقرة واحدة من الريموت.
-• واجهة عائمة محسنة وتحديثات استقرار فائق.`;
+export const TV_RELEASE_NOTES = `• حل مشكلة إغلاق خدمة الـ Accessibility التلقائي (Fix Accessibility auto-turn-off).
+• دعم بوابة تخصيص الأجهزة والأزرار لشاشات التلفزيون (Entity Customization Portal).
+• تحسينات استقرار فائقة للأجهزة والمكيفات.`;
 
 // Storage paths for persistent TV device configs
 const STORAGE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../../data');
@@ -27,6 +26,7 @@ interface TvDeviceConfig {
   lastSeenAt: string;
   ipAddress?: string;
   appVersion?: string;
+  selectedEntities?: string[]; // IDs of entities selected to display on TV
 }
 
 interface PairingSession {
@@ -253,6 +253,7 @@ router.post('/pair/authorize', async (req, res) => {
       pairedAt: new Date().toISOString(),
       lastSeenAt: new Date().toISOString(),
       ipAddress: req.ip || '',
+      selectedEntities: [], // Default to all until user customizes
     });
 
     // Update active session so TV picks it up on next poll
@@ -327,14 +328,161 @@ async function getHaClient(deviceToken?: string) {
   if (!device) return null;
   const haToken = decrypt(device.encryptedHaToken);
   return {
+    device,
     haUrl: device.haUrl,
     haToken,
   };
 }
 
 /**
- * 7. GET /api/tv/quick-menu
- * Formats Home Assistant entities into QuazHome Quick Menu groups
+ * 7. GET /api/tv/devices
+ * List all paired TVs for management portal
+ */
+router.get('/devices', (req, res) => {
+  try {
+    const devices = getSavedDevices();
+    const list = Object.values(devices).map((d) => ({
+      deviceToken: d.deviceToken,
+      name: d.name,
+      haUrl: d.haUrl,
+      pairedAt: d.pairedAt,
+      lastSeenAt: d.lastSeenAt,
+      ipAddress: d.ipAddress,
+      appVersion: d.appVersion,
+      selectedCount: (d.selectedEntities || []).length,
+    }));
+    res.json({ success: true, devices: list });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * 8. GET /api/tv/devices/:token/entities
+ * Fetches all Home Assistant entities for customization, with selected state
+ */
+router.get('/devices/:token/entities', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const ha = await getHaClient(token);
+    if (!ha) {
+      return res.status(404).json({ error: 'شاشة التلفزيون غير موجودة أو تم إلغاء ربطها' });
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const statesRes = await fetch(`${ha.haUrl}/api/states`, {
+      headers: {
+        Authorization: `Bearer ${ha.haToken}`,
+        'Content-Type': 'application/json',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!statesRes.ok) {
+      throw new Error(`Home Assistant returned HTTP ${statesRes.status}`);
+    }
+
+    const rawStates: any[] = await statesRes.json();
+    const selectedList = ha.device.selectedEntities || [];
+
+    const entities: any[] = [];
+    for (const item of rawStates) {
+      const entityId: string = item.entity_id || '';
+      const friendlyName = item.attributes?.friendly_name || entityId;
+      const state = String(item.state || '').toLowerCase();
+      const isOn = state === 'on';
+
+      let type: string | null = null;
+      let category = 'other';
+      let icon = 'power';
+
+      if (entityId.startsWith('light.')) {
+        type = 'light';
+        category = 'lights';
+        icon = 'lamp';
+      } else if (entityId.startsWith('switch.')) {
+        type = 'switch';
+        category = 'switches';
+        icon = 'switch';
+      } else if (entityId.startsWith('climate.')) {
+        type = 'climate';
+        category = 'climate';
+        icon = 'ac';
+      } else if (entityId.startsWith('scene.')) {
+        type = 'scene';
+        category = 'scenes';
+        icon = 'film';
+      }
+
+      // Filter only actionable entities for TV
+      if (type) {
+        entities.push({
+          entityId,
+          name: friendlyName,
+          type,
+          category,
+          icon,
+          state,
+          isOn,
+          selected: selectedList.includes(entityId),
+          attributes: item.attributes || {},
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      tvName: ha.device.name,
+      haUrl: ha.haUrl,
+      selectedEntities: selectedList,
+      totalCount: entities.length,
+      selectedCount: selectedList.length,
+      entities,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * 9. POST /api/tv/devices/:token/customize
+ * Save selected entities to appear on TV overlay
+ */
+router.post('/devices/:token/customize', (req, res) => {
+  try {
+    const { token } = req.params;
+    const { selectedEntities, name } = req.body;
+
+    const device = findDeviceByToken(token);
+    if (!device) {
+      return res.status(404).json({ error: 'شاشة التلفزيون غير موجودة' });
+    }
+
+    if (Array.isArray(selectedEntities)) {
+      device.selectedEntities = selectedEntities;
+    }
+    if (typeof name === 'string' && name.trim()) {
+      device.name = name.trim();
+    }
+
+    saveDevice(device);
+
+    res.json({
+      success: true,
+      message: 'تم حفظ تخصيص أزرار وأجهزة التلفزيون بنجاح! ✨',
+      selectedCount: (device.selectedEntities || []).length,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * 10. GET /api/tv/quick-menu
+ * Formats Home Assistant entities into QuazHome Quick Menu groups, honoring user customization
  */
 router.get('/quick-menu', async (req, res) => {
   try {
@@ -342,7 +490,6 @@ router.get('/quick-menu', async (req, res) => {
     const ha = await getHaClient(deviceToken);
 
     if (!ha) {
-      // Fallback default response if not paired yet
       return res.json({
         success: true,
         timestamp: Date.now(),
@@ -385,6 +532,8 @@ router.get('/quick-menu', async (req, res) => {
     }
 
     const rawStates: any[] = await statesRes.json();
+    const selectedList = ha.device.selectedEntities || [];
+    const hasCustomSelection = selectedList.length > 0;
 
     const lightsGroup: any[] = [];
     const climateGroup: any[] = [];
@@ -393,6 +542,12 @@ router.get('/quick-menu', async (req, res) => {
 
     for (const item of rawStates) {
       const entityId: string = item.entity_id || '';
+
+      // If user configured custom entities, strictly filter!
+      if (hasCustomSelection && !selectedList.includes(entityId)) {
+        continue;
+      }
+
       const friendlyName = item.attributes?.friendly_name || entityId;
       const state = String(item.state || '').toLowerCase();
       const isOn = state === 'on';
@@ -458,12 +613,11 @@ router.get('/quick-menu', async (req, res) => {
     res.json({
       success: true,
       timestamp: Date.now(),
-      title: 'QuazHome Smart TV',
+      title: ha.device.name || 'QuazHome Smart TV',
       groups,
     });
   } catch (err: any) {
     console.error('[TV] Quick Menu error:', err.message);
-    // Graceful fallback to demo items if HA temporarily unreachable
     res.json({
       success: true,
       timestamp: Date.now(),
@@ -503,28 +657,13 @@ router.get('/quick-menu', async (req, res) => {
             },
           ],
         },
-        {
-          id: 'scenes',
-          name: 'السيناريوهات',
-          icon: 'film',
-          entities: [
-            {
-              entityId: 'scene.movie',
-              name: 'وضع السينما',
-              type: 'scene',
-              icon: 'film',
-              state: 'off',
-              isOn: false,
-            },
-          ],
-        },
       ],
     });
   }
 });
 
 /**
- * 8. POST /api/tv/device/toggle
+ * 11. POST /api/tv/device/toggle
  * Toggles a light or switch in Home Assistant
  */
 router.post('/device/toggle', async (req, res) => {
@@ -558,7 +697,7 @@ router.post('/device/toggle', async (req, res) => {
 });
 
 /**
- * 9. POST /api/tv/device/climate/set-temp
+ * 12. POST /api/tv/device/climate/set-temp
  * Sets AC temperature in Home Assistant
  */
 router.post('/device/climate/set-temp', async (req, res) => {
@@ -593,7 +732,7 @@ router.post('/device/climate/set-temp', async (req, res) => {
 });
 
 /**
- * 10. POST /api/tv/device/scene/trigger
+ * 13. POST /api/tv/device/scene/trigger
  * Triggers a scene in Home Assistant
  */
 router.post('/device/scene/trigger', async (req, res) => {
