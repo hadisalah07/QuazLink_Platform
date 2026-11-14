@@ -32,17 +32,29 @@ jobs:
           cd apps/tv-client
           chmod +x gradlew
 
-      - name: Build Debug APK
+      - name: Generate Official Release Keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore apps/tv-client/app/release.jks \
+            -alias quazhome \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass quazlink2026 \
+            -keypass quazlink2026 \
+            -dname "CN=QuazHome TV, OU=Smart Home, O=QuazLink, L=Cairo, ST=Cairo, C=EG"
+
+      - name: Build Release APK
         run: |
           cd apps/tv-client
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleRelease --stacktrace
           mkdir -p ../../dist-apk
-          cp app/build/outputs/apk/debug/app-debug.apk ../../dist-apk/QuazHomeTV.apk
+          cp app/build/outputs/apk/release/app-release.apk ../../dist-apk/QuazHomeTV.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QuazHomeTV-Debug-APK
+          name: QuazHomeTV-Release-APK
           path: dist-apk/QuazHomeTV.apk
           retention-days: 30
 
@@ -50,5 +62,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view tv-v1.0.0 || gh release create tv-v1.0.0 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.0 (Android TV Edition)" --notes "Official Android TV APK for QuazHome & QuazLink platform."
+          gh release view tv-v1.0.0 || gh release create tv-v1.0.0 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.0 (Android TV Edition)" --notes "Official signed release Android TV APK for QuazHome & QuazLink platform."
           gh release upload tv-v1.0.0 dist-apk/QuazHomeTV.apk --clobber
