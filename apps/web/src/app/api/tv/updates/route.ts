@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.0.7";
+export const TV_LATEST_VERSION = "1.0.8";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
 export const TV_RELEASE_DATE = "2026-11-15";
-export const TV_RELEASE_NOTES = `• حل نهائي لثبات تفعيل خدمة الريموت وإمكانية الوصول (canRetrieveWindowContent & flagRequestFilterKeyEvents).
-• تفعيل القائمة العائمة بنمط TYPE_ACCESSIBILITY_OVERLAY للظهور الفوري فوق أي تطبيق أو فيديو بدون الحاجة لإذن خارجي.
-• اختبار وتفعيل زر الريموت مباشرة وفورياً من داخل شاشة التطبيق أو خارجها.
-• مؤشر حي ذكي لحالة الـ Accessibility يوضح في الشاشة ما إذا كانت الخدمة تعمل بنجاح.`;
+export const TV_RELEASE_NOTES = `• إغلاق تلقائي للقائمة العائمة بعد 10 ثوانٍ من عدم النشاط (10s AFK Timeout).
+• دعم كامل وموثوق لإغلاق القائمة عبر زر Back أو زر الريموت أو زر الإغلاق المباشر (OverlayRootLayout Dispatcher).
+• تحسين تهيئة خدمة الريموت (typeWindowStateChanged) لمنع تحذيرات تسجيل النصوص والحظر الأمني في Google TV.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

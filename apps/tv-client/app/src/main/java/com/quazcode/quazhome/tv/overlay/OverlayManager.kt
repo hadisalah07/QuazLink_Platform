@@ -7,15 +7,18 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.quazcode.quazhome.tv.QuazHomeApp
 import com.quazcode.quazhome.tv.R
 import com.quazcode.quazhome.tv.data.model.DeviceItem
 import com.quazcode.quazhome.tv.data.repository.DeviceRepository
@@ -29,6 +32,9 @@ import java.util.Locale
 
 object OverlayManager {
 
+    private const val TAG = "OverlayManager"
+    private const val AFK_TIMEOUT_MS = 10_000L // 10 seconds auto-close AFK
+
     private var windowManager: WindowManager? = null
     private var overlayView: View? = null
     private var isShowing = false
@@ -37,9 +43,21 @@ object OverlayManager {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private val handler = Handler(Looper.getMainLooper())
 
+    private val afkRunnable = Runnable {
+        Log.i(TAG, "⏰ 10 seconds AFK timeout reached -> auto-closing quick menu overlay")
+        dismiss()
+    }
+
     private var adapter: DeviceAdapter? = null
 
     fun isOverlayShowing(): Boolean = isShowing
+
+    fun resetAfkTimer() {
+        handler.removeCallbacks(afkRunnable)
+        if (isShowing) {
+            handler.postDelayed(afkRunnable, AFK_TIMEOUT_MS)
+        }
+    }
 
     fun toggle(context: Context) {
         if (isShowing) {
@@ -95,31 +113,45 @@ object OverlayManager {
         val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
         tvClock.text = timeFormat.format(Date())
 
+        // Setup Close Button
+        view.findViewById<Button>(R.id.btnCloseOverlay)?.setOnClickListener {
+            dismiss()
+        }
+
         // Setup RecyclerView
         val rvDevices = view.findViewById<RecyclerView>(R.id.rvDevices)
         rvDevices.layoutManager = LinearLayoutManager(context)
 
         adapter = DeviceAdapter(
             onDeviceToggle = { device ->
+                resetAfkTimer()
                 handleDeviceToggle(device)
             },
             onTempChange = { device, newTemp ->
+                resetAfkTimer()
                 handleClimateChange(device, newTemp)
             }
         )
         rvDevices.adapter = adapter
 
-        // Setup Back Button key interception on the root view
-        view.isFocusable = true
-        view.isFocusableInTouchMode = true
-        view.setOnKeyListener { _, keyCode, event ->
+        // Setup Root Key Dispatcher to intercept Back, Escape, and Trigger Button globally
+        (view as? OverlayRootLayout)?.onKeyInterceptListener = { event ->
+            resetAfkTimer()
             if (event.action == KeyEvent.ACTION_DOWN) {
-                if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+                val configuredKey = QuazHomeApp.instance.triggerKeyCode
+                val isTriggerKey = (event.keyCode == configuredKey) ||
+                        (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134))
+
+                if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_ESCAPE || isTriggerKey) {
+                    Log.d(TAG, "Dismissing overlay on key press: ${event.keyCode}")
                     dismiss()
-                    return@setOnKeyListener true
+                    true
+                } else {
+                    false
                 }
+            } else {
+                false
             }
-            false
         }
 
         // Add to window
@@ -128,10 +160,13 @@ object OverlayManager {
             isShowing = true
             view.requestFocus()
 
+            // Start 10 seconds AFK auto-close countdown
+            resetAfkTimer()
+
             // Fetch live devices from Fastify Gateway
             loadData()
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error adding overlay view: ${e.message}", e)
             isShowing = false
         }
     }
@@ -154,9 +189,9 @@ object OverlayManager {
                     MenuItem.Header("الإضاءة (Offline Fallback)"),
                     MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة", "light", "lamp", "off", false, null, null, null, null, null, null)),
                     MenuItem.Header("التكييف"),
-                    MenuItem.Device(DeviceItem("climate.ac", "تكييف الصالة", "climate", "ac", "cool", true, null, 24.0, 22.0, 18.0, 30.0, null)),
+                    MenuItem.Device(DeviceItem("climate.living_room", "تكييف الصالة", "climate", "air-conditioner", "22°C", true, 22.0, 24.0, "cool", "auto", null, null)),
                     MenuItem.Header("السيناريوهات"),
-                    MenuItem.Device(DeviceItem("scene.movie", "وضع السينما", "scene", "film", "off", false, null, null, null, null, null, null))
+                    MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما", "scene", "movie", "active", false, null, null, null, null, null, null))
                 )
                 adapter?.submitData(demoItems)
             }
@@ -164,9 +199,9 @@ object OverlayManager {
     }
 
     private fun handleDeviceToggle(device: DeviceItem) {
-        if (device.type == "scene") {
+        if (device.domain == "scene") {
             scope.launch {
-                repository.triggerScene(device.entityId)
+                repository.activateScene(device.entityId)
                 dismiss() // Auto close on scene activate
             }
             return
@@ -196,11 +231,12 @@ object OverlayManager {
 
     fun dismiss() {
         if (!isShowing) return
+        handler.removeCallbacks(afkRunnable)
         overlayView?.let {
             try {
                 windowManager?.removeView(it)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error removing overlay view: ${e.message}", e)
             }
         }
         overlayView = null

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.quazcode.quazhome.tv.overlay.OverlayRootLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/overlayRoot"
     android:layout_width="380dp"
     android:layout_height="match_parent"
@@ -9,7 +9,7 @@
     android:focusable="true"
     android:focusableInTouchMode="true">
 
-    <!-- Header with QuazHome Logo / Title -->
+    <!-- Header with QuazHome Logo / Title / Close Button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -41,7 +41,21 @@
             android:layout_height="wrap_content"
             android:text="--:--"
             android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:textSize="13sp"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Close Button (Also triggers on Back key or 10s AFK) -->
+        <Button
+            android:id="@+id/btnCloseOverlay"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:backgroundTint="#25EF4444"
+            android:text="✕ إغلاق"
+            android:textColor="#EF4444"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="10dp"
+            android:focusable="true" />
     </LinearLayout>
 
     <View
@@ -60,14 +74,14 @@
         android:paddingBottom="16dp"
         android:descendantFocusability="afterDescendants" />
 
-    <!-- Footer Hint -->
+    <!-- Footer Hint: 10s AFK Timeout & Back to Close -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="QuazHome TV v1.0.6 • [Back] إغلاق • [OK] تبديل"
+        android:text="⏳ إغلاق تلقائي بعد 10 ثوانٍ • [Back] أو زر الريموت للإغلاق"
         android:textColor="@color/text_secondary"
         android:textSize="11sp"
         android:gravity="center"
         android:layout_marginTop="8dp" />
 
-</LinearLayout>
+</com.quazcode.quazhome.tv.overlay.OverlayRootLayout>
