@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.1.1";
+export const TV_LATEST_VERSION = "1.1.2";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
 export const TV_RELEASE_DATE = "2026-11-18";
-export const TV_RELEASE_NOTES = `• تحسين تباين ألوان الخطوط والقوائم (Crystal Clear White Text Contrast) عند التحديد بالريموت لمنع تداخل الألوان نهائياً.
-• إطار نيوني فائق الوضوح (3.5dp Neon Cyan) مع خلفيات داكنة تضمن قراءة النصوص بنسبة 100% من بُعد.
-• دعم كامل للتوافق مع أجهزة العرض وشاشات Xiaomi Android 14 Google TV (Model: C045RGN).`;
+export const TV_RELEASE_NOTES = `• إعادة تصميم الواجهة بالكامل لتطابق منصة QuazLink (Platform Dark Glassmorphism).
+• كروت الأجهزة بنمط الأوبسيديان الداكن مع أيقونات ومؤشرات تحكم أنيقة.
+• أزرار زمردية مضيئة (Emerald Action Buttons) فائقة التباين والوضوح على شاشات العرض والبروجيكتور.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
