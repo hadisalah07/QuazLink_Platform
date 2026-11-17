@@ -1,27 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Focused state: Deep contrast navy with brilliant 3.5dp Neon Cyan stroke -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#163354" />
-            <stroke android:width="3.5dp" android:color="#22D3EE" />
-            <corners android:radius="12dp" />
+            <solid android:color="#0A2B24" />
+            <stroke android:width="2dp" android:color="#34D399" />
+            <corners android:radius="14dp" />
         </shape>
     </item>
-    <!-- Pressed state -->
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="#0E4A78" />
-            <stroke android:width="3dp" android:color="#38BDF8" />
-            <corners android:radius="12dp" />
+            <solid android:color="#041613" />
+            <stroke android:width="1.5dp" android:color="#059669" />
+            <corners android:radius="14dp" />
         </shape>
     </item>
-    <!-- Normal state: Solid cyan accent with clean contrast -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#0E7490" />
-            <stroke android:width="1.5dp" android:color="#22D3EE" />
-            <corners android:radius="12dp" />
+            <solid android:color="#061D19" />
+            <stroke android:width="1.2dp" android:color="#10B981" />
+            <corners android:radius="14dp" />
         </shape>
     </item>
 </selector>

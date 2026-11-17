@@ -1,18 +1,53 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- QuazLink Brand Tokens -->
-    <color name="quaz_bg">#0A0E1A</color>
-    <color name="quaz_bg_card">#131B2E</color>
-    <color name="quaz_overlay_bg">#E60A0E1A</color>
+    <!-- QuazLink Brand Platform Design System -->
+    <color name="quaz_bg">#060913</color>
+    <color name="quaz_card_bg">#0B1322</color>
+    <color name="quaz_card_inner">#141E33</color>
+    <color name="quaz_card_border">#1E293B</color>
+    <color name="quaz_overlay_bg">#F20B1322</color>
+
+    <!-- Emerald / Accent Green (From Platform Retail & Action Buttons - Image 3) -->
+    <color name="platform_emerald_bg">#061D19</color>
+    <color name="platform_emerald_bg_focused">#0A2B24</color>
+    <color name="platform_emerald_border">#10B981</color>
+    <color name="platform_emerald_border_glow">#34D399</color>
+    <color name="platform_emerald_text">#34D399</color>
+
+    <!-- Cyan / QuazLink Brand (From Platform Brand - Image 1 & 2) -->
+    <color name="platform_cyan_bg">#071B2B</color>
+    <color name="platform_cyan_bg_focused">#0C273E</color>
+    <color name="platform_cyan_border">#0891B2</color>
+    <color name="platform_cyan_border_glow">#22D3EE</color>
+    <color name="platform_cyan_text">#38BDF8</color>
     <color name="quaz_cyan">#22D3EE</color>
-    <color name="quaz_purple">#8B5CF6</color>
-    <color name="quaz_glass">#1AFFFFFF</color>
-    <color name="quaz_glass_border">#3322D3EE</color>
-    
-    <!-- State Colors -->
-    <color name="state_on">#22D3EE</color>
-    <color name="state_off">#475569</color>
+
+    <!-- Slate / Neutral Surfaces (From Platform Device Cards - Image 2) -->
+    <color name="platform_slate_bg">#0C1424</color>
+    <color name="platform_slate_bg_focused">#15223A</color>
+    <color name="platform_slate_border">#1E293B</color>
+    <color name="platform_slate_border_focused">#38BDF8</color>
+    <color name="platform_slate_text">#94A3B8</color>
+    <color name="platform_slate_muted">#64748B</color>
+
+    <!-- Rose / Danger (Close Buttons) -->
+    <color name="platform_rose_bg">#180D14</color>
+    <color name="platform_rose_bg_focused">#2A1320</color>
+    <color name="platform_rose_border">#831843</color>
+    <color name="platform_rose_border_glow">#F43F5E</color>
+    <color name="platform_rose_text">#F472B6</color>
+
+    <!-- Typography -->
     <color name="text_primary">#F8FAFC</color>
     <color name="text_secondary">#94A3B8</color>
+    <color name="text_muted">#64748B</color>
+    
+    <!-- Legacy aliases for compatibility -->
+    <color name="quaz_bg_card">#0B1322</color>
+    <color name="quaz_purple">#8B5CF6</color>
+    <color name="quaz_glass">#141E33</color>
+    <color name="quaz_glass_border">#1E293B</color>
+    <color name="state_on">#22D3EE</color>
+    <color name="state_off">#475569</color>
     <color name="focus_glow">#6622D3EE</color>
 </resources>

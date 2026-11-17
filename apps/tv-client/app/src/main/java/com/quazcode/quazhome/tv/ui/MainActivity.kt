@@ -99,12 +99,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateAccessibilityStatus() {
         val isEnabled = isAccessibilityServiceEnabled()
+        btnOpenAccessibility.backgroundTintList = null
         if (isEnabled) {
-            btnOpenAccessibility.text = "خدمة الريموت مفعّلة بنجاح (Accessibility: Active ✅)"
-            btnOpenAccessibility.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#065F46"))
+            btnOpenAccessibility.text = "✓ خدمة الريموت مفعلة بنجاح (Accessibility: Active)"
+            btnOpenAccessibility.setBackgroundResource(R.drawable.bg_platform_button_emerald)
+            btnOpenAccessibility.setTextColor(androidx.core.content.ContextCompat.getColorStateList(this, R.color.color_btn_emerald_text))
         } else {
-            btnOpenAccessibility.text = "تفعيل خدمة التقاط أزرار الريموت (Accessibility: Disabled ⚠️)"
-            btnOpenAccessibility.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+            btnOpenAccessibility.text = "⚠️ تفعيل خدمة التقاط أزرار الريموت (Accessibility)"
+            btnOpenAccessibility.setBackgroundResource(R.drawable.bg_platform_button_slate)
+            btnOpenAccessibility.setTextColor(androidx.core.content.ContextCompat.getColorStateList(this, R.color.color_btn_slate_text))
         }
     }
 
@@ -157,28 +160,18 @@ class MainActivity : AppCompatActivity() {
         for (v in views) {
             v.setOnFocusChangeListener { view, hasFocus ->
                 if (hasFocus) {
-                    (view as? Button)?.setTextColor(Color.WHITE)
                     view.animate()
-                        .scaleX(1.05f)
-                        .scaleY(1.05f)
-                        .translationZ(12f)
-                        .setDuration(130)
+                        .scaleX(1.03f)
+                        .scaleY(1.03f)
+                        .translationZ(8f)
+                        .setDuration(120)
                         .start()
                 } else {
-                    if (view is Button) {
-                        if (view == btnModeSingle || view == btnModeHold || view == btnModeDouble) {
-                            updateModeUI()
-                        } else if (view == btnCaptureRemoteKey || view == btnOpenAccessibility || view == btnResetPairing) {
-                            view.setTextColor(Color.parseColor("#E2E8F0"))
-                        } else if (view == btnTestOverlay || view == btnUpdateNow) {
-                            view.setTextColor(Color.WHITE)
-                        }
-                    }
                     view.animate()
                         .scaleX(1.0f)
                         .scaleY(1.0f)
                         .translationZ(0f)
-                        .setDuration(130)
+                        .setDuration(120)
                         .start()
                 }
             }
@@ -207,12 +200,14 @@ class MainActivity : AppCompatActivity() {
             if (!isCapturingKey) {
                 isCapturingKey = true
                 btnCaptureRemoteKey.text = "⏳ اضغط الآن على أي زر بالريموت..."
-                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_primary)
+                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_emerald)
+                btnCaptureRemoteKey.setTextColor(Color.parseColor("#34D399"))
                 Toast.makeText(this, "اضغط على الزر المراد تعيينه في الريموت الآن", Toast.LENGTH_SHORT).show()
             } else {
                 isCapturingKey = false
-                btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_dark)
+                btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد"
+                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_cyan)
+                btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))
             }
         }
 
@@ -250,17 +245,17 @@ class MainActivity : AppCompatActivity() {
 
         val isSingle = currentMode == QuazHomeApp.MODE_SINGLE
         btnModeSingle.setBackgroundResource(if (isSingle) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
-        btnModeSingle.setTextColor(if (isSingle) Color.WHITE else Color.parseColor("#94A3B8"))
+        btnModeSingle.setTextColor(Color.parseColor(if (isSingle) "#38BDF8" else "#64748B"))
         btnModeSingle.text = if (isSingle) "✓ ضغطة عادية (Single)" else "ضغطة عادية (Single)"
 
         val isHold = currentMode == QuazHomeApp.MODE_LONG_PRESS
         btnModeHold.setBackgroundResource(if (isHold) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
-        btnModeHold.setTextColor(if (isHold) Color.WHITE else Color.parseColor("#94A3B8"))
+        btnModeHold.setTextColor(Color.parseColor(if (isHold) "#38BDF8" else "#64748B"))
         btnModeHold.text = if (isHold) "✓ مطولة 500ms (Hold)" else "مطولة 500ms (Hold)"
 
         val isDouble = currentMode == QuazHomeApp.MODE_DOUBLE_PRESS
         btnModeDouble.setBackgroundResource(if (isDouble) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
-        btnModeDouble.setTextColor(if (isDouble) Color.WHITE else Color.parseColor("#94A3B8"))
+        btnModeDouble.setTextColor(Color.parseColor(if (isDouble) "#38BDF8" else "#64748B"))
         btnModeDouble.text = if (isDouble) "✓ ضغطتان 350ms (Double)" else "ضغطتان 350ms (Double)"
     }
 
@@ -293,8 +288,9 @@ class MainActivity : AppCompatActivity() {
             if (event.action == KeyEvent.ACTION_DOWN) {
                 if (event.keyCode == KeyEvent.KEYCODE_BACK) {
                     isCapturingKey = false
-                    btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-                    btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_dark)
+                    btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد"
+                    btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_cyan)
+                    btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))
                     Toast.makeText(this, "تم إلغاء التقاط الزر", Toast.LENGTH_SHORT).show()
                     return true
                 }
@@ -304,8 +300,9 @@ class MainActivity : AppCompatActivity() {
                 QuazHomeApp.instance.triggerKeyName = friendlyName
 
                 isCapturingKey = false
-                btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_dark)
+                btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد"
+                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_cyan)
+                btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))
                 updateKeyDisplay()
 
                 Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName - اضغط عليه الآن لتجربته!", Toast.LENGTH_LONG).show()

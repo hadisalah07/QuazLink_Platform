@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#060913">
 
     <!-- Dynamic Constellation Particle Background (Matching Web Platform) -->
     <com.quazcode.quazhome.tv.ui.view.StarFieldView
@@ -15,370 +16,373 @@
         android:background="@android:color/transparent"
         android:fillViewport="true">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_horizontal"
-        android:orientation="vertical"
-        android:paddingHorizontal="40dp"
-        android:paddingVertical="32dp">
-
-        <!-- Header: Official QuazLink Logo & Brand -->
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp">
+            android:paddingHorizontal="48dp"
+            android:paddingVertical="32dp">
 
-            <ImageView
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:src="@drawable/quazlink_logo"
-                android:contentDescription="QuazLink Logo"
-                android:layout_marginBottom="6dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="QUAZHOME TV"
-                android:textColor="@color/quaz_cyan"
-                android:textSize="26sp"
-                android:textStyle="bold"
-                android:letterSpacing="0.08" />
-
-            <TextView
-                android:id="@+id/tvAppVersion"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="الإصدار: v1.1.1 (Official Edition)"
-                android:textColor="@color/quaz_cyan"
-                android:textSize="12sp"
-                android:textStyle="bold"
-                android:background="#2022D3EE"
-                android:paddingHorizontal="14dp"
-                android:paddingVertical="4dp"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
-
-        <!-- OTA Update Available Banner (Visible when update detected) -->
-        <LinearLayout
-            android:id="@+id/cardUpdateAvailable"
-            android:layout_width="640dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_device_card_focused"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="16dp"
-            android:visibility="gone">
-
+            <!-- Header: Official QuazLink Logo & Brand -->
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:gravity="center"
+                android:orientation="vertical"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/quazlink_logo"
+                    android:contentDescription="QuazLink Logo"
+                    android:layout_marginBottom="8dp" />
 
                 <TextView
-                    android:id="@+id/tvUpdateTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="QUAZHOME TV"
+                    android:textColor="#38BDF8"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08" />
+
+                <TextView
+                    android:id="@+id/tvAppVersion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="الإصدار: v1.1.2 (Official Platform Edition)"
+                    android:textColor="#94A3B8"
+                    android:textSize="11sp"
+                    android:background="@drawable/bg_platform_pill"
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="4dp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+
+            <!-- OTA Update Available Banner -->
+            <LinearLayout
+                android:id="@+id/cardUpdateAvailable"
+                android:layout_width="660dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_platform_button_cyan"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvUpdateTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🚀 يتوفر تحديث جديد! اضغط هنا للتحديث الفوري"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnUpdateNow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:background="@drawable/bg_platform_button_emerald"
+                        android:text="تحديث الآن"
+                        android:textColor="@color/color_btn_emerald_text"
+                        android:textStyle="bold"
+                        android:textSize="12sp"
+                        android:paddingHorizontal="16dp"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/pbUpdateDownload"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:layout_marginTop="10dp"
+                    android:progressTint="#22D3EE"
+                    android:max="100"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <!-- Main Card: QR Code & Mobile Pairing -->
+            <LinearLayout
+                android:layout_width="660dp"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_device_card_normal"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="22dp"
+                android:layout_marginBottom="16dp">
+
+                <!-- QR Code Frame (Rounded White Surface) -->
+                <FrameLayout
+                    android:layout_width="180dp"
+                    android:layout_height="180dp"
+                    android:background="#FFFFFF"
+                    android:padding="8dp">
+
+                    <ImageView
+                        android:id="@+id/ivQrCode"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitCenter"
+                        android:contentDescription="Pairing QR Code" />
+
+                    <ProgressBar
+                        android:id="@+id/pbQrLoading"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:layout_gravity="center"
+                        android:indeterminateTint="#22D3EE" />
+                </FrameLayout>
+
+                <!-- Pairing Instructions & PIN -->
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="🚀 يتوفر تحديث جديد! اضغط هنا للتحديث الفوري"
-                    android:textColor="#FFFFFF"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical"
+                    android:paddingStart="22dp">
 
-                <Button
-                    android:id="@+id/btnUpdateNow"
-                    android:layout_width="wrap_content"
-                    android:layout_height="42dp"
-                    android:background="@drawable/bg_neon_button_primary"
-                    android:text="تحديث الآن (Update)"
-                    android:textColor="@color/color_neon_btn_primary_text"
-                    android:textStyle="bold"
-                    android:textSize="13sp"
-                    android:paddingHorizontal="16dp"
-                    android:focusable="true" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="اقتران التلفزيون بالمنصة"
+                        android:textColor="#F8FAFC"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="امسح الـ QR بكاميرا الموبايل لربط أجهزة المنزل الذكي وعرضها مباشرة."
+                        android:textColor="#64748B"
+                        android:textSize="12sp"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="14dp" />
+
+                    <!-- PIN Code Badge -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_platform_pill"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="7dp"
+                        android:layout_marginBottom="10dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="كود الشاشة: "
+                            android:textColor="#64748B"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/tvPairingCode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="QL-----"
+                            android:textColor="#38BDF8"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:letterSpacing="0.08" />
+                    </LinearLayout>
+
+                    <!-- Live Status -->
+                    <TextView
+                        android:id="@+id/tvPairingStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="الحالة: في انتظار المسح من الموبايل..."
+                        android:textColor="#FBBF24"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
-            <ProgressBar
-                android:id="@+id/pbUpdateDownload"
-                style="?android:attr/progressBarStyleHorizontal"
-                android:layout_width="match_parent"
-                android:layout_height="8dp"
-                android:layout_marginTop="10dp"
-                android:progressTint="@color/quaz_cyan"
-                android:max="100"
-                android:visibility="gone" />
-        </LinearLayout>
-
-        <!-- Main Card: QR Code & Mobile Pairing -->
-        <LinearLayout
-            android:layout_width="640dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_device_card_normal"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="24dp"
-            android:layout_marginBottom="20dp">
-
-            <!-- QR Code Frame -->
-            <FrameLayout
-                android:layout_width="190dp"
-                android:layout_height="190dp"
-                android:background="#FFFFFF"
-                android:padding="6dp">
-
-                <ImageView
-                    android:id="@+id/ivQrCode"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="Pairing QR Code" />
-
-                <ProgressBar
-                    android:id="@+id/pbQrLoading"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="center"
-                    android:indeterminateTint="@color/quaz_cyan" />
-            </FrameLayout>
-
-            <!-- Pairing Instructions & PIN -->
+            <!-- Quick Menu Remote Button Customization Card -->
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/cardRemoteConfig"
+                android:layout_width="660dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:background="@drawable/bg_device_card_normal"
                 android:orientation="vertical"
-                android:paddingStart="24dp">
+                android:padding="22dp"
+                android:layout_marginBottom="16dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="اقتران التلفزيون بـ Home Assistant"
-                    android:textColor="@color/text_primary"
+                    android:text="🎮 تخصيص زر القائمة السريعة للريموت"
+                    android:textColor="#38BDF8"
                     android:textSize="16sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="امسح الـ QR بكاميرا الموبايل لتسجيل الدخول وربط أجهزة المنزل الذكي في ثوانٍ."
-                    android:textColor="@color/text_secondary"
+                    android:text="حدد الزر المفضل بالريموت ونوع الضغطة لفتح قائمة أجهزة المنزل فوراً فوق أي تطبيق أو فيديو."
+                    android:textColor="#64748B"
                     android:textSize="12sp"
                     android:layout_marginTop="4dp"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="14dp" />
 
-                <!-- PIN Code Badge -->
+                <!-- Current Key Display & Capture Button -->
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:background="#2022D3EE"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="14dp"
-                    android:paddingVertical="6dp"
-                    android:layout_marginBottom="10dp">
+                    android:layout_marginBottom="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="كود الشاشة: "
-                        android:textColor="@color/text_secondary"
-                        android:textSize="12sp" />
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_platform_pill"
+                        android:padding="12dp"
+                        android:layout_marginEnd="12dp"
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/tvPairingCode"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="الزر المسجل حالياً:"
+                            android:textColor="#64748B"
+                            android:textSize="11sp" />
+
+                        <TextView
+                            android:id="@+id/tvCurrentRemoteKey"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="الزر الأزرق (Blue Key - 134)"
+                            android:textColor="#F8FAFC"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnCaptureRemoteKey"
                         android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="QL-----"
-                        android:textColor="@color/quaz_cyan"
-                        android:textSize="16sp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/bg_platform_button_cyan"
+                        android:text="🎯 تسجيل زر جديد"
+                        android:textColor="@color/color_btn_cyan_text"
+                        android:textSize="12sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.1" />
+                        android:paddingHorizontal="16dp"
+                        android:focusable="true" />
                 </LinearLayout>
 
-                <!-- Live Status -->
+                <!-- Mode Selection Header -->
                 <TextView
-                    android:id="@+id/tvPairingStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="الحالة: في انتظار المسح من الموبايل..."
-                    android:textColor="#FBBF24"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
-            </LinearLayout>
-        </LinearLayout>
+                    android:text="نوع الضغطة لفتح القائمة (Trigger Mode):"
+                    android:textColor="#64748B"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="8dp" />
 
-        <!-- Quick Menu Remote Button Customization Card -->
-        <LinearLayout
-            android:id="@+id/cardRemoteConfig"
-            android:layout_width="640dp"
-            android:layout_height="wrap_content"
-            android:background="@drawable/bg_device_card_normal"
-            android:orientation="vertical"
-            android:padding="20dp"
-            android:layout_marginBottom="20dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="🎮 تخصيص زر القائمة السريعة للريموت"
-                android:textColor="@color/quaz_cyan"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="حدد الزر المفضل بالريموت ونوع الضغطة لفتح قائمة أجهزة المنزل فوراً فوق أي تطبيق أو فيديو."
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:layout_marginTop="4dp"
-                android:layout_marginBottom="14dp" />
-
-            <!-- Current Key Display & Capture Button -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginBottom="14dp">
-
+                <!-- Mode Selection Buttons -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="الزر المسجل حالياً:"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:id="@+id/tvCurrentRemoteKey"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="الزر الأزرق (Blue Key - 134)"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp"
+                    <Button
+                        android:id="@+id/btnModeSingle"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_neon_mode_selected"
+                        android:text="✓ ضغطة عادية (Single)"
+                        android:textColor="#38BDF8"
+                        android:textSize="11sp"
                         android:textStyle="bold"
-                        android:layout_marginTop="2dp" />
-                </LinearLayout>
+                        android:layout_marginEnd="8dp"
+                        android:focusable="true" />
 
+                    <Button
+                        android:id="@+id/btnModeHold"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_neon_mode_unselected"
+                        android:text="مطولة 500ms (Hold)"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:layout_marginEnd="8dp"
+                        android:focusable="true" />
+
+                    <Button
+                        android:id="@+id/btnModeDouble"
+                        android:layout_width="0dp"
+                        android:layout_height="42dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_neon_mode_unselected"
+                        android:text="ضغطتان 350ms (Double)"
+                        android:textColor="#64748B"
+                        android:textSize="11sp"
+                        android:focusable="true" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Action Controls (Matching Platform Image 3) -->
+            <LinearLayout
+                android:layout_width="660dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Test Overlay Button (Styled exactly like Platform Emerald Button in Image 3) -->
                 <Button
-                    android:id="@+id/btnCaptureRemoteKey"
-                    android:layout_width="wrap_content"
-                    android:layout_height="44dp"
-                    android:background="@drawable/bg_neon_button_dark"
-                    android:text="🎯 تسجيل زر جديد من الريموت"
-                    android:textColor="@color/color_neon_btn_dark_text"
+                    android:id="@+id/btnTestOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_platform_button_emerald"
+                    android:text="⚡ تجربة فتح القائمة العائمة الآن (TEST OVERLAY)  →"
+                    android:textColor="@color/color_btn_emerald_text"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"
+                    android:focusable="true" />
+
+                <!-- Accessibility Button (Styled like Platform Button in Image 3) -->
+                <Button
+                    android:id="@+id/btnOpenAccessibility"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_platform_button_emerald"
+                    android:text="✓ خدمة الريموت مفعلة بنجاح (Accessibility: Active)"
+                    android:textColor="@color/color_btn_emerald_text"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="12dp"
+                    android:focusable="true" />
+
+                <!-- Reset Pairing Button (Styled like Platform Slate Button) -->
+                <Button
+                    android:id="@+id/btnResetPairing"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_platform_button_slate"
+                    android:text="🔄 إعادة الاقتران مع سيرفر جديد (RE-PAIR)"
+                    android:textColor="@color/color_btn_slate_text"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:paddingHorizontal="14dp"
                     android:focusable="true" />
             </LinearLayout>
 
-            <!-- Mode Selection Header -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="نوع الضغطة لفتح القائمة (Trigger Mode):"
-                android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:layout_marginBottom="8dp" />
-
-            <!-- Mode Selection Buttons -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btnModeSingle"
-                    android:layout_width="0dp"
-                    android:layout_height="42dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_neon_mode_selected"
-                    android:text="✓ ضغطة عادية (Single)"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp"
-                    android:textStyle="bold"
-                    android:layout_marginEnd="6dp"
-                    android:focusable="true" />
-
-                <Button
-                    android:id="@+id/btnModeHold"
-                    android:layout_width="0dp"
-                    android:layout_height="42dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_neon_mode_unselected"
-                    android:text="مطولة 500ms (Hold)"
-                    android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:layout_marginEnd="6dp"
-                    android:focusable="true" />
-
-                <Button
-                    android:id="@+id/btnModeDouble"
-                    android:layout_width="0dp"
-                    android:layout_height="42dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_neon_mode_unselected"
-                    android:text="ضغطتان 350ms (Double)"
-                    android:textColor="#9CA3AF"
-                    android:textSize="11sp"
-                    android:focusable="true" />
-            </LinearLayout>
         </LinearLayout>
-
-        <!-- Action Controls -->
-        <LinearLayout
-            android:layout_width="640dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <!-- Test Overlay Button -->
-            <Button
-                android:id="@+id/btnTestOverlay"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/bg_neon_button_primary"
-                android:text="تجربة فتح القائمة العائمة الآن (Test Overlay)"
-                android:textColor="@color/color_neon_btn_primary_text"
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp"
-                android:focusable="true" />
-
-            <!-- Accessibility Button -->
-            <Button
-                android:id="@+id/btnOpenAccessibility"
-                android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:background="@drawable/bg_neon_button_dark"
-                android:text="تفعيل خدمة التقاط أزرار الريموت (Accessibility)"
-                android:textColor="@color/color_neon_btn_dark_text"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp"
-                android:focusable="true" />
-
-            <!-- Reset Pairing Button -->
-            <Button
-                android:id="@+id/btnResetPairing"
-                android:layout_width="match_parent"
-                android:layout_height="46dp"
-                android:background="@drawable/bg_neon_button_dark"
-                android:text="إعادة توليد كود الاقتران (Refresh QR)"
-                android:textColor="@color/color_neon_btn_dark_text"
-                android:textSize="12sp"
-                android:focusable="true" />
-        </LinearLayout>
-
-    </LinearLayout>
     </ScrollView>
 </FrameLayout>

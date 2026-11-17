@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Focused state: Selected mode with intense glowing white neon border over deep teal -->
+    <!-- Focused state -->
     <item android:state_focused="true">
         <shape android:shape="rectangle">
-            <solid android:color="#0E7490" />
-            <stroke android:width="3.5dp" android:color="#FFFFFF" />
-            <corners android:radius="10dp" />
+            <solid android:color="#112E48" />
+            <stroke android:width="2dp" android:color="#22D3EE" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
-    <!-- Normal state when selected -->
+    <!-- Normal state: Active Mode button with dark cyan glass and sleek 1.5dp cyan border -->
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#0E7490" />
-            <stroke android:width="1.8dp" android:color="#22D3EE" />
-            <corners android:radius="10dp" />
+            <solid android:color="#082133" />
+            <stroke android:width="1.5dp" android:color="#22D3EE" />
+            <corners android:radius="12dp" />
         </shape>
     </item>
 </selector>

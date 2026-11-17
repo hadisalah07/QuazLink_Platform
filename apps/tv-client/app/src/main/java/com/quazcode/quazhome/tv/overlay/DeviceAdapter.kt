@@ -74,37 +74,40 @@ class DeviceAdapter(
         private val tvName: TextView = view.findViewById(R.id.tvDeviceName)
         private val tvStatus: TextView = view.findViewById(R.id.tvDeviceStatus)
         private val tvBadge: TextView = view.findViewById(R.id.tvStateBadge)
+        private val tvPowerIcon: TextView = view.findViewById(R.id.tvPowerIcon)
 
         fun bind(device: DeviceItem) {
             tvName.text = device.name
+            tvStatus.text = device.entityId.ifEmpty { "device.${device.type}" }
 
             // Icons & Status text based on type
             when (device.type) {
                 "light" -> {
                     tvIcon.text = if (device.isOn) "💡" else "🌑"
-                    tvStatus.text = if (device.isOn) "مضاءة (${device.brightness ?: 100}%)" else "مطفأة"
                     tvBadge.text = if (device.isOn) "ON" else "OFF"
-                    tvBadge.setTextColor(if (device.isOn) Color.parseColor("#22D3EE") else Color.parseColor("#94A3B8"))
+                    tvBadge.setTextColor(Color.parseColor(if (device.isOn) "#34D399" else "#64748B"))
+                    tvPowerIcon.setTextColor(Color.parseColor(if (device.isOn) "#22D3EE" else "#64748B"))
                 }
                 "climate" -> {
                     tvIcon.text = "❄️"
                     val current = device.currentTemp?.toInt() ?: 24
                     val target = device.targetTemp?.toInt() ?: 22
-                    tvStatus.text = "الحالي: ${current}°C • الهدف: ${target}°C"
+                    tvStatus.text = "${device.entityId} • ${current}°C / ${target}°C"
                     tvBadge.text = "${target}°C"
-                    tvBadge.setTextColor(Color.parseColor("#22D3EE"))
+                    tvBadge.setTextColor(Color.parseColor("#38BDF8"))
+                    tvPowerIcon.setTextColor(Color.parseColor("#38BDF8"))
                 }
                 "scene" -> {
                     tvIcon.text = "🎬"
-                    tvStatus.text = "سيناريو سريع"
-                    tvBadge.text = "ACTIVATE"
-                    tvBadge.setTextColor(Color.parseColor("#8B5CF6"))
+                    tvBadge.text = "RUN"
+                    tvBadge.setTextColor(Color.parseColor("#A78BFA"))
+                    tvPowerIcon.setTextColor(Color.parseColor("#A78BFA"))
                 }
                 else -> {
                     tvIcon.text = "🔌"
-                    tvStatus.text = if (device.isOn) "يعمل (ON)" else "متوقف (OFF)"
                     tvBadge.text = if (device.isOn) "ON" else "OFF"
-                    tvBadge.setTextColor(if (device.isOn) Color.parseColor("#22D3EE") else Color.parseColor("#94A3B8"))
+                    tvBadge.setTextColor(Color.parseColor(if (device.isOn) "#34D399" else "#64748B"))
+                    tvPowerIcon.setTextColor(Color.parseColor(if (device.isOn) "#22D3EE" else "#64748B"))
                 }
             }
 
