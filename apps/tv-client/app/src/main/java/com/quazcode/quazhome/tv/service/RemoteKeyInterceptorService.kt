@@ -38,8 +38,14 @@ class RemoteKeyInterceptorService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         try {
-            Log.i(TAG, "✨ QuazHome TV Accessibility Service connected successfully! Remote key interceptor is active.")
-        } catch (e: Exception) {
+            val info = serviceInfo ?: android.accessibilityservice.AccessibilityServiceInfo()
+            info.eventTypes = AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+            info.feedbackType = android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_GENERIC
+            info.flags = android.accessibilityservice.AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
+            info.notificationTimeout = 100
+            serviceInfo = info
+            Log.i(TAG, "✨ QuazHome TV Accessibility Service connected & configured successfully!")
+        } catch (e: Throwable) {
             Log.e(TAG, "Error in onServiceConnected: ${e.message}", e)
         }
     }

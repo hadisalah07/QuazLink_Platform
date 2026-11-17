@@ -67,8 +67,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view tv-v1.0.9 || gh release create tv-v1.0.9 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.0.9 (Official Edition)" --notes "Official signed release Android TV APK featuring dynamic interactive constellation and nebula particles background matching web platform, zero GC allocation 60 FPS graphics, and enhanced remote responsiveness."
-          gh release upload tv-v1.0.9 dist-apk/QuazHomeTV.apk --clobber
+          gh release view tv-v1.1.0 || gh release create tv-v1.1.0 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.1.0 (Official Edition)" --notes "Official signed release Android TV APK with Neon Focus glow highlights, D-Pad 1.05x elevation animation, canRetrieveWindowContent=false privacy fix for Google TV, and smooth Leanback remote control."
+          gh release upload tv-v1.1.0 dist-apk/QuazHomeTV.apk --clobber
+          gh release upload tv-v1.0.9 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.0.8 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.0.7 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.0.6 dist-apk/QuazHomeTV.apk --clobber || true

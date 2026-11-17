@@ -6,12 +6,12 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.0.9';
+export const TV_LATEST_VERSION = '1.1.0';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-17';
-export const TV_RELEASE_NOTES = `• إضافة خلفية النقاط وشبكة النجوم الديناميكية المتفاعلة (Dynamic Constellation & Nebula Background) بنفس أسلوب المنصة بدقة 60 FPS.
-• تحسين أداء استهلاك الرام والمعالج على معالجات التلفزيون (Zero-Allocation Native Canvas).
-• تحسين استقرار وسلاسة التنقل بالريموت في الشاشة الرئيسية.`;
+export const TV_RELEASE_NOTES = `• إضافة نظام الإطار النيوني المضيء (Neon Focus Glow & Backlight) لجميع الأزرار والقوائم عند التنقل بالريموت لتوضيح الزر المحدد بوضوح تام.
+• تحسين خدمة الوصول ومنع ارتداد زر التفعيل (canRetrieveWindowContent=false مع تهيئة برمجية آمنة في onServiceConnected).
+• تحريك وتكبير فوري للأزرار المحددة (Scale 1.05x + Elevation) لتجربة تحكم تلفزيونية استثنائية.`;
 
 // Storage paths for persistent TV device configs
 const STORAGE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../../data');

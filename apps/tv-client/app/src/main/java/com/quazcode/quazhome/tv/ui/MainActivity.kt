@@ -139,6 +139,40 @@ class MainActivity : AppCompatActivity() {
         tvUpdateTitle = findViewById(R.id.tvUpdateTitle)
         btnUpdateNow = findViewById(R.id.btnUpdateNow)
         pbUpdateDownload = findViewById(R.id.pbUpdateDownload)
+
+        // Apply D-Pad Neon Focus Scale & Glow Effect to all interactive buttons
+        applyNeonFocusAnimation(
+            btnUpdateNow,
+            btnCaptureRemoteKey,
+            btnModeSingle,
+            btnModeHold,
+            btnModeDouble,
+            btnTestOverlay,
+            btnOpenAccessibility,
+            btnResetPairing
+        )
+    }
+
+    private fun applyNeonFocusAnimation(vararg views: View) {
+        for (v in views) {
+            v.setOnFocusChangeListener { view, hasFocus ->
+                if (hasFocus) {
+                    view.animate()
+                        .scaleX(1.05f)
+                        .scaleY(1.05f)
+                        .translationZ(12f)
+                        .setDuration(130)
+                        .start()
+                } else {
+                    view.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .translationZ(0f)
+                        .setDuration(130)
+                        .start()
+                }
+            }
+        }
     }
 
     private fun setupListeners() {
@@ -163,12 +197,12 @@ class MainActivity : AppCompatActivity() {
             if (!isCapturingKey) {
                 isCapturingKey = true
                 btnCaptureRemoteKey.text = "⏳ اضغط الآن على أي زر بالريموت..."
-                btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#065F46"))
+                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_primary)
                 Toast.makeText(this, "اضغط على الزر المراد تعيينه في الريموت الآن", Toast.LENGTH_SHORT).show()
             } else {
                 isCapturingKey = false
                 btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-                btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_dark)
             }
         }
 
@@ -203,22 +237,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateModeUI() {
         val currentMode = QuazHomeApp.instance.triggerMode
-        val activeBg = ColorStateList.valueOf(Color.parseColor("#22D3EE"))
-        val inactiveBg = ColorStateList.valueOf(Color.parseColor("#1F2937"))
-        val activeText = Color.parseColor("#0F172A")
-        val inactiveText = Color.parseColor("#9CA3AF")
 
         val isSingle = currentMode == QuazHomeApp.MODE_SINGLE
-        btnModeSingle.backgroundTintList = if (isSingle) activeBg else inactiveBg
-        btnModeSingle.setTextColor(if (isSingle) activeText else inactiveText)
+        btnModeSingle.setBackgroundResource(if (isSingle) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
+        btnModeSingle.setTextColor(if (isSingle) Color.parseColor("#0F172A") else Color.parseColor("#9CA3AF"))
 
         val isHold = currentMode == QuazHomeApp.MODE_LONG_PRESS
-        btnModeHold.backgroundTintList = if (isHold) activeBg else inactiveBg
-        btnModeHold.setTextColor(if (isHold) activeText else inactiveText)
+        btnModeHold.setBackgroundResource(if (isHold) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
+        btnModeHold.setTextColor(if (isHold) Color.parseColor("#0F172A") else Color.parseColor("#9CA3AF"))
 
         val isDouble = currentMode == QuazHomeApp.MODE_DOUBLE_PRESS
-        btnModeDouble.backgroundTintList = if (isDouble) activeBg else inactiveBg
-        btnModeDouble.setTextColor(if (isDouble) activeText else inactiveText)
+        btnModeDouble.setBackgroundResource(if (isDouble) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
+        btnModeDouble.setTextColor(if (isDouble) Color.parseColor("#0F172A") else Color.parseColor("#9CA3AF"))
     }
 
     private fun getFriendlyKeyName(keyCode: Int): String {
@@ -251,7 +281,7 @@ class MainActivity : AppCompatActivity() {
                 if (event.keyCode == KeyEvent.KEYCODE_BACK) {
                     isCapturingKey = false
                     btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-                    btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+                    btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_dark)
                     Toast.makeText(this, "تم إلغاء التقاط الزر", Toast.LENGTH_SHORT).show()
                     return true
                 }
@@ -262,7 +292,7 @@ class MainActivity : AppCompatActivity() {
 
                 isCapturingKey = false
                 btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد من الريموت"
-                btnCaptureRemoteKey.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#1F2937"))
+                btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_neon_button_dark)
                 updateKeyDisplay()
 
                 Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName - اضغط عليه الآن لتجربته!", Toast.LENGTH_LONG).show()
