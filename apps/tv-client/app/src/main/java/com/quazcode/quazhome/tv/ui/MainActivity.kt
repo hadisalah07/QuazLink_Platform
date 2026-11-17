@@ -295,6 +295,11 @@ class MainActivity : AppCompatActivity() {
                     return true
                 }
 
+                if (QuazHomeApp.isForbiddenKey(event.keyCode)) {
+                    Toast.makeText(this, "⚠️ لا يمكن تعيين زر (OK / Enter) أو الأسهم أو الرجوع كزر اختصار!", Toast.LENGTH_LONG).show()
+                    return true
+                }
+
                 val friendlyName = getFriendlyKeyName(event.keyCode)
                 QuazHomeApp.instance.triggerKeyCode = event.keyCode
                 QuazHomeApp.instance.triggerKeyName = friendlyName

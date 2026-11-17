@@ -53,6 +53,11 @@ class RemoteKeyInterceptorService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent?): Boolean {
         if (event == null) return false
 
+        // CRITICAL GUARD: NEVER intercept system navigation, OK, Enter, or power keys!
+        if (com.quazcode.quazhome.tv.QuazHomeApp.isForbiddenKey(event.keyCode)) {
+            return false
+        }
+
         try {
             val configuredKey = QuazHomeApp.instance.triggerKeyCode
             val mode = QuazHomeApp.instance.triggerMode

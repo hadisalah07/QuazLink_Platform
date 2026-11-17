@@ -30,6 +30,25 @@ class QuazHomeApp : Application() {
         const val MODE_SINGLE = "single"
         const val MODE_LONG_PRESS = "long_press"
         const val MODE_DOUBLE_PRESS = "double_press"
+
+        // System & Navigation Keys that MUST NEVER be intercepted
+        val FORBIDDEN_KEYS = setOf(
+            23,  // KEYCODE_DPAD_CENTER
+            66,  // KEYCODE_ENTER
+            160, // KEYCODE_NUMPAD_ENTER
+            19,  // KEYCODE_DPAD_UP
+            20,  // KEYCODE_DPAD_DOWN
+            21,  // KEYCODE_DPAD_LEFT
+            22,  // KEYCODE_DPAD_RIGHT
+            4,   // KEYCODE_BACK
+            3,   // KEYCODE_HOME
+            24,  // KEYCODE_VOLUME_UP
+            25,  // KEYCODE_VOLUME_DOWN
+            164, // KEYCODE_VOLUME_MUTE
+            26   // KEYCODE_POWER
+        )
+
+        fun isForbiddenKey(keyCode: Int): Boolean = FORBIDDEN_KEYS.contains(keyCode)
     }
 
     private lateinit var prefs: SharedPreferences
@@ -45,11 +64,20 @@ class QuazHomeApp : Application() {
         set(value) = prefs.edit().putString(KEY_GATEWAY_URL, value).apply()
 
     var triggerKeyCode: Int
-        get() = prefs.getInt(KEY_TRIGGER_KEY, DEFAULT_KEY)
-        set(value) = prefs.edit().putInt(KEY_TRIGGER_KEY, value).apply()
+        get() {
+            val key = prefs.getInt(KEY_TRIGGER_KEY, DEFAULT_KEY)
+            return if (isForbiddenKey(key)) DEFAULT_KEY else key
+        }
+        set(value) {
+            val safeValue = if (isForbiddenKey(value)) DEFAULT_KEY else value
+            prefs.edit().putInt(KEY_TRIGGER_KEY, safeValue).apply()
+        }
 
     var triggerKeyName: String
-        get() = prefs.getString(KEY_TRIGGER_KEY_NAME, DEFAULT_KEY_NAME) ?: DEFAULT_KEY_NAME
+        get() {
+            val key = prefs.getInt(KEY_TRIGGER_KEY, DEFAULT_KEY)
+            return if (isForbiddenKey(key)) DEFAULT_KEY_NAME else prefs.getString(KEY_TRIGGER_KEY_NAME, DEFAULT_KEY_NAME) ?: DEFAULT_KEY_NAME
+        }
         set(value) = prefs.edit().putString(KEY_TRIGGER_KEY_NAME, value).apply()
 
     var triggerMode: String

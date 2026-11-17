@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.1.2";
+export const TV_LATEST_VERSION = "1.1.3";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
 export const TV_RELEASE_DATE = "2026-11-18";
 export const TV_RELEASE_NOTES = `• إعادة تصميم الواجهة بالكامل لتطابق منصة QuazLink (Platform Dark Glassmorphism).
