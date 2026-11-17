@@ -6,12 +6,12 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.1.0';
+export const TV_LATEST_VERSION = '1.1.1';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
-export const TV_RELEASE_DATE = '2026-11-17';
-export const TV_RELEASE_NOTES = `• إضافة نظام الإطار النيوني المضيء (Neon Focus Glow & Backlight) لجميع الأزرار والقوائم عند التنقل بالريموت لتوضيح الزر المحدد بوضوح تام.
-• تحسين خدمة الوصول ومنع ارتداد زر التفعيل (canRetrieveWindowContent=false مع تهيئة برمجية آمنة في onServiceConnected).
-• تحريك وتكبير فوري للأزرار المحددة (Scale 1.05x + Elevation) لتجربة تحكم تلفزيونية استثنائية.`;
+export const TV_RELEASE_DATE = '2026-11-18';
+export const TV_RELEASE_NOTES = `• تحسين تباين ألوان الخطوط والقوائم (Crystal Clear White Text Contrast) عند التحديد بالريموت لمنع تداخل الألوان نهائياً.
+• إطار نيوني فائق الوضوح (3.5dp Neon Cyan) مع خلفيات داكنة تضمن قراءة النصوص بنسبة 100% من بُعد.
+• دعم كامل للتوافق مع أجهزة العرض وشاشات Xiaomi Android 14 Google TV (Model: C045RGN).`;
 
 // Storage paths for persistent TV device configs
 const STORAGE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../../data');

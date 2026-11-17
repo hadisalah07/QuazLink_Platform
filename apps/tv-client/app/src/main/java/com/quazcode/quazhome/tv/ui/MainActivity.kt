@@ -157,6 +157,7 @@ class MainActivity : AppCompatActivity() {
         for (v in views) {
             v.setOnFocusChangeListener { view, hasFocus ->
                 if (hasFocus) {
+                    (view as? Button)?.setTextColor(Color.WHITE)
                     view.animate()
                         .scaleX(1.05f)
                         .scaleY(1.05f)
@@ -164,6 +165,15 @@ class MainActivity : AppCompatActivity() {
                         .setDuration(130)
                         .start()
                 } else {
+                    if (view is Button) {
+                        if (view == btnModeSingle || view == btnModeHold || view == btnModeDouble) {
+                            updateModeUI()
+                        } else if (view == btnCaptureRemoteKey || view == btnOpenAccessibility || view == btnResetPairing) {
+                            view.setTextColor(Color.parseColor("#E2E8F0"))
+                        } else if (view == btnTestOverlay || view == btnUpdateNow) {
+                            view.setTextColor(Color.WHITE)
+                        }
+                    }
                     view.animate()
                         .scaleX(1.0f)
                         .scaleY(1.0f)
@@ -240,15 +250,18 @@ class MainActivity : AppCompatActivity() {
 
         val isSingle = currentMode == QuazHomeApp.MODE_SINGLE
         btnModeSingle.setBackgroundResource(if (isSingle) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
-        btnModeSingle.setTextColor(if (isSingle) Color.parseColor("#0F172A") else Color.parseColor("#9CA3AF"))
+        btnModeSingle.setTextColor(if (isSingle) Color.WHITE else Color.parseColor("#94A3B8"))
+        btnModeSingle.text = if (isSingle) "✓ ضغطة عادية (Single)" else "ضغطة عادية (Single)"
 
         val isHold = currentMode == QuazHomeApp.MODE_LONG_PRESS
         btnModeHold.setBackgroundResource(if (isHold) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
-        btnModeHold.setTextColor(if (isHold) Color.parseColor("#0F172A") else Color.parseColor("#9CA3AF"))
+        btnModeHold.setTextColor(if (isHold) Color.WHITE else Color.parseColor("#94A3B8"))
+        btnModeHold.text = if (isHold) "✓ مطولة 500ms (Hold)" else "مطولة 500ms (Hold)"
 
         val isDouble = currentMode == QuazHomeApp.MODE_DOUBLE_PRESS
         btnModeDouble.setBackgroundResource(if (isDouble) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
-        btnModeDouble.setTextColor(if (isDouble) Color.parseColor("#0F172A") else Color.parseColor("#9CA3AF"))
+        btnModeDouble.setTextColor(if (isDouble) Color.WHITE else Color.parseColor("#94A3B8"))
+        btnModeDouble.text = if (isDouble) "✓ ضغطتان 350ms (Double)" else "ضغطتان 350ms (Double)"
     }
 
     private fun getFriendlyKeyName(keyCode: Int): String {
