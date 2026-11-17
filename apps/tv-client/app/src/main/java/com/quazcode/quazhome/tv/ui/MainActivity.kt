@@ -143,6 +143,18 @@ class MainActivity : AppCompatActivity() {
         btnUpdateNow = findViewById(R.id.btnUpdateNow)
         pbUpdateDownload = findViewById(R.id.pbUpdateDownload)
 
+        // Clear framework tint so custom glassmorphism drawables render 100% faithfully
+        listOf(
+            btnUpdateNow,
+            btnCaptureRemoteKey,
+            btnModeSingle,
+            btnModeHold,
+            btnModeDouble,
+            btnTestOverlay,
+            btnOpenAccessibility,
+            btnResetPairing
+        ).forEach { it.backgroundTintList = null }
+
         // Apply D-Pad Neon Focus Scale & Glow Effect to all interactive buttons
         applyNeonFocusAnimation(
             btnUpdateNow,
@@ -199,12 +211,14 @@ class MainActivity : AppCompatActivity() {
         btnCaptureRemoteKey.setOnClickListener {
             if (!isCapturingKey) {
                 isCapturingKey = true
-                btnCaptureRemoteKey.text = "⏳ اضغط الآن على أي زر بالريموت..."
+                btnCaptureRemoteKey.backgroundTintList = null
+                btnCaptureRemoteKey.text = "⏳ اضغط الآن بالريموت..."
                 btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_emerald)
                 btnCaptureRemoteKey.setTextColor(Color.parseColor("#34D399"))
                 Toast.makeText(this, "اضغط على الزر المراد تعيينه في الريموت الآن", Toast.LENGTH_SHORT).show()
             } else {
                 isCapturingKey = false
+                btnCaptureRemoteKey.backgroundTintList = null
                 btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد"
                 btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_cyan)
                 btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))
@@ -244,19 +258,22 @@ class MainActivity : AppCompatActivity() {
         val currentMode = QuazHomeApp.instance.triggerMode
 
         val isSingle = currentMode == QuazHomeApp.MODE_SINGLE
+        btnModeSingle.backgroundTintList = null
         btnModeSingle.setBackgroundResource(if (isSingle) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
         btnModeSingle.setTextColor(Color.parseColor(if (isSingle) "#38BDF8" else "#64748B"))
-        btnModeSingle.text = if (isSingle) "✓ ضغطة عادية (Single)" else "ضغطة عادية (Single)"
+        btnModeSingle.text = if (isSingle) "✓ ضغطة عادية" else "ضغطة عادية"
 
         val isHold = currentMode == QuazHomeApp.MODE_LONG_PRESS
+        btnModeHold.backgroundTintList = null
         btnModeHold.setBackgroundResource(if (isHold) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
         btnModeHold.setTextColor(Color.parseColor(if (isHold) "#38BDF8" else "#64748B"))
-        btnModeHold.text = if (isHold) "✓ مطولة 500ms (Hold)" else "مطولة 500ms (Hold)"
+        btnModeHold.text = if (isHold) "✓ مطولة 500ms" else "مطولة 500ms"
 
         val isDouble = currentMode == QuazHomeApp.MODE_DOUBLE_PRESS
+        btnModeDouble.backgroundTintList = null
         btnModeDouble.setBackgroundResource(if (isDouble) R.drawable.bg_neon_mode_selected else R.drawable.bg_neon_mode_unselected)
         btnModeDouble.setTextColor(Color.parseColor(if (isDouble) "#38BDF8" else "#64748B"))
-        btnModeDouble.text = if (isDouble) "✓ ضغطتان 350ms (Double)" else "ضغطتان 350ms (Double)"
+        btnModeDouble.text = if (isDouble) "✓ ضغطتان 350ms" else "ضغطتان 350ms"
     }
 
     private fun getFriendlyKeyName(keyCode: Int): String {
@@ -288,6 +305,7 @@ class MainActivity : AppCompatActivity() {
             if (event.action == KeyEvent.ACTION_DOWN) {
                 if (event.keyCode == KeyEvent.KEYCODE_BACK) {
                     isCapturingKey = false
+                    btnCaptureRemoteKey.backgroundTintList = null
                     btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد"
                     btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_cyan)
                     btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))
@@ -305,6 +323,7 @@ class MainActivity : AppCompatActivity() {
                 QuazHomeApp.instance.triggerKeyName = friendlyName
 
                 isCapturingKey = false
+                btnCaptureRemoteKey.backgroundTintList = null
                 btnCaptureRemoteKey.text = "🎯 تسجيل زر جديد"
                 btnCaptureRemoteKey.setBackgroundResource(R.drawable.bg_platform_button_cyan)
                 btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))

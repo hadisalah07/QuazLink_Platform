@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.QuazHomeTV" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">@color/quaz_cyan</item>
-        <item name="colorPrimaryVariant">@color/quaz_purple</item>
-        <item name="colorOnPrimary">@color/quaz_bg</item>
+    <style name="Theme.QuazHomeTV" parent="Theme.AppCompat.NoActionBar">
+        <item name="colorPrimary">#10B981</item>
+        <item name="colorPrimaryDark">#061D19</item>
+        <item name="colorAccent">#22D3EE</item>
         <item name="android:windowBackground">@color/quaz_bg</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:defaultFocusHighlightEnabled">false</item>
     </style>
 </resources>

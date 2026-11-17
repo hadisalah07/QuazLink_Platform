@@ -45,11 +45,12 @@
             android:layout_marginEnd="8dp" />
 
         <!-- Close Button (Also triggers on Back key or 10s AFK) -->
-        <Button
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnCloseOverlay"
             android:layout_width="wrap_content"
             android:layout_height="32dp"
             android:background="@drawable/bg_neon_button_close"
+            android:backgroundTint="@null"
             android:text="✕ إغلاق"
             android:textColor="#FFFFFF"
             android:textSize="11sp"
