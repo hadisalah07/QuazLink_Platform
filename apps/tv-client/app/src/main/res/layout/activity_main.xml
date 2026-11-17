@@ -1,9 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/quaz_bg"
-    android:fillViewport="true">
+    android:layout_height="match_parent">
+
+    <!-- Dynamic Constellation Particle Background (Matching Web Platform) -->
+    <com.quazcode.quazhome.tv.ui.view.StarFieldView
+        android:id="@+id/starFieldBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -41,7 +51,7 @@
                 android:id="@+id/tvAppVersion"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="الإصدار: v1.0.8 (Official Edition)"
+                android:text="الإصدار: v1.0.9 (Official Edition)"
                 android:textColor="@color/quaz_cyan"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -367,4 +377,5 @@
         </LinearLayout>
 
     </LinearLayout>
-</ScrollView>
+    </ScrollView>
+</FrameLayout>

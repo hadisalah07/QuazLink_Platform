@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export const TV_LATEST_VERSION = "1.0.8";
+export const TV_LATEST_VERSION = "1.0.9";
 export const TV_MIN_REQUIRED_VERSION = "1.0.0";
-export const TV_RELEASE_DATE = "2026-11-15";
-export const TV_RELEASE_NOTES = `• إغلاق تلقائي للقائمة العائمة بعد 10 ثوانٍ من عدم النشاط (10s AFK Timeout).
-• دعم كامل وموثوق لإغلاق القائمة عبر زر Back أو زر الريموت أو زر الإغلاق المباشر (OverlayRootLayout Dispatcher).
-• تحسين تهيئة خدمة الريموت (typeWindowStateChanged) لمنع تحذيرات تسجيل النصوص والحظر الأمني في Google TV.`;
+export const TV_RELEASE_DATE = "2026-11-17";
+export const TV_RELEASE_NOTES = `• إضافة خلفية النقاط وشبكة النجوم الديناميكية المتفاعلة (Dynamic Constellation & Nebula Background) بنفس أسلوب المنصة بدقة 60 FPS.
+• تحسين أداء استهلاك الرام والمعالج على معالجات التلفزيون (Zero-Allocation Native Canvas).
+• تحسين استقرار وسلاسة التنقل بالريموت في الشاشة الرئيسية.`;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
