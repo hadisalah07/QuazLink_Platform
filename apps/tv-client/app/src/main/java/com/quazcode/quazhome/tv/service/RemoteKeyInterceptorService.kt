@@ -92,14 +92,24 @@ class RemoteKeyInterceptorService : AccessibilityService() {
                         KeyEvent.KEYCODE_DPAD_LEFT,
                         KeyEvent.KEYCODE_DPAD_RIGHT
                     )
+                    if (event.isLongPress || (event.flags and KeyEvent.FLAG_LONG_PRESS) != 0) {
+                        if (!isLongPressTriggered) {
+                            isLongPressTriggered = true
+                            mainHandler.removeCallbacks(longPressRunnable)
+                            OverlayManager.toggle(this)
+                        }
+                        return true
+                    }
                     when (event.action) {
                         KeyEvent.ACTION_DOWN -> {
                             if (event.repeatCount == 0) {
                                 isLongPressTriggered = false
                                 mainHandler.removeCallbacks(longPressRunnable)
                                 mainHandler.postDelayed(longPressRunnable, LONG_PRESS_TIMEOUT_MS)
+                            } else if (isLongPressTriggered) {
+                                return true
                             }
-                            // For arrow keys, don't consume normal quick down events so navigation still works
+                            // For arrow keys, return false so normal quick down events move navigation in any app!
                             return if (isArrowKey) false else true
                         }
                         KeyEvent.ACTION_UP -> {

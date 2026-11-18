@@ -395,53 +395,76 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 3. Test configured trigger key directly inside MainActivity!
-        val configuredKey = QuazHomeApp.instance.triggerKeyCode
-        val isTargetKey = (event.keyCode == configuredKey) ||
-                (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134))
+        // 3. Test configured trigger key directly inside MainActivity ONLY if Accessibility Service is NOT active
+        if (!isAccessibilityServiceEnabled()) {
+            val configuredKey = QuazHomeApp.instance.triggerKeyCode
+            val isTargetKey = (event.keyCode == configuredKey) ||
+                    (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134))
 
-        if (isTargetKey) {
-            val mode = QuazHomeApp.instance.triggerMode
-            when (mode) {
-                QuazHomeApp.MODE_LONG_PRESS -> {
-                    when (event.action) {
-                        KeyEvent.ACTION_DOWN -> {
-                            if (event.repeatCount == 0) {
-                                isLongPressTriggered = false
-                                mainHandler.removeCallbacks(activityLongPressRunnable)
-                                mainHandler.postDelayed(activityLongPressRunnable, 500L)
-                            }
-                            return true
-                        }
-                        KeyEvent.ACTION_UP -> {
-                            mainHandler.removeCallbacks(activityLongPressRunnable)
-                            if (isLongPressTriggered) {
-                                isLongPressTriggered = false
+            if (isTargetKey) {
+                val isArrowKey = event.keyCode in setOf(
+                    KeyEvent.KEYCODE_DPAD_UP,
+                    KeyEvent.KEYCODE_DPAD_DOWN,
+                    KeyEvent.KEYCODE_DPAD_LEFT,
+                    KeyEvent.KEYCODE_DPAD_RIGHT
+                )
+                val mode = QuazHomeApp.instance.triggerMode
+                when (mode) {
+                    QuazHomeApp.MODE_LONG_PRESS -> {
+                        when (event.action) {
+                            KeyEvent.ACTION_DOWN -> {
+                                if (event.repeatCount == 0) {
+                                    isLongPressTriggered = false
+                                    mainHandler.removeCallbacks(activityLongPressRunnable)
+                                    mainHandler.postDelayed(activityLongPressRunnable, 500L)
+                                } else if (isLongPressTriggered) {
+                                    return true
+                                }
+                                // Arrow key must navigate normally on single press!
+                                if (isArrowKey) {
+                                    return super.dispatchKeyEvent(event)
+                                }
                                 return true
                             }
-                            return true
+                            KeyEvent.ACTION_UP -> {
+                                mainHandler.removeCallbacks(activityLongPressRunnable)
+                                if (isLongPressTriggered) {
+                                    isLongPressTriggered = false
+                                    return true
+                                }
+                                // Arrow key must finish normal click navigation!
+                                if (isArrowKey) {
+                                    return super.dispatchKeyEvent(event)
+                                }
+                                return true
+                            }
                         }
                     }
-                }
-                QuazHomeApp.MODE_DOUBLE_PRESS -> {
-                    if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                        val now = System.currentTimeMillis()
-                        val delta = now - lastClickTime
-                        if (delta in 50..350) {
-                            lastClickTime = 0L
+                    QuazHomeApp.MODE_DOUBLE_PRESS -> {
+                        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+                            val now = System.currentTimeMillis()
+                            val delta = now - lastClickTime
+                            if (delta in 50..350) {
+                                lastClickTime = 0L
+                                OverlayManager.toggle(this)
+                                return true
+                            } else {
+                                lastClickTime = now
+                                if (isArrowKey) {
+                                    return super.dispatchKeyEvent(event)
+                                }
+                                return true
+                            }
+                        } else if (isArrowKey) {
+                            return super.dispatchKeyEvent(event)
+                        }
+                    }
+                    else -> {
+                        // Default Single click
+                        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
                             OverlayManager.toggle(this)
                             return true
-                        } else {
-                            lastClickTime = now
-                            return true
                         }
-                    }
-                }
-                else -> {
-                    // Default Single click
-                    if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                        OverlayManager.toggle(this)
-                        return true
                     }
                 }
             }
