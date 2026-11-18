@@ -6,7 +6,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.quazcode.quazhome.tv.R
 import com.quazcode.quazhome.tv.data.model.DeviceItem
@@ -32,6 +31,11 @@ class DeviceAdapter(
         items.clear()
         items.addAll(menuItems)
         notifyDataSetChanged()
+    }
+
+    fun getFirstDevicePosition(): Int {
+        val idx = items.indexOfFirst { it is MenuItem.Device }
+        return if (idx >= 0) idx else 0
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -78,50 +82,95 @@ class DeviceAdapter(
 
         fun bind(device: DeviceItem) {
             tvName.text = device.name
-            tvStatus.text = device.entityId.ifEmpty { "device.${device.type}" }
 
-            // Icons & Status text based on type
+            // Icons, Badge & Theme Styling based on Device Type & State
             when (device.type) {
                 "light" -> {
                     tvIcon.text = if (device.isOn) "💡" else "🌑"
                     tvBadge.text = if (device.isOn) "ON" else "OFF"
-                    tvBadge.setTextColor(Color.parseColor(if (device.isOn) "#34D399" else "#64748B"))
-                    tvPowerIcon.setTextColor(Color.parseColor(if (device.isOn) "#22D3EE" else "#64748B"))
+                    if (device.isOn) {
+                        tvBadge.setTextColor(Color.parseColor("#34D399"))
+                        tvBadge.setBackgroundResource(R.drawable.bg_pill_emerald_active)
+                        tvPowerIcon.setTextColor(Color.parseColor("#22D3EE"))
+                        tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                        tvIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                    } else {
+                        tvBadge.setTextColor(Color.parseColor("#64748B"))
+                        tvBadge.setBackgroundResource(R.drawable.bg_platform_pill)
+                        tvPowerIcon.setTextColor(Color.parseColor("#64748B"))
+                        tvPowerIcon.setBackgroundResource(R.drawable.bg_platform_pill)
+                        tvIcon.setBackgroundResource(R.drawable.bg_platform_pill)
+                    }
+                    tvStatus.text = device.entityId.ifEmpty { "light.living_room" }
                 }
                 "climate" -> {
                     tvIcon.text = "❄️"
                     val current = device.currentTemp?.toInt() ?: 24
                     val target = device.targetTemp?.toInt() ?: 22
-                    tvStatus.text = "${device.entityId} • ${current}°C / ${target}°C"
+                    tvStatus.text = "التحكم: [◄ ${target}°C ►] • الحالية: ${current}°C"
                     tvBadge.text = "${target}°C"
                     tvBadge.setTextColor(Color.parseColor("#38BDF8"))
+                    tvBadge.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                     tvPowerIcon.setTextColor(Color.parseColor("#38BDF8"))
+                    tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                    tvIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                 }
                 "scene" -> {
                     tvIcon.text = "🎬"
-                    tvBadge.text = "RUN"
+                    tvBadge.text = "تشغيل"
                     tvBadge.setTextColor(Color.parseColor("#A78BFA"))
+                    tvBadge.setBackgroundResource(R.drawable.bg_pill_purple_active)
                     tvPowerIcon.setTextColor(Color.parseColor("#A78BFA"))
+                    tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_purple_active)
+                    tvIcon.setBackgroundResource(R.drawable.bg_pill_purple_active)
+                    tvStatus.text = device.entityId.ifEmpty { "scene.living_room" }
                 }
                 else -> {
-                    tvIcon.text = "🔌"
+                    tvIcon.text = if (device.isOn) "⚡" else "🔌"
                     tvBadge.text = if (device.isOn) "ON" else "OFF"
-                    tvBadge.setTextColor(Color.parseColor(if (device.isOn) "#34D399" else "#64748B"))
-                    tvPowerIcon.setTextColor(Color.parseColor(if (device.isOn) "#22D3EE" else "#64748B"))
+                    if (device.isOn) {
+                        tvBadge.setTextColor(Color.parseColor("#34D399"))
+                        tvBadge.setBackgroundResource(R.drawable.bg_pill_emerald_active)
+                        tvPowerIcon.setTextColor(Color.parseColor("#22D3EE"))
+                        tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                        tvIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                    } else {
+                        tvBadge.setTextColor(Color.parseColor("#64748B"))
+                        tvBadge.setBackgroundResource(R.drawable.bg_platform_pill)
+                        tvPowerIcon.setTextColor(Color.parseColor("#64748B"))
+                        tvPowerIcon.setBackgroundResource(R.drawable.bg_platform_pill)
+                        tvIcon.setBackgroundResource(R.drawable.bg_platform_pill)
+                    }
+                    tvStatus.text = device.entityId.ifEmpty { "switch.device" }
                 }
             }
 
-            // Click action
+            // Click action with micro-bounce feedback
             container.setOnClickListener {
+                container.animate().scaleX(0.97f).scaleY(0.97f).setDuration(60).withEndAction {
+                    container.animate().scaleX(1.03f).scaleY(1.03f).setDuration(80).start()
+                }.start()
                 onDeviceToggle(device)
             }
 
-            // D-Pad Focus scaling animation
+            // D-Pad Focus scaling & glow animation
             container.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
-                    container.animate().scaleX(1.04f).scaleY(1.04f).setDuration(120).start()
+                    container.animate()
+                        .scaleX(1.03f)
+                        .scaleY(1.03f)
+                        .translationZ(8f)
+                        .setDuration(120)
+                        .start()
+                    tvName.setTextColor(Color.WHITE)
                 } else {
-                    container.animate().scaleX(1.0f).scaleY(1.0f).setDuration(120).start()
+                    container.animate()
+                        .scaleX(1.0f)
+                        .scaleY(1.0f)
+                        .translationZ(0f)
+                        .setDuration(120)
+                        .start()
+                    tvName.setTextColor(Color.parseColor("#F8FAFC"))
                 }
             }
 
@@ -131,8 +180,10 @@ class DeviceAdapter(
                     if (event.action == KeyEvent.ACTION_DOWN) {
                         when (keyCode) {
                             KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                                val newTemp = (device.targetTemp ?: 22.0) + 1.0
-                                if (newTemp <= (device.maxTemp ?: 30.0)) {
+                                val currentTarget = device.targetTemp ?: 22.0
+                                val max = device.maxTemp ?: 30.0
+                                if (currentTarget < max) {
+                                    val newTemp = (currentTarget + 1.0).coerceAtMost(max)
                                     device.targetTemp = newTemp
                                     bind(device)
                                     onTempChange(device, newTemp)
@@ -140,8 +191,10 @@ class DeviceAdapter(
                                 return@setOnKeyListener true
                             }
                             KeyEvent.KEYCODE_DPAD_LEFT -> {
-                                val newTemp = (device.targetTemp ?: 22.0) - 1.0
-                                if (newTemp >= (device.minTemp ?: 16.0)) {
+                                val currentTarget = device.targetTemp ?: 22.0
+                                val min = device.minTemp ?: 16.0
+                                if (currentTarget > min) {
+                                    val newTemp = (currentTarget - 1.0).coerceAtLeast(min)
                                     device.targetTemp = newTemp
                                     bind(device)
                                     onTempChange(device, newTemp)
@@ -152,6 +205,8 @@ class DeviceAdapter(
                     }
                     false
                 }
+            } else {
+                container.setOnKeyListener(null)
             }
         }
     }

@@ -115,6 +115,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun isAccessibilityServiceEnabled(): Boolean {
         return try {
+            val enabledServicesSetting = Settings.Secure.getString(
+                contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+            ) ?: ""
+            val accessibilityEnabled = Settings.Secure.getInt(
+                contentResolver,
+                Settings.Secure.ACCESSIBILITY_ENABLED,
+                0
+            )
+            if (accessibilityEnabled == 1 && enabledServicesSetting.contains(packageName)) {
+                return true
+            }
+
             val am = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
             val enabledServices = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
             enabledServices.any { it.resolveInfo?.serviceInfo?.packageName == packageName }
@@ -124,6 +137,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
+        val tvAppVersion = findViewById<TextView>(R.id.tvAppVersion)
+        val vName = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "1.1.6" }
+        tvAppVersion?.text = "الإصدار: v$vName (Official Edition)"
+
         ivQrCode = findViewById(R.id.ivQrCode)
         pbQrLoading = findViewById(R.id.pbQrLoading)
         tvPairingCode = findViewById(R.id.tvPairingCode)

@@ -28,6 +28,7 @@ import com.quazcode.quazhome.tv.data.repository.DeviceRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -170,8 +171,16 @@ object OverlayManager {
             resetAfkTimer()
             if (event.action == KeyEvent.ACTION_DOWN) {
                 val configuredKey = QuazHomeApp.instance.triggerKeyCode
-                val isTriggerKey = (event.keyCode == configuredKey) ||
-                        (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134))
+                val isArrowOrEnterKey = event.keyCode in setOf(
+                    KeyEvent.KEYCODE_DPAD_UP,
+                    KeyEvent.KEYCODE_DPAD_DOWN,
+                    KeyEvent.KEYCODE_DPAD_LEFT,
+                    KeyEvent.KEYCODE_DPAD_RIGHT,
+                    KeyEvent.KEYCODE_DPAD_CENTER,
+                    KeyEvent.KEYCODE_ENTER
+                )
+                val isTriggerKey = !isArrowOrEnterKey && ((event.keyCode == configuredKey) ||
+                        (configuredKey == KeyEvent.KEYCODE_PROG_BLUE && (event.keyCode == KeyEvent.KEYCODE_PROG_BLUE || event.keyCode == 134)))
 
                 if (event.keyCode == KeyEvent.KEYCODE_BACK || event.keyCode == KeyEvent.KEYCODE_ESCAPE || isTriggerKey) {
                     Log.d(TAG, "Dismissing overlay on key press: ${event.keyCode}")
@@ -189,12 +198,11 @@ object OverlayManager {
         try {
             windowManager?.addView(view, params)
             isShowing = true
-            view.requestFocus()
 
             // Start 10 seconds AFK auto-close countdown
             resetAfkTimer()
 
-            // Fetch live devices from Fastify Gateway
+            // Fetch live devices or load rich demo fallback
             loadData()
         } catch (e: Exception) {
             Log.e(TAG, "Error adding overlay view: ${e.message}", e)
@@ -205,58 +213,94 @@ object OverlayManager {
     private fun loadData() {
         scope.launch {
             val result = repository.getQuickMenu()
+            var loadedItems: List<MenuItem>? = null
+
             result.onSuccess { response ->
                 val menuItems = mutableListOf<MenuItem>()
                 for (group in response.groups) {
-                    menuItems.add(MenuItem.Header(group.name))
-                    for (entity in group.entities) {
-                        menuItems.add(MenuItem.Device(entity))
+                    val filteredEntities = group.entities.filter { it.entityId != "tv.pairing_status" }
+                    if (filteredEntities.isNotEmpty()) {
+                        menuItems.add(MenuItem.Header(group.name))
+                        for (entity in filteredEntities) {
+                            menuItems.add(MenuItem.Device(entity))
+                        }
                     }
                 }
-                adapter?.submitData(menuItems)
-            }.onFailure { err ->
-                // Fallback demo items if backend isn't reached yet
-                val demoItems = listOf(
-                    MenuItem.Header("الإضاءة (Offline Fallback)"),
-                    MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة", "light", "lamp", "off", false, null, null, null, null, null, null)),
-                    MenuItem.Header("التكييف"),
-                    MenuItem.Device(DeviceItem("climate.living_room", "تكييف الصالة", "climate", "air-conditioner", "22°C", true, null, 24.0, 22.0, 16.0, 30.0, null)),
-                    MenuItem.Header("السيناريوهات"),
-                    MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما", "scene", "movie", "active", false, null, null, null, null, null, null))
-                )
-                adapter?.submitData(demoItems)
+                if (menuItems.isNotEmpty()) {
+                    loadedItems = menuItems
+                }
             }
+
+            // Fallback rich demo items if backend returned no real entities or TV is unconfigured
+            val finalItems = loadedItems ?: getDemoItems()
+            adapter?.submitData(finalItems)
+            focusFirstDevice()
+        }
+    }
+
+    private fun getDemoItems(): List<MenuItem> {
+        return listOf(
+            MenuItem.Header("الإضاءة والإنارة"),
+            MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة الرئيسية", "light", "lamp", "on", true, null, null, null, null, null, null)),
+            MenuItem.Device(DeviceItem("light.kitchen_strip", "شريط ليد المطبخ", "light", "led", "off", false, null, null, null, null, null, null)),
+            MenuItem.Header("التكييف والمناخ"),
+            MenuItem.Device(DeviceItem("climate.living_room", "تكييف غرفة المعيشة", "climate", "air-conditioner", "22°C", true, null, 24.0, 22.0, 16.0, 30.0, null)),
+            MenuItem.Header("الأجهزة والمفاتيح"),
+            MenuItem.Device(DeviceItem("switch.water_heater", "سخان المياه الذكي", "switch", "power", "off", false, null, null, null, null, null, null)),
+            MenuItem.Header("السيناريوهات والوضعيات"),
+            MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما والمشاهدة", "scene", "movie", "active", false, null, null, null, null, null, null)),
+            MenuItem.Device(DeviceItem("scene.goodnight", "وضع النوم والهدوء", "scene", "sleep", "active", false, null, null, null, null, null, null))
+        )
+    }
+
+    private fun focusFirstDevice() {
+        val view = overlayView ?: return
+        val rvDevices = view.findViewById<RecyclerView>(R.id.rvDevices) ?: return
+        rvDevices.post {
+            val firstDevicePos = adapter?.getFirstDevicePosition() ?: 1
+            rvDevices.scrollToPosition(firstDevicePos)
+            rvDevices.layoutManager?.findViewByPosition(firstDevicePos)?.requestFocus()
+                ?: rvDevices.findViewHolderForAdapterPosition(firstDevicePos)?.itemView?.requestFocus()
         }
     }
 
     private fun handleDeviceToggle(device: DeviceItem) {
         if (device.type == "scene") {
             scope.launch {
-                repository.triggerScene(device.entityId)
+                Toast.makeText(overlayView?.context ?: return@launch, "تم تشغيل ${device.name} ✨", Toast.LENGTH_SHORT).show()
+                if (QuazHomeApp.instance.isPaired) {
+                    repository.triggerScene(device.entityId)
+                }
+                delay(400)
                 dismiss() // Auto close on scene activate
             }
             return
         }
 
-        // Optimistic UI update
+        // Instant optimistic UI update
         device.isOn = !device.isOn
         device.state = if (device.isOn) "on" else "off"
         adapter?.notifyDataSetChanged()
 
-        scope.launch {
-            val result = repository.toggle(device.entityId)
-            if (result.isFailure) {
-                // Revert if failed
-                device.isOn = !device.isOn
-                device.state = if (device.isOn) "on" else "off"
-                adapter?.notifyDataSetChanged()
+        if (QuazHomeApp.instance.isPaired) {
+            scope.launch {
+                val result = repository.toggle(device.entityId)
+                if (result.isFailure) {
+                    // Revert if failed on real backend
+                    device.isOn = !device.isOn
+                    device.state = if (device.isOn) "on" else "off"
+                    adapter?.notifyDataSetChanged()
+                    Toast.makeText(overlayView?.context ?: return@launch, "تعذر تحديث حالة الجهاز", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
     private fun handleClimateChange(device: DeviceItem, newTemp: Double) {
-        scope.launch {
-            repository.setClimateTemp(device.entityId, newTemp)
+        if (QuazHomeApp.instance.isPaired) {
+            scope.launch {
+                repository.setClimateTemp(device.entityId, newTemp)
+            }
         }
     }
 

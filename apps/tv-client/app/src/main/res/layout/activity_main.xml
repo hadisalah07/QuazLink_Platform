@@ -306,6 +306,8 @@
                         android:textColor="@color/color_btn_slate_text"
                         android:textSize="12sp"
                         android:textStyle="bold"
+                        android:nextFocusRight="@+id/btnTestOverlay"
+                        android:nextFocusUp="@+id/btnUpdateNow"
                         android:focusable="true" />
                 </LinearLayout>
 
@@ -384,6 +386,9 @@
                             android:textSize="11sp"
                             android:textStyle="bold"
                             android:paddingHorizontal="14dp"
+                            android:nextFocusLeft="@+id/btnResetPairing"
+                            android:nextFocusDown="@+id/btnModeDouble"
+                            android:nextFocusUp="@+id/btnUpdateNow"
                             android:focusable="true" />
                     </LinearLayout>
 
@@ -414,6 +419,10 @@
                             android:textSize="10sp"
                             android:textStyle="bold"
                             android:layout_marginEnd="6dp"
+                            android:nextFocusLeft="@+id/btnResetPairing"
+                            android:nextFocusRight="@+id/btnModeHold"
+                            android:nextFocusUp="@+id/btnCaptureRemoteKey"
+                            android:nextFocusDown="@+id/btnTestOverlay"
                             android:focusable="true" />
 
                         <androidx.appcompat.widget.AppCompatButton
@@ -427,6 +436,10 @@
                             android:textColor="#64748B"
                             android:textSize="10sp"
                             android:layout_marginEnd="6dp"
+                            android:nextFocusLeft="@+id/btnModeSingle"
+                            android:nextFocusRight="@+id/btnModeDouble"
+                            android:nextFocusUp="@+id/btnCaptureRemoteKey"
+                            android:nextFocusDown="@+id/btnTestOverlay"
                             android:focusable="true" />
 
                         <androidx.appcompat.widget.AppCompatButton
@@ -439,6 +452,9 @@
                             android:text="ضغطتان 350ms"
                             android:textColor="#64748B"
                             android:textSize="10sp"
+                            android:nextFocusLeft="@+id/btnModeHold"
+                            android:nextFocusUp="@+id/btnCaptureRemoteKey"
+                            android:nextFocusDown="@+id/btnTestOverlay"
                             android:focusable="true" />
                     </LinearLayout>
 
@@ -454,6 +470,9 @@
                         android:textSize="13sp"
                         android:textStyle="bold"
                         android:layout_marginBottom="8dp"
+                        android:nextFocusLeft="@+id/btnResetPairing"
+                        android:nextFocusUp="@+id/btnModeSingle"
+                        android:nextFocusDown="@+id/btnOpenAccessibility"
                         android:focusable="true" />
 
                     <!-- Action 2: Accessibility Service Button (Emerald/Slate Glass) -->
@@ -467,6 +486,8 @@
                         android:textColor="@color/color_btn_emerald_text"
                         android:textSize="12sp"
                         android:textStyle="bold"
+                        android:nextFocusLeft="@+id/btnResetPairing"
+                        android:nextFocusUp="@+id/btnTestOverlay"
                         android:focusable="true" />
                 </LinearLayout>
 

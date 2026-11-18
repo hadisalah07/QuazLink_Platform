@@ -62,13 +62,17 @@ class RemoteKeyInterceptorService : AccessibilityService() {
             val configuredKey = QuazHomeApp.instance.triggerKeyCode
             val mode = QuazHomeApp.instance.triggerMode
 
-            // 1. If Overlay is active and user presses BACK, dismiss it cleanly
-            if (OverlayManager.isOverlayShowing() && event.keyCode == KeyEvent.KEYCODE_BACK) {
-                if (event.action == KeyEvent.ACTION_DOWN) {
-                    Log.d(TAG, "Back pressed while overlay active -> dismissing overlay")
-                    OverlayManager.dismiss()
-                    return true
+            // 1. If Overlay is active: let overlay handle navigation freely (dismiss only on Back)
+            if (OverlayManager.isOverlayShowing()) {
+                if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                    if (event.action == KeyEvent.ACTION_DOWN) {
+                        Log.d(TAG, "Back pressed while overlay active -> dismissing overlay")
+                        OverlayManager.dismiss()
+                        return true
+                    }
                 }
+                // Never intercept keys while overlay is showing so user can navigate cards freely
+                return false
             }
 
             // 2. Check if pressed key matches configured trigger key or default TV keys

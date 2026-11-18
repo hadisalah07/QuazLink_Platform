@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.quazcode.quazhome.tv.overlay.OverlayRootLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/overlayRoot"
-    android:layout_width="380dp"
+    android:layout_width="420dp"
     android:layout_height="match_parent"
     android:background="@drawable/bg_overlay_sidebar"
     android:orientation="vertical"
     android:padding="20dp"
-    android:focusable="true"
-    android:focusableInTouchMode="true">
+    android:focusable="false"
+    android:focusableInTouchMode="false">
 
     <!-- Header with QuazHome Logo / Title / Close Button -->
     <LinearLayout
@@ -101,6 +101,7 @@
             android:textSize="11sp"
             android:textStyle="bold"
             android:paddingHorizontal="10dp"
+            android:nextFocusDown="@+id/rvDevices"
             android:focusable="true" />
     </LinearLayout>
 
@@ -118,13 +119,15 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:paddingBottom="16dp"
+        android:focusable="false"
+        android:nextFocusUp="@+id/btnCloseOverlay"
         android:descendantFocusability="afterDescendants" />
 
     <!-- Footer Hint: 10s AFK Timeout & Back to Close -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="⏳ إغلاق تلقائي بعد 10 ثوانٍ • [Back] أو زر الريموت للإغلاق"
+        android:text="⏳ إغلاق تلقائي بعد 10 ثوانٍ • [Back] للإغلاق • ◄ ► لحرارة التكييف"
         android:textColor="@color/text_secondary"
         android:textSize="11sp"
         android:gravity="center"
