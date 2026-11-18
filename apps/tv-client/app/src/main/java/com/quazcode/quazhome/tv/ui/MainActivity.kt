@@ -202,6 +202,7 @@ class MainActivity : AppCompatActivity() {
         rvDashboardDevices.preserveFocusAfterLayout = true
         rvDashboardDevices.clipChildren = false
         rvDashboardDevices.clipToPadding = false
+        rvDashboardDevices.isNestedScrollingEnabled = false
         rvDashboardDevices.adapter = dashboardAdapter
 
         ivQrCode = findViewById(R.id.ivQrCode)
@@ -676,7 +677,9 @@ class MainActivity : AppCompatActivity() {
                     if (currentPos >= 0 && currentPos < menuItems.size) {
                         rvDashboardDevices.post {
                             val holder = rvDashboardDevices.findViewHolderForAdapterPosition(currentPos)
-                            val target = holder?.itemView?.findViewById<View>(R.id.cardContainer) ?: holder?.itemView
+                            val target = holder?.itemView?.findViewById<View>(R.id.layoutSliderZone)
+                                ?: holder?.itemView?.findViewById<View>(R.id.cardContainer)
+                                ?: holder?.itemView
                             target?.requestFocus()
                         }
                     }

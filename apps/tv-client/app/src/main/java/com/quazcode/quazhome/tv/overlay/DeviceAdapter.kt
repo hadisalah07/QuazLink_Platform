@@ -248,6 +248,18 @@ class DeviceAdapter(
                 } else {
                     btnReactTreble.visibility = View.GONE
                 }
+                // Sub-button D-Pad Key Listener: UP always focuses the slider of this card
+                val subKeyListener = View.OnKeyListener { _, keyCode, event ->
+                    if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                        sliderZone.requestFocus()
+                        return@OnKeyListener true
+                    }
+                    false
+                }
+                btnMusicMode.setOnKeyListener(subKeyListener)
+                btnReactBass.setOnKeyListener(subKeyListener)
+                btnReactMids.setOnKeyListener(subKeyListener)
+                btnReactTreble.setOnKeyListener(subKeyListener)
             } else {
                 layoutSubButtonsRow.visibility = View.GONE
             }
@@ -275,7 +287,7 @@ class DeviceAdapter(
                 }
             }
 
-            // D-Pad Left/Right for smooth 0-100% dimming
+            // D-Pad Left/Right for smooth 0-100% dimming, and DOWN to sub-buttons if present
             sliderZone.setOnKeyListener { _, keyCode, event ->
                 if (event.action == KeyEvent.ACTION_DOWN) {
                     when (keyCode) {
@@ -306,6 +318,16 @@ class DeviceAdapter(
                                 onBrightnessChange(light, newPct)
                             }
                             return@setOnKeyListener true
+                        }
+                        KeyEvent.KEYCODE_DPAD_DOWN -> {
+                            if (layoutSubButtonsRow.visibility == View.VISIBLE) {
+                                val firstSub = listOf(btnMusicMode, btnReactBass, btnReactMids, btnReactTreble).firstOrNull { it.visibility == View.VISIBLE }
+                                if (firstSub != null) {
+                                    firstSub.requestFocus()
+                                    return@setOnKeyListener true
+                                }
+                            }
+                            false
                         }
                     }
                 }
