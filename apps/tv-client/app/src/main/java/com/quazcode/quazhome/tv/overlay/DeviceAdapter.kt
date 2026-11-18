@@ -38,6 +38,29 @@ class DeviceAdapter(
         return if (idx >= 0) idx else 0
     }
 
+    fun getItemAt(position: Int): MenuItem? {
+        return if (position in 0 until items.size) items[position] else null
+    }
+
+    fun findPositionByEntityId(entityId: String): Int {
+        return items.indexOfFirst { it is MenuItem.Device && it.item.entityId == entityId }
+    }
+
+    fun revertDeviceState(entityId: String, rv: RecyclerView? = null) {
+        val index = findPositionByEntityId(entityId)
+        if (index >= 0) {
+            val dev = (items[index] as? MenuItem.Device)?.item ?: return
+            dev.isOn = !dev.isOn
+            dev.state = if (dev.isOn) "on" else "off"
+            val holder = rv?.findViewHolderForAdapterPosition(index) as? DeviceViewHolder
+            if (holder != null) {
+                holder.bind(dev)
+            } else {
+                notifyItemChanged(index)
+            }
+        }
+    }
+
     override fun getItemViewType(position: Int): Int {
         return when (items[position]) {
             is MenuItem.Header -> TYPE_HEADER
@@ -147,11 +170,23 @@ class DeviceAdapter(
                 }
             }
 
-            // Click action with micro-bounce feedback
+            // Click action with micro-bounce feedback & 100% focus retention
             container.setOnClickListener {
                 container.animate().scaleX(0.97f).scaleY(0.97f).setDuration(60).withEndAction {
                     container.animate().scaleX(1.03f).scaleY(1.03f).setDuration(80).start()
                 }.start()
+
+                if (device.type == "scene") {
+                    onDeviceToggle(device)
+                    return@setOnClickListener
+                }
+
+                // In-place UI update without full adapter refresh -> 100% focus retention
+                device.isOn = !device.isOn
+                device.state = if (device.isOn) "on" else "off"
+                bind(device)
+                container.requestFocus()
+
                 onDeviceToggle(device)
             }
 
@@ -188,6 +223,7 @@ class DeviceAdapter(
                                     val newTemp = (currentTarget + 1.0).coerceAtMost(max)
                                     device.targetTemp = newTemp
                                     bind(device)
+                                    container.requestFocus()
                                     onTempChange(device, newTemp)
                                 }
                                 return@setOnKeyListener true
@@ -199,6 +235,7 @@ class DeviceAdapter(
                                     val newTemp = (currentTarget - 1.0).coerceAtLeast(min)
                                     device.targetTemp = newTemp
                                     bind(device)
+                                    container.requestFocus()
                                     onTempChange(device, newTemp)
                                 }
                                 return@setOnKeyListener true

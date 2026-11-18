@@ -153,6 +153,8 @@ object OverlayManager {
         // Setup RecyclerView
         val rvDevices = view.findViewById<RecyclerView>(R.id.rvDevices)
         rvDevices.layoutManager = LinearLayoutManager(context)
+        rvDevices.itemAnimator = null
+        rvDevices.preserveFocusAfterLayout = true
 
         adapter = DeviceAdapter(
             onDeviceToggle = { device ->
@@ -232,7 +234,25 @@ object OverlayManager {
                     }
                 }
                 if (menuItems.isNotEmpty()) {
+                    val rvDevices = overlayView?.findViewById<RecyclerView>(R.id.rvDevices)
+                    val focusedView = overlayView?.findFocus()
+                    val containingView = focusedView?.let { rvDevices?.findContainingItemView(it) }
+                    val focusedPos = containingView?.let { rvDevices?.getChildAdapterPosition(it) } ?: -1
+
                     adapter?.submitData(menuItems)
+
+                    if (rvDevices != null) {
+                        rvDevices.post {
+                            val targetPos = if (focusedPos >= 0 && focusedPos < menuItems.size) {
+                                focusedPos
+                            } else {
+                                adapter?.getFirstDevicePosition() ?: 0
+                            }
+                            val holder = rvDevices.findViewHolderForAdapterPosition(targetPos)
+                            val target = holder?.itemView?.findViewById<View>(R.id.cardContainer) ?: holder?.itemView
+                            target?.requestFocus()
+                        }
+                    }
                 }
             }
         }
@@ -259,10 +279,9 @@ object OverlayManager {
         rvDevices.postDelayed({
             val firstDevicePos = adapter?.getFirstDevicePosition() ?: 1
             rvDevices.scrollToPosition(firstDevicePos)
-            val v = rvDevices.layoutManager?.findViewByPosition(firstDevicePos)
-            v?.requestFocus() ?: run {
-                rvDevices.findViewHolderForAdapterPosition(firstDevicePos)?.itemView?.requestFocus()
-            }
+            val holder = rvDevices.findViewHolderForAdapterPosition(firstDevicePos)
+            val target = holder?.itemView?.findViewById<View>(R.id.cardContainer) ?: holder?.itemView
+            target?.requestFocus()
         }, 120)
     }
 
@@ -279,19 +298,16 @@ object OverlayManager {
             return
         }
 
-        // Instant optimistic UI update
-        device.isOn = !device.isOn
-        device.state = if (device.isOn) "on" else "off"
-        adapter?.notifyDataSetChanged()
+        // Note: optimistic in-place UI toggle & bind were already performed in DeviceViewHolder
+        // to guarantee 100% focus retention with ZERO RecyclerView view recycling!
 
         if (QuazHomeApp.instance.isPaired) {
             scope.launch {
                 val result = repository.toggle(device.entityId)
                 if (result.isFailure) {
-                    // Revert if failed on real backend
-                    device.isOn = !device.isOn
-                    device.state = if (device.isOn) "on" else "off"
-                    adapter?.notifyDataSetChanged()
+                    // Revert state if backend call failed
+                    val rv = overlayView?.findViewById<RecyclerView>(R.id.rvDevices)
+                    adapter?.revertDeviceState(device.entityId, rv)
                     Toast.makeText(overlayView?.context ?: return@launch, "تعذر تحديث حالة الجهاز", Toast.LENGTH_SHORT).show()
                 }
             }
