@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.accessibility.AccessibilityManager
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.quazcode.quazhome.tv.QuazHomeApp
 import com.quazcode.quazhome.tv.R
 import com.quazcode.quazhome.tv.data.model.DeviceItem
+import com.quazcode.quazhome.tv.data.model.SubButton
 import com.quazcode.quazhome.tv.data.model.UpdateCheckResponse
 import com.quazcode.quazhome.tv.data.repository.DeviceRepository
 import com.quazcode.quazhome.tv.overlay.DeviceAdapter
@@ -176,13 +178,23 @@ class MainActivity : AppCompatActivity() {
             },
             onTempChange = { device, newTemp ->
                 handleDashboardClimateChange(device, newTemp)
+            },
+            onBrightnessChange = { device, newPct ->
+                handleDashboardBrightnessChange(device, newPct)
+            },
+            onSubButtonToggle = { entityId, subButton ->
+                handleDashboardSubButtonToggle(entityId, subButton)
             }
         )
 
         val gridLayout = GridLayoutManager(this, 2)
         gridLayout.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
-                return if (dashboardAdapter.getItemViewType(position) == DeviceAdapter.TYPE_HEADER) 2 else 1
+                return when (dashboardAdapter.getItemViewType(position)) {
+                    DeviceAdapter.TYPE_HEADER -> 2
+                    DeviceAdapter.TYPE_LIGHT -> 2 // Dimmer light cards with sliders & sub-buttons span full width
+                    else -> 1 // Switches, relays and plugs take 1 column in 2-column grid
+                }
             }
         }
         rvDashboardDevices.layoutManager = gridLayout
@@ -668,13 +680,11 @@ class MainActivity : AppCompatActivity() {
                             target?.requestFocus()
                         }
                     }
-                } else if (dashboardAdapter.itemCount == 0) {
-                    dashboardAdapter.submitData(getDemoMenuItems())
+                    }
                 }
-            }.onFailure {
-                if (dashboardAdapter.itemCount == 0) {
-                    dashboardAdapter.submitData(getDemoMenuItems())
-                }
+            }.onFailure { err ->
+                // Do NOT submit fake/demo items - maintain honest offline/clean state
+                Log.w("MainActivity", "Dashboard data load failed: ${err.message}")
             }
         }
     }
@@ -709,19 +719,20 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun getDemoMenuItems(): List<MenuItem> {
-        return listOf(
-            MenuItem.Header("الإضاءة والإنارة"),
-            MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة الرئيسية", "light", "lamp", "on", true, null, null, null, null, null, null)),
-            MenuItem.Device(DeviceItem("light.kitchen_strip", "شريط ليد المطبخ", "light", "led", "off", false, null, null, null, null, null, null)),
-            MenuItem.Header("التكييف والمناخ"),
-            MenuItem.Device(DeviceItem("climate.living_room", "تكييف غرفة المعيشة", "climate", "air-conditioner", "22°C", true, null, 24.0, 22.0, 16.0, 30.0, null)),
-            MenuItem.Header("الأجهزة والمفاتيح"),
-            MenuItem.Device(DeviceItem("switch.water_heater", "سخان المياه الذكي", "switch", "power", "off", false, null, null, null, null, null, null)),
-            MenuItem.Header("السيناريوهات والوضعيات"),
-            MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما والمشاهدة", "scene", "movie", "active", false, null, null, null, null, null, null)),
-            MenuItem.Device(DeviceItem("scene.goodnight", "وضع النوم والهدوء", "scene", "sleep", "active", false, null, null, null, null, null, null))
-        )
+    private fun handleDashboardBrightnessChange(device: DeviceItem, newPct: Int) {
+        if (QuazHomeApp.instance.isPaired) {
+            lifecycleScope.launch {
+                repository.setLightBrightness(device.entityId, newPct)
+            }
+        }
+    }
+
+    private fun handleDashboardSubButtonToggle(entityId: String, subButton: SubButton) {
+        if (QuazHomeApp.instance.isPaired) {
+            lifecycleScope.launch {
+                repository.toggle(entityId)
+            }
+        }
     }
 
     private fun showPairedState() {

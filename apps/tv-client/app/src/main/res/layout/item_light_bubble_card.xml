@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/cardContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="8dp"
+    android:orientation="vertical"
+    android:background="@drawable/bg_device_card_selector"
+    android:padding="10dp"
+    android:focusable="false"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:descendantFocusability="afterDescendants">
+
+    <!-- Row 1: The Dimmer Slider Bar (Focusable D-Pad Remote) -->
+    <FrameLayout
+        android:id="@+id/layoutSliderZone"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="@drawable/bg_light_slider_track"
+        android:clickable="true"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusDown="@+id/btnMusicMode">
+
+        <!-- Dynamic Fill View (Width animated 0% to 100%) -->
+        <View
+            android:id="@+id/viewSliderFill"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_light_slider_fill" />
+
+        <!-- Foreground Content of Row 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp">
+
+            <!-- Square / Bulb Icon -->
+            <TextView
+                android:id="@+id/tvLightIcon"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/bg_platform_pill"
+                android:gravity="center"
+                android:text="💡"
+                android:textSize="16sp" />
+
+            <!-- Title & Entity Name -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvLightName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Square Light"
+                    android:textColor="#F8FAFC"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvLightEntityId"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="light.led_dimmer_hub_3"
+                    android:textColor="#64748B"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <!-- Brightness Percentage Pill (e.g. 51%) -->
+            <TextView
+                android:id="@+id/tvBrightnessPercent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_platform_pill"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="51%"
+                android:textColor="#FFCA7B"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginEnd="8dp" />
+
+            <!-- Power Toggle Button -->
+            <ImageView
+                android:id="@+id/ivLightPower"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_platform_pill"
+                android:padding="6dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_power_switch"
+                android:contentDescription="Power" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Row 2: Sub-Buttons (Music Mode + 3 Reacts) -->
+    <LinearLayout
+        android:id="@+id/layoutSubButtonsRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="8dp">
+
+        <!-- 1. Music Mode Pill Button -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnMusicMode"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_sub_button_selector"
+            android:backgroundTint="@null"
+            android:text="♪ Music Mode • Off"
+            android:textColor="#CBD5E1"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="10dp"
+            android:layout_marginEnd="8dp"
+            android:nextFocusUp="@+id/layoutSliderZone"
+            android:nextFocusRight="@+id/btnReactBass"
+            android:focusable="true" />
+
+        <!-- 2. React to Bass -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReactBass"
+            android:layout_width="38dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_sub_button_round_selector"
+            android:backgroundTint="@null"
+            android:text="🔊"
+            android:textSize="12sp"
+            android:layout_marginEnd="6dp"
+            android:nextFocusUp="@+id/layoutSliderZone"
+            android:nextFocusLeft="@+id/btnMusicMode"
+            android:nextFocusRight="@+id/btnReactMids"
+            android:focusable="true" />
+
+        <!-- 3. React to Mids -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReactMids"
+            android:layout_width="38dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_sub_button_round_selector"
+            android:backgroundTint="@null"
+            android:text="♫"
+            android:textSize="13sp"
+            android:textColor="#FFFFFF"
+            android:layout_marginEnd="6dp"
+            android:nextFocusUp="@+id/layoutSliderZone"
+            android:nextFocusLeft="@+id/btnReactBass"
+            android:nextFocusRight="@+id/btnReactTreble"
+            android:focusable="true" />
+
+        <!-- 4. React to Treble -->
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnReactTreble"
+            android:layout_width="38dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_sub_button_round_selector"
+            android:backgroundTint="@null"
+            android:text="𝄞"
+            android:textSize="14sp"
+            android:textColor="#FFFFFF"
+            android:nextFocusUp="@+id/layoutSliderZone"
+            android:nextFocusLeft="@+id/btnReactMids"
+            android:focusable="true" />
+    </LinearLayout>
+
+</LinearLayout>

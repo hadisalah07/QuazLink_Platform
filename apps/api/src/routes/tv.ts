@@ -6,12 +6,12 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.1.5';
+export const TV_LATEST_VERSION = '1.2.3';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-18';
-export const TV_RELEASE_NOTES = `• إعادة تصميم الواجهة بالكامل لتطابق منصة QuazLink (Platform Dark Glassmorphism).
-• كروت الأجهزة بنمط الأوبسيديان الداكن مع أيقونات ومؤشرات تحكم أنيقة.
-• أزرار زمردية مضيئة (Emerald Action Buttons) فائقة التباين والوضوح على شاشات العرض والبروجيكتور.`;
+export const TV_RELEASE_NOTES = `• لوحة تحكم ذكية متكاملة بتنسيق Bubble Card للإضاءة (Slider 0-100% + Music Mode + Bass/Mids/Treble).
+• إزالة كافة الأجهزة الافتراضية التجريبية وعرض الأجهزة الحقيقية من Home Assistant فقط.
+• تنظيم الأجهزة في فئات مطابقة لداشبورد Home Assistant الخاص بك مع هوية QuazHome الفضائية.`;
 
 // Storage paths for persistent TV device configs
 const STORAGE_DIR = process.env.DATA_DIR || path.join(__dirname, '../../../data');
@@ -494,23 +494,7 @@ router.get('/quick-menu', async (req, res) => {
         success: true,
         timestamp: Date.now(),
         title: 'QuazHome (في انتظار الاقتران)',
-        groups: [
-          {
-            id: 'pairing',
-            name: 'الاقتران مع Home Assistant',
-            icon: 'qrcode',
-            entities: [
-              {
-                entityId: 'tv.pairing_status',
-                name: 'امسح الـ QR من الموبايل لتوصيل المنزل الذكي',
-                type: 'scene',
-                icon: 'qrcode',
-                state: 'off',
-                isOn: false,
-              },
-            ],
-          },
-        ],
+        groups: [],
       });
     }
 
@@ -535,24 +519,97 @@ router.get('/quick-menu', async (req, res) => {
     const selectedList = ha.device.selectedEntities || [];
     const hasCustomSelection = selectedList.length > 0;
 
-    const lightsGroup: any[] = [];
-    const climateGroup: any[] = [];
-    const scenesGroup: any[] = [];
-    const switchesGroup: any[] = [];
+    // Index all switches for companion lookup
+    const switchesMap = new Map<string, any>();
+    for (const item of rawStates) {
+      const eId: string = item.entity_id || '';
+      if (eId.startsWith('switch.')) {
+        switchesMap.set(eId, item);
+      }
+    }
 
+    const consumedSwitchIds = new Set<string>();
+    const lightsGroup: any[] = [];
+    const triggersGroup: any[] = [];
+    const switchesGroup: any[] = [];
+    const climateGroup: any[] = [];
+    const curtainsGroup: any[] = [];
+    const mediaGroup: any[] = [];
+
+    // Helper to find companion sub-buttons for light dimmers (Music Mode + 3 Reacts)
+    const findSubButtons = (lightEntityId: string) => {
+      const match = lightEntityId.match(/(\d+)$/);
+      const num = match ? match[1] : '';
+      if (!num) return null;
+
+      let musicMode: any = null;
+      let reactBass: any = null;
+      let reactMids: any = null;
+      let reactTreble: any = null;
+
+      for (const [sId, sItem] of switchesMap.entries()) {
+        const matchesNum = sId.includes(`dimmer_hub_${num}_`) || sId.includes(`hub_${num}_`) || sId.includes(`_${num}_`);
+        if (matchesNum) {
+          if (sId.includes('music_mode')) {
+            musicMode = sItem;
+            consumedSwitchIds.add(sId);
+          } else if (sId.includes('react_to_bass')) {
+            reactBass = sItem;
+            consumedSwitchIds.add(sId);
+          } else if (sId.includes('react_to_mids')) {
+            reactMids = sItem;
+            consumedSwitchIds.add(sId);
+          } else if (sId.includes('react_to_treble')) {
+            reactTreble = sItem;
+            consumedSwitchIds.add(sId);
+          }
+        }
+      }
+
+      if (!musicMode && !reactBass && !reactMids && !reactTreble) return null;
+
+      return {
+        musicMode: musicMode ? {
+          entityId: musicMode.entity_id,
+          name: 'Music Mode',
+          state: musicMode.state,
+          isOn: musicMode.state === 'on',
+        } : null,
+        reactBass: reactBass ? {
+          entityId: reactBass.entity_id,
+          name: 'Bass',
+          state: reactBass.state,
+          isOn: reactBass.state === 'on',
+        } : null,
+        reactMids: reactMids ? {
+          entityId: reactMids.entity_id,
+          name: 'Mids',
+          state: reactMids.state,
+          isOn: reactMids.state === 'on',
+        } : null,
+        reactTreble: reactTreble ? {
+          entityId: reactTreble.entity_id,
+          name: 'Treble',
+          state: reactTreble.state,
+          isOn: reactTreble.state === 'on',
+        } : null,
+      };
+    };
+
+    // First pass: Process Lights and link companion switches
     for (const item of rawStates) {
       const entityId: string = item.entity_id || '';
-
-      // If user configured custom entities, strictly filter!
-      if (hasCustomSelection && !selectedList.includes(entityId)) {
-        continue;
-      }
+      if (hasCustomSelection && !selectedList.includes(entityId)) continue;
 
       const friendlyName = item.attributes?.friendly_name || entityId;
       const state = String(item.state || '').toLowerCase();
       const isOn = state === 'on';
 
       if (entityId.startsWith('light.')) {
+        const rawBrightness = item.attributes?.brightness;
+        const brightnessPercent = rawBrightness != null ? Math.round((Number(rawBrightness) / 255) * 100) : (isOn ? 100 : 0);
+        const subButtons = findSubButtons(entityId);
+
         lightsGroup.push({
           entityId,
           name: friendlyName,
@@ -560,16 +617,51 @@ router.get('/quick-menu', async (req, res) => {
           icon: 'lamp',
           state,
           isOn,
-          brightness: item.attributes?.brightness || null,
+          brightness: rawBrightness || null,
+          brightnessPercent,
+          subButtons,
         });
-      } else if (entityId.startsWith('switch.')) {
-        switchesGroup.push({
+      }
+    }
+
+    // Second pass: Process remaining entities (excluding consumed sub-button switches)
+    for (const item of rawStates) {
+      const entityId: string = item.entity_id || '';
+      if (hasCustomSelection && !selectedList.includes(entityId)) continue;
+
+      const friendlyName = item.attributes?.friendly_name || entityId;
+      const state = String(item.state || '').toLowerCase();
+      const isOn = state === 'on';
+
+      if (entityId.startsWith('switch.')) {
+        if (consumedSwitchIds.has(entityId)) {
+          // Already embedded inside a Light Dimmer card
+          continue;
+        }
+
+        const isTrigger = entityId.includes('room_motion') || entityId.includes('my_room') || entityId.includes('arm');
+        const switchObj = {
           entityId,
           name: friendlyName,
           type: 'switch',
-          icon: 'switch',
+          icon: isTrigger ? 'trigger' : 'switch',
           state,
           isOn,
+        };
+
+        if (isTrigger) {
+          triggersGroup.push(switchObj);
+        } else {
+          switchesGroup.push(switchObj);
+        }
+      } else if (entityId.startsWith('scene.')) {
+        triggersGroup.push({
+          entityId,
+          name: friendlyName,
+          type: 'scene',
+          icon: 'film',
+          state: 'off',
+          isOn: false,
         });
       } else if (entityId.startsWith('climate.')) {
         climateGroup.push({
@@ -584,30 +676,46 @@ router.get('/quick-menu', async (req, res) => {
           minTemp: item.attributes?.min_temp || 16.0,
           maxTemp: item.attributes?.max_temp || 30.0,
         });
-      } else if (entityId.startsWith('scene.')) {
-        scenesGroup.push({
+      } else if (entityId.startsWith('cover.')) {
+        curtainsGroup.push({
           entityId,
           name: friendlyName,
-          type: 'scene',
-          icon: 'film',
-          state: 'off',
-          isOn: false,
+          type: 'cover',
+          icon: 'curtain',
+          state,
+          isOn: state === 'open',
+        });
+      } else if (entityId.startsWith('media_player.')) {
+        mediaGroup.push({
+          entityId,
+          name: friendlyName,
+          type: 'media_player',
+          icon: 'media',
+          state,
+          isOn: state === 'playing' || state === 'on',
         });
       }
     }
 
+    // Build categories matching User's Home Assistant Dashboard (Image 2)
     const groups: any[] = [];
     if (lightsGroup.length > 0) {
-      groups.push({ id: 'lights', name: 'الإضاءة', icon: 'lamp', entities: lightsGroup });
+      groups.push({ id: 'lights', name: 'الإضاءة والتحكم بالسطوع (Lights & Dimmers)', icon: 'lamp', entities: lightsGroup });
+    }
+    if (triggersGroup.length > 0) {
+      groups.push({ id: 'triggers', name: 'المحفزات والسيناريوهات (Triggers)', icon: 'trigger', entities: triggersGroup });
     }
     if (switchesGroup.length > 0) {
-      groups.push({ id: 'switches', name: 'المفاتيح والأجهزة', icon: 'switch', entities: switchesGroup });
+      groups.push({ id: 'switches', name: 'الأجهزة والمقابس الذكية (Connected Devices)', icon: 'switch', entities: switchesGroup });
     }
     if (climateGroup.length > 0) {
-      groups.push({ id: 'climate', name: 'التكييف والمناخ', icon: 'ac', entities: climateGroup });
+      groups.push({ id: 'climate', name: 'التكييف والمناخ (AC-Power Control)', icon: 'ac', entities: climateGroup });
     }
-    if (scenesGroup.length > 0) {
-      groups.push({ id: 'scenes', name: 'السيناريوهات', icon: 'film', entities: scenesGroup });
+    if (curtainsGroup.length > 0) {
+      groups.push({ id: 'curtains', name: 'الستائر الذكية (Smart Curtain)', icon: 'curtain', entities: curtainsGroup });
+    }
+    if (mediaGroup.length > 0) {
+      groups.push({ id: 'media', name: 'أجهزة الترفيه والصوتيات (Media Control)', icon: 'media', entities: mediaGroup });
     }
 
     res.json({
@@ -619,47 +727,62 @@ router.get('/quick-menu', async (req, res) => {
   } catch (err: any) {
     console.error('[TV] Quick Menu error:', err.message);
     res.json({
-      success: true,
+      success: false,
       timestamp: Date.now(),
-      title: 'QuazHome (Offline Fallback)',
-      groups: [
-        {
-          id: 'lights',
-          name: 'الإضاءة (Offline Fallback)',
-          icon: 'lamp',
-          entities: [
-            {
-              entityId: 'light.living_room',
-              name: 'إضاءة الصالة',
-              type: 'light',
-              icon: 'lamp',
-              state: 'off',
-              isOn: false,
-            },
-          ],
-        },
-        {
-          id: 'climate',
-          name: 'التكييف',
-          icon: 'ac',
-          entities: [
-            {
-              entityId: 'climate.ac',
-              name: 'تكييف الصالة',
-              type: 'climate',
-              icon: 'ac',
-              state: 'cool',
-              isOn: true,
-              currentTemp: 24.0,
-              targetTemp: 22.0,
-              minTemp: 18.0,
-              maxTemp: 30.0,
-            },
-          ],
-        },
-      ],
+      title: 'QuazHome (خطأ في جلب الأجهزة)',
+      error: err.message,
+      groups: [], // Never return fake mock entities!
     });
   }
+});
+
+/**
+ * 11. POST /api/tv/device/light/set-brightness
+ * Adjusts light brightness (0 to 100%) in Home Assistant
+ */
+router.post('/device/light/set-brightness', async (req, res) => {
+  try {
+    const deviceToken = String(req.headers['x-device-token'] || req.query.token || req.body.token || '');
+    const { entityId, brightnessPercent } = req.body;
+    if (!entityId || brightnessPercent === undefined) {
+      return res.status(400).json({ error: 'entityId and brightnessPercent are required' });
+    }
+
+    const ha = await getHaClient(deviceToken);
+    if (!ha) {
+      return res.json({ success: true, entityId, brightnessPercent });
+    }
+
+    const pct = Math.max(0, Math.min(100, Number(brightnessPercent)));
+    let haRes: Response;
+    if (pct === 0) {
+      haRes = await fetch(`${ha.haUrl}/api/services/light/turn_off`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${ha.haToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ entity_id: entityId }),
+      });
+    } else {
+      haRes = await fetch(`${ha.haUrl}/api/services/light/turn_on`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${ha.haToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          entity_id: entityId,
+          brightness_pct: pct,
+        }),
+      });
+    }
+
+    res.json({ success: haRes.ok, entityId, brightnessPercent: pct });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 });
 
 /**

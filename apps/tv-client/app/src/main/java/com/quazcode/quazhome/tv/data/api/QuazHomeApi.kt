@@ -60,6 +60,12 @@ interface QuazHomeApi {
         @Body body: ClimateSetTempRequest
     ): Response<ResponseBody>
 
+    @POST("/api/tv/device/light/set-brightness")
+    suspend fun setLightBrightness(
+        @Header("x-device-token") deviceToken: String,
+        @Body body: com.quazcode.quazhome.tv.data.model.LightSetBrightnessRequest
+    ): Response<ResponseBody>
+
     @POST("/api/tv/device/scene/trigger")
     suspend fun triggerScene(
         @Header("x-device-token") deviceToken: String,

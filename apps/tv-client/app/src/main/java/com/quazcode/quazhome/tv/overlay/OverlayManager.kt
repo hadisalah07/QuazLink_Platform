@@ -47,6 +47,7 @@ object OverlayManager {
     private val repository = DeviceRepository()
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private val handler = Handler(Looper.getMainLooper())
+    private val cachedMenuItems = mutableListOf<MenuItem>()
 
     private val afkRunnable = Runnable {
         Log.i(TAG, "⏰ 10 seconds AFK timeout reached -> auto-closing quick menu overlay")
@@ -169,6 +170,22 @@ object OverlayManager {
             onTempChange = { device, newTemp ->
                 resetAfkTimer()
                 handleClimateChange(device, newTemp)
+            },
+            onBrightnessChange = { device, newPct ->
+                resetAfkTimer()
+                if (QuazHomeApp.instance.isPaired) {
+                    scope.launch {
+                        repository.setLightBrightness(device.entityId, newPct)
+                    }
+                }
+            },
+            onSubButtonToggle = { entityId, subButton ->
+                resetAfkTimer()
+                if (QuazHomeApp.instance.isPaired) {
+                    scope.launch {
+                        repository.toggle(entityId)
+                    }
+                }
             }
         )
         rvDevices.adapter = adapter
@@ -209,9 +226,11 @@ object OverlayManager {
             view.isFocusableInTouchMode = true
             view.requestFocus()
 
-            // 1. Submit items immediately for 0ms instant display with zero blank delay
-            adapter?.submitData(getDemoItems())
-            focusFirstDevice()
+            // 1. Submit cached real items if available
+            if (cachedMenuItems.isNotEmpty()) {
+                adapter?.submitData(cachedMenuItems)
+                focusFirstDevice()
+            }
 
             // 2. Start 10 seconds AFK auto-close countdown
             resetAfkTimer()
@@ -239,6 +258,9 @@ object OverlayManager {
                     }
                 }
                 if (menuItems.isNotEmpty()) {
+                    cachedMenuItems.clear()
+                    cachedMenuItems.addAll(menuItems)
+
                     val rvDevices = overlayView?.findViewById<RecyclerView>(R.id.rvDevices)
                     val focusedView = overlayView?.findFocus()
                     val containingView = focusedView?.let { rvDevices?.findContainingItemView(it) }
@@ -261,21 +283,6 @@ object OverlayManager {
                 }
             }
         }
-    }
-
-    private fun getDemoItems(): List<MenuItem> {
-        return listOf(
-            MenuItem.Header("الإضاءة والإنارة"),
-            MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة الرئيسية", "light", "lamp", "on", true, null, null, null, null, null, null)),
-            MenuItem.Device(DeviceItem("light.kitchen_strip", "شريط ليد المطبخ", "light", "led", "off", false, null, null, null, null, null, null)),
-            MenuItem.Header("التكييف والمناخ"),
-            MenuItem.Device(DeviceItem("climate.living_room", "تكييف غرفة المعيشة", "climate", "air-conditioner", "22°C", true, null, 24.0, 22.0, 16.0, 30.0, null)),
-            MenuItem.Header("الأجهزة والمفاتيح"),
-            MenuItem.Device(DeviceItem("switch.water_heater", "سخان المياه الذكي", "switch", "power", "off", false, null, null, null, null, null, null)),
-            MenuItem.Header("السيناريوهات والوضعيات"),
-            MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما والمشاهدة", "scene", "movie", "active", false, null, null, null, null, null, null)),
-            MenuItem.Device(DeviceItem("scene.goodnight", "وضع النوم والهدوء", "scene", "sleep", "active", false, null, null, null, null, null, null))
-        )
     }
 
     private fun focusFirstDevice() {

@@ -16,6 +16,20 @@ data class DeviceGroup(
     @SerializedName("entities") val entities: List<DeviceItem>
 )
 
+data class SubButton(
+    @SerializedName("entityId") val entityId: String,
+    @SerializedName("name") val name: String?,
+    @SerializedName("state") var state: String,
+    @SerializedName("isOn") var isOn: Boolean
+)
+
+data class LightSubButtons(
+    @SerializedName("musicMode") var musicMode: SubButton?,
+    @SerializedName("reactBass") var reactBass: SubButton?,
+    @SerializedName("reactMids") var reactMids: SubButton?,
+    @SerializedName("reactTreble") var reactTreble: SubButton?
+)
+
 data class DeviceItem(
     @SerializedName("entityId") val entityId: String,
     @SerializedName("name") val name: String,
@@ -24,11 +38,18 @@ data class DeviceItem(
     @SerializedName("state") var state: String,
     @SerializedName("isOn") var isOn: Boolean,
     @SerializedName("brightness") val brightness: Int?,
+    @SerializedName("brightnessPercent") var brightnessPercent: Int? = null,
     @SerializedName("currentTemp") var currentTemp: Double?,
     @SerializedName("targetTemp") var targetTemp: Double?,
     @SerializedName("minTemp") val minTemp: Double?,
     @SerializedName("maxTemp") val maxTemp: Double?,
-    @SerializedName("accentColor") val accentColor: String?
+    @SerializedName("accentColor") val accentColor: String?,
+    @SerializedName("subButtons") var subButtons: LightSubButtons? = null
+)
+
+data class LightSetBrightnessRequest(
+    @SerializedName("entityId") val entityId: String,
+    @SerializedName("brightnessPercent") val brightnessPercent: Int
 )
 
 data class ToggleRequest(

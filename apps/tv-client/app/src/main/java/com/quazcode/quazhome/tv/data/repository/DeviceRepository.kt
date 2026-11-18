@@ -119,6 +119,18 @@ class DeviceRepository {
         }
     }
 
+    suspend fun setLightBrightness(entityId: String, brightnessPercent: Int): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val response = getApi().setLightBrightness(
+                deviceToken,
+                com.quazcode.quazhome.tv.data.model.LightSetBrightnessRequest(entityId, brightnessPercent)
+            )
+            Result.success(response.isSuccessful)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun triggerScene(sceneId: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val response = getApi().triggerScene(deviceToken, SceneTriggerRequest(sceneId))
