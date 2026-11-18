@@ -82,6 +82,12 @@ class RemoteKeyInterceptorService : AccessibilityService() {
             // 3. Handle configured trigger mode (Single, Long Press, or Double Click)
             when (mode) {
                 QuazHomeApp.MODE_LONG_PRESS -> {
+                    val isArrowKey = event.keyCode in setOf(
+                        KeyEvent.KEYCODE_DPAD_UP,
+                        KeyEvent.KEYCODE_DPAD_DOWN,
+                        KeyEvent.KEYCODE_DPAD_LEFT,
+                        KeyEvent.KEYCODE_DPAD_RIGHT
+                    )
                     when (event.action) {
                         KeyEvent.ACTION_DOWN -> {
                             if (event.repeatCount == 0) {
@@ -89,7 +95,8 @@ class RemoteKeyInterceptorService : AccessibilityService() {
                                 mainHandler.removeCallbacks(longPressRunnable)
                                 mainHandler.postDelayed(longPressRunnable, LONG_PRESS_TIMEOUT_MS)
                             }
-                            return true // Consume down
+                            // For arrow keys, don't consume normal quick down events so navigation still works
+                            return if (isArrowKey) false else true
                         }
                         KeyEvent.ACTION_UP -> {
                             mainHandler.removeCallbacks(longPressRunnable)
@@ -97,7 +104,7 @@ class RemoteKeyInterceptorService : AccessibilityService() {
                                 isLongPressTriggered = false
                                 return true // Handled by long press
                             }
-                            return true // Consumed short press
+                            return if (isArrowKey) false else true
                         }
                     }
                 }

@@ -46,28 +46,90 @@
                     android:layout_weight="1"
                     android:orientation="vertical">
 
+                    <!-- Official QuazHome TV Brand Typography (Matching Platform Hero 1:1) -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Quaz: Gradient Q + White uaz -->
+                        <TextView
+                            android:id="@+id/tvLogoQ"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Q"
+                            android:textColor="#38BDF8"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-black"
+                            android:includeFontPadding="false" />
+
+                        <TextView
+                            android:id="@+id/tvLogoUaz"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="uaz"
+                            android:textColor="#FFFFFF"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-black"
+                            android:includeFontPadding="false" />
+
+                        <!-- Home: White-to-Silver Gradient -->
+                        <TextView
+                            android:id="@+id/tvLogoHome"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Home"
+                            android:textColor="#E2E8F0"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-black"
+                            android:includeFontPadding="false"
+                            android:layout_marginStart="1dp" />
+
+                        <!-- TV: Futuristic Neon Cyan Pill Badge -->
+                        <TextView
+                            android:id="@+id/tvLogoTvBadge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="TV"
+                            android:textColor="#38BDF8"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-black"
+                            android:background="@drawable/bg_platform_pill"
+                            android:paddingHorizontal="9dp"
+                            android:paddingVertical="3dp"
+                            android:layout_marginStart="8dp" />
+                    </LinearLayout>
+
+                    <!-- Subtitle: AUTOMATE • CONNECT • CONTROL (Exact match to image) -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="QUAZHOME TV"
-                        android:textColor="#38BDF8"
-                        android:textSize="20sp"
+                        android:text="AUTOMATE  •  CONNECT  •  CONTROL"
+                        android:textColor="#94A3B8"
+                        android:textSize="9.5sp"
                         android:textStyle="bold"
-                        android:letterSpacing="0.06" />
+                        android:letterSpacing="0.16"
+                        android:layout_marginTop="2dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="منظومة التحكم بالمنزل الذكي عبر شاشة التلفزيون والبروجكتور"
-                        android:textColor="#64748B"
-                        android:textSize="11sp" />
+                        android:textColor="#475569"
+                        android:textSize="10.5sp"
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvAppVersion"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="الإصدار: v1.1.4 (Platform Edition)"
+                    android:text="الإصدار: v1.1.5 (Platform Edition)"
                     android:textColor="#94A3B8"
                     android:textSize="11sp"
                     android:background="@drawable/bg_platform_pill"

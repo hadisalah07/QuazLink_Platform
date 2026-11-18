@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -154,6 +156,34 @@ class MainActivity : AppCompatActivity() {
             btnOpenAccessibility,
             btnResetPairing
         ).forEach { it.backgroundTintList = null }
+
+        // Apply Gradient Shader to Brand Logo Typography (Matching Platform Hero 1:1)
+        val tvLogoQ = findViewById<TextView>(R.id.tvLogoQ)
+        tvLogoQ?.post {
+            val w = tvLogoQ.paint.measureText("Q").coerceAtLeast(1f)
+            val h = tvLogoQ.textSize.coerceAtLeast(1f)
+            val shader = LinearGradient(
+                0f, 0f, w, h,
+                intArrayOf(Color.parseColor("#38BDF8"), Color.parseColor("#A855F7")),
+                floatArrayOf(0.1f, 0.95f),
+                Shader.TileMode.CLAMP
+            )
+            tvLogoQ.paint.shader = shader
+            tvLogoQ.invalidate()
+        }
+
+        val tvLogoHome = findViewById<TextView>(R.id.tvLogoHome)
+        tvLogoHome?.post {
+            val w = tvLogoHome.paint.measureText("Home").coerceAtLeast(1f)
+            val shader = LinearGradient(
+                0f, 0f, w, 0f,
+                intArrayOf(Color.parseColor("#FFFFFF"), Color.parseColor("#94A3B8")),
+                floatArrayOf(0.15f, 0.9f),
+                Shader.TileMode.CLAMP
+            )
+            tvLogoHome.paint.shader = shader
+            tvLogoHome.invalidate()
+        }
 
         // Apply D-Pad Neon Focus Scale & Glow Effect to all interactive buttons
         applyNeonFocusAnimation(
@@ -314,7 +344,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 if (QuazHomeApp.isForbiddenKey(event.keyCode)) {
-                    Toast.makeText(this, "⚠️ لا يمكن تعيين زر (OK / Enter) أو الأسهم أو الرجوع كزر اختصار!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "⚠️ لا يمكن تعيين زر (OK / Enter) أو الرجوع كزر اختصار لمنع التعليق!", Toast.LENGTH_LONG).show()
                     return true
                 }
 
@@ -329,7 +359,12 @@ class MainActivity : AppCompatActivity() {
                 btnCaptureRemoteKey.setTextColor(Color.parseColor("#38BDF8"))
                 updateKeyDisplay()
 
-                Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName - اضغط عليه الآن لتجربته!", Toast.LENGTH_LONG).show()
+                val isArrow = event.keyCode in setOf(19, 20, 21, 22)
+                if (isArrow) {
+                    Toast.makeText(this, "✨ تم تعيين: $friendlyName (يُنصح بضغطة مطولة لتجنب التضارب مع التصفح)", Toast.LENGTH_LONG).show()
+                } else {
+                    Toast.makeText(this, "✨ تم بنجاح تعيين: $friendlyName - اضغط عليه الآن لتجربته!", Toast.LENGTH_LONG).show()
+                }
                 return true
             }
             return true

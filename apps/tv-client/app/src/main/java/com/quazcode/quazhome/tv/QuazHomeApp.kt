@@ -31,15 +31,12 @@ class QuazHomeApp : Application() {
         const val MODE_LONG_PRESS = "long_press"
         const val MODE_DOUBLE_PRESS = "double_press"
 
-        // System & Navigation Keys that MUST NEVER be intercepted
+        // System & Navigation Keys that MUST NEVER be intercepted (OK, Enter, Back, Home, Power)
+        // Note: Arrow keys (DPAD_UP/DOWN/LEFT/RIGHT) ARE ALLOWED per user preference
         val FORBIDDEN_KEYS = setOf(
             23,  // KEYCODE_DPAD_CENTER
             66,  // KEYCODE_ENTER
             160, // KEYCODE_NUMPAD_ENTER
-            19,  // KEYCODE_DPAD_UP
-            20,  // KEYCODE_DPAD_DOWN
-            21,  // KEYCODE_DPAD_LEFT
-            22,  // KEYCODE_DPAD_RIGHT
             4,   // KEYCODE_BACK
             3,   // KEYCODE_HOME
             24,  // KEYCODE_VOLUME_UP

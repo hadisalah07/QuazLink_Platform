@@ -67,8 +67,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release view tv-v1.1.4 || gh release create tv-v1.1.4 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.1.4 (Platform Edition)" --notes "Official signed release Android TV APK with 2-column TV dashboard, zero background-tint bug, obsidian dark glassmorphism, and emerald buttons matching QuazLink platform."
-          gh release upload tv-v1.1.4 dist-apk/QuazHomeTV.apk --clobber
+          gh release view tv-v1.1.5 || gh release create tv-v1.1.5 dist-apk/QuazHomeTV.apk --title "QuazHome TV v1.1.5 (Platform Edition)" --notes "Official signed release Android TV APK with platform hero typography for QuazHome TV (Q cyan-purple gradient, white uaz, silver Home, neon TV badge), arrow keys allowed for custom shortcuts, and safe enter protection."
+          gh release upload tv-v1.1.5 dist-apk/QuazHomeTV.apk --clobber
+          gh release upload tv-v1.1.4 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.1.3 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.1.2 dist-apk/QuazHomeTV.apk --clobber || true
           gh release upload tv-v1.1.1 dist-apk/QuazHomeTV.apk --clobber || true

@@ -24,16 +24,61 @@
             android:contentDescription="QuazLink Logo"
             android:layout_marginEnd="8dp" />
 
-        <TextView
-            android:id="@+id/tvTitle"
+        <!-- Stylized QuazHome TV Logo Header (Matching Platform Hero) -->
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="QUAZHOME"
-            android:textColor="@color/quaz_cyan"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.08" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvOverlayLogoQ"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Q"
+                android:textColor="#38BDF8"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/tvOverlayLogoUaz"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="uaz"
+                android:textColor="#FFFFFF"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/tvOverlayLogoHome"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Home"
+                android:textColor="#CBD5E1"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:includeFontPadding="false"
+                android:layout_marginStart="1dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TV"
+                android:textColor="#38BDF8"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-black"
+                android:background="@drawable/bg_platform_pill"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:layout_marginStart="6dp" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvClock"

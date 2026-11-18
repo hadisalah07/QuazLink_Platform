@@ -2,7 +2,10 @@ package com.quazcode.quazhome.tv.overlay
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
+import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.PixelFormat
+import android.graphics.Shader
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -112,6 +115,34 @@ object OverlayManager {
         val tvClock = view.findViewById<TextView>(R.id.tvClock)
         val timeFormat = SimpleDateFormat("hh:mm a", Locale.getDefault())
         tvClock.text = timeFormat.format(Date())
+
+        // Apply Brand Typography Gradient Shaders
+        val tvOverlayLogoQ = view.findViewById<TextView>(R.id.tvOverlayLogoQ)
+        tvOverlayLogoQ?.post {
+            val w = tvOverlayLogoQ.paint.measureText("Q").coerceAtLeast(1f)
+            val h = tvOverlayLogoQ.textSize.coerceAtLeast(1f)
+            val shader = LinearGradient(
+                0f, 0f, w, h,
+                intArrayOf(Color.parseColor("#38BDF8"), Color.parseColor("#A855F7")),
+                floatArrayOf(0.1f, 0.95f),
+                Shader.TileMode.CLAMP
+            )
+            tvOverlayLogoQ.paint.shader = shader
+            tvOverlayLogoQ.invalidate()
+        }
+
+        val tvOverlayLogoHome = view.findViewById<TextView>(R.id.tvOverlayLogoHome)
+        tvOverlayLogoHome?.post {
+            val w = tvOverlayLogoHome.paint.measureText("Home").coerceAtLeast(1f)
+            val shader = LinearGradient(
+                0f, 0f, w, 0f,
+                intArrayOf(Color.parseColor("#FFFFFF"), Color.parseColor("#94A3B8")),
+                floatArrayOf(0.15f, 0.9f),
+                Shader.TileMode.CLAMP
+            )
+            tvOverlayLogoHome.paint.shader = shader
+            tvOverlayLogoHome.invalidate()
+        }
 
         // Setup Close Button
         view.findViewById<Button>(R.id.btnCloseOverlay)?.setOnClickListener {
