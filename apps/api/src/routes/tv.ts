@@ -783,7 +783,6 @@ router.post('/device/light/set-brightness', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-});
 
 /**
  * 11. POST /api/tv/device/toggle

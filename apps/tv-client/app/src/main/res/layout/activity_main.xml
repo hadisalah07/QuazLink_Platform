@@ -555,6 +555,7 @@
                         android:textStyle="bold"
                         android:paddingHorizontal="14dp"
                         android:layout_marginEnd="8dp"
+                        android:nextFocusDown="@+id/rvDashboardDevices"
                         android:focusable="true" />
 
                     <!-- Action 2: QuickBar Overlay Test -->
@@ -570,6 +571,7 @@
                         android:textStyle="bold"
                         android:paddingHorizontal="14dp"
                         android:layout_marginEnd="8dp"
+                        android:nextFocusDown="@+id/rvDashboardDevices"
                         android:focusable="true" />
 
                     <!-- Action 3: Settings (Remote Key & Server) -->
@@ -584,6 +586,7 @@
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:paddingHorizontal="14dp"
+                        android:nextFocusDown="@+id/rvDashboardDevices"
                         android:focusable="true" />
                 </LinearLayout>
 
