@@ -680,7 +680,6 @@ class MainActivity : AppCompatActivity() {
                             target?.requestFocus()
                         }
                     }
-                    }
                 }
             }.onFailure { err ->
                 // Do NOT submit fake/demo items - maintain honest offline/clean state
