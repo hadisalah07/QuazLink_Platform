@@ -198,11 +198,18 @@ object OverlayManager {
         try {
             windowManager?.addView(view, params)
             isShowing = true
+            view.isFocusable = true
+            view.isFocusableInTouchMode = true
+            view.requestFocus()
 
-            // Start 10 seconds AFK auto-close countdown
+            // 1. Submit items immediately for 0ms instant display with zero blank delay
+            adapter?.submitData(getDemoItems())
+            focusFirstDevice()
+
+            // 2. Start 10 seconds AFK auto-close countdown
             resetAfkTimer()
 
-            // Fetch live devices or load rich demo fallback
+            // 3. Fetch live devices in background
             loadData()
         } catch (e: Exception) {
             Log.e(TAG, "Error adding overlay view: ${e.message}", e)
@@ -213,8 +220,6 @@ object OverlayManager {
     private fun loadData() {
         scope.launch {
             val result = repository.getQuickMenu()
-            var loadedItems: List<MenuItem>? = null
-
             result.onSuccess { response ->
                 val menuItems = mutableListOf<MenuItem>()
                 for (group in response.groups) {
@@ -227,14 +232,9 @@ object OverlayManager {
                     }
                 }
                 if (menuItems.isNotEmpty()) {
-                    loadedItems = menuItems
+                    adapter?.submitData(menuItems)
                 }
             }
-
-            // Fallback rich demo items if backend returned no real entities or TV is unconfigured
-            val finalItems = loadedItems ?: getDemoItems()
-            adapter?.submitData(finalItems)
-            focusFirstDevice()
         }
     }
 
@@ -256,12 +256,14 @@ object OverlayManager {
     private fun focusFirstDevice() {
         val view = overlayView ?: return
         val rvDevices = view.findViewById<RecyclerView>(R.id.rvDevices) ?: return
-        rvDevices.post {
+        rvDevices.postDelayed({
             val firstDevicePos = adapter?.getFirstDevicePosition() ?: 1
             rvDevices.scrollToPosition(firstDevicePos)
-            rvDevices.layoutManager?.findViewByPosition(firstDevicePos)?.requestFocus()
-                ?: rvDevices.findViewHolderForAdapterPosition(firstDevicePos)?.itemView?.requestFocus()
-        }
+            val v = rvDevices.layoutManager?.findViewByPosition(firstDevicePos)
+            v?.requestFocus() ?: run {
+                rvDevices.findViewHolderForAdapterPosition(firstDevicePos)?.itemView?.requestFocus()
+            }
+        }, 120)
     }
 
     private fun handleDeviceToggle(device: DeviceItem) {

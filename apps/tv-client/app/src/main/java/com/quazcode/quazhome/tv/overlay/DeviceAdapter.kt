@@ -81,6 +81,8 @@ class DeviceAdapter(
         private val tvPowerIcon: TextView = view.findViewById(R.id.tvPowerIcon)
 
         fun bind(device: DeviceItem) {
+            container.isFocusable = true
+            container.isFocusableInTouchMode = true
             tvName.text = device.name
 
             // Icons, Badge & Theme Styling based on Device Type & State
