@@ -6,7 +6,7 @@ import { encrypt, decrypt } from '../lib/crypto';
 
 const router = Router();
 
-export const TV_LATEST_VERSION = '1.2.3';
+export const TV_LATEST_VERSION = '1.2.4';
 export const TV_MIN_REQUIRED_VERSION = '1.0.0';
 export const TV_RELEASE_DATE = '2026-11-18';
 export const TV_RELEASE_NOTES = `• لوحة تحكم ذكية متكاملة بتنسيق Bubble Card للإضاءة (Slider 0-100% + Music Mode + Bass/Mids/Treble).
@@ -500,7 +500,7 @@ router.get('/quick-menu', async (req, res) => {
 
     // Fetch real states from Home Assistant OS
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    const timeout = setTimeout(() => controller.abort(), 12000);
 
     const statesRes = await fetch(`${ha.haUrl}/api/states`, {
       headers: {
