@@ -189,12 +189,34 @@
                     android:visibility="gone" />
             </LinearLayout>
 
-            <!-- 2-Column Main Dashboard Container -->
+            <!-- Container 1: Pairing & Setup Layout (Active when !isPaired, or when Settings is opened) -->
             <LinearLayout
+                android:id="@+id/containerPairingSetup"
                 android:layout_width="880dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:baselineAligned="false">
+                android:orientation="vertical">
+
+                <!-- Return to Dashboard Button (Visible only when already paired) -->
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnBackToDashboard"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_platform_button_cyan"
+                    android:backgroundTint="@null"
+                    android:text="← العودة إلى لوحة تحكم الأجهزة الذكية (Dashboard)"
+                    android:textColor="#38BDF8"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="14dp"
+                    android:visibility="gone"
+                    android:focusable="true" />
+
+                <!-- 2-Column Main Setup Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
 
                 <!-- Left Column (420dp): Pairing & Server Card -->
                 <LinearLayout
@@ -491,6 +513,99 @@
                         android:focusable="true" />
                 </LinearLayout>
 
+            </LinearLayout>
+            </LinearLayout>
+
+            <!-- Container 2: Smart Home TV Dashboard (Active when isPaired == true) -->
+            <LinearLayout
+                android:id="@+id/containerDashboard"
+                android:layout_width="880dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Dashboard Action Bar: Status + Actions -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:id="@+id/tvDashboardStatus"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="🟢 متصل بـ Home Assistant بنجاح ✨"
+                        android:textColor="#34D399"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <!-- Action 1: Refresh Devices -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnDashboardRefresh"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_platform_button_cyan"
+                        android:backgroundTint="@null"
+                        android:text="🔄 تحديث الأجهزة"
+                        android:textColor="#38BDF8"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="14dp"
+                        android:layout_marginEnd="8dp"
+                        android:focusable="true" />
+
+                    <!-- Action 2: QuickBar Overlay Test -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnDashboardOverlay"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_platform_button_emerald"
+                        android:backgroundTint="@null"
+                        android:text="⚡ القائمة العائمة"
+                        android:textColor="@color/color_btn_emerald_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="14dp"
+                        android:layout_marginEnd="8dp"
+                        android:focusable="true" />
+
+                    <!-- Action 3: Settings (Remote Key & Server) -->
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnDashboardSettings"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:background="@drawable/bg_platform_button_slate"
+                        android:backgroundTint="@null"
+                        android:text="⚙️ إعدادات الريموت والربط"
+                        android:textColor="@color/color_btn_slate_text"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="14dp"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Subtitle / Hint -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="تحكم بأجهزة المنزل الذكي مباشرة من التلفزيون • اضغط [OK] للتشغيل/الإطفاء • استخدم ◄ ► لحرارة التكييف"
+                    android:textColor="#64748B"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- 2-Column Grid for Entities & Categories -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvDashboardDevices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:clipChildren="false"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false"
+                    android:focusable="false"
+                    android:descendantFocusability="afterDescendants" />
             </LinearLayout>
 
         </LinearLayout>

@@ -23,8 +23,8 @@ class DeviceAdapter(
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
-        private const val TYPE_HEADER = 0
-        private const val TYPE_DEVICE = 1
+        const val TYPE_HEADER = 0
+        const val TYPE_DEVICE = 1
     }
 
     private val items = mutableListOf<MenuItem>()

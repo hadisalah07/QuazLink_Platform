@@ -23,10 +23,15 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.quazcode.quazhome.tv.QuazHomeApp
 import com.quazcode.quazhome.tv.R
+import com.quazcode.quazhome.tv.data.model.DeviceItem
 import com.quazcode.quazhome.tv.data.model.UpdateCheckResponse
 import com.quazcode.quazhome.tv.data.repository.DeviceRepository
+import com.quazcode.quazhome.tv.overlay.DeviceAdapter
+import com.quazcode.quazhome.tv.overlay.MenuItem
 import com.quazcode.quazhome.tv.overlay.OverlayManager
 import com.quazcode.quazhome.tv.updater.AppUpdater
 import com.quazcode.quazhome.tv.util.QrCodeGenerator
@@ -47,6 +52,19 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnTestOverlay: Button
     private lateinit var btnOpenAccessibility: Button
     private lateinit var btnResetPairing: Button
+
+    // Main View Containers (Setup vs Dashboard)
+    private lateinit var containerPairingSetup: LinearLayout
+    private lateinit var containerDashboard: LinearLayout
+    private lateinit var btnBackToDashboard: Button
+
+    // Dashboard UI elements
+    private lateinit var tvDashboardStatus: TextView
+    private lateinit var btnDashboardRefresh: Button
+    private lateinit var btnDashboardOverlay: Button
+    private lateinit var btnDashboardSettings: Button
+    private lateinit var rvDashboardDevices: RecyclerView
+    private lateinit var dashboardAdapter: DeviceAdapter
 
     // Remote Button Customization UI elements
     private lateinit var tvCurrentRemoteKey: TextView
@@ -79,11 +97,11 @@ class MainActivity : AppCompatActivity() {
         initViews()
         setupListeners()
 
-        // 1. Check if TV is already paired or start pairing session
+        // 1. Check if TV is already paired: show live Dashboard or Pairing Session
         if (QuazHomeApp.instance.isPaired) {
-            showPairedState()
+            showDashboardState()
         } else {
-            startPairingSession()
+            showPairingSetupState()
         }
 
         // 2. Refresh Remote Button & Mode UI
@@ -141,6 +159,39 @@ class MainActivity : AppCompatActivity() {
         val vName = try { packageManager.getPackageInfo(packageName, 0).versionName } catch (e: Exception) { "1.1.6" }
         tvAppVersion?.text = "الإصدار: v$vName (Official Edition)"
 
+        containerPairingSetup = findViewById(R.id.containerPairingSetup)
+        containerDashboard = findViewById(R.id.containerDashboard)
+        btnBackToDashboard = findViewById(R.id.btnBackToDashboard)
+
+        tvDashboardStatus = findViewById(R.id.tvDashboardStatus)
+        btnDashboardRefresh = findViewById(R.id.btnDashboardRefresh)
+        btnDashboardOverlay = findViewById(R.id.btnDashboardOverlay)
+        btnDashboardSettings = findViewById(R.id.btnDashboardSettings)
+        rvDashboardDevices = findViewById(R.id.rvDashboardDevices)
+
+        // Setup 2-Column Grid for Smart Home Dashboard
+        dashboardAdapter = DeviceAdapter(
+            onDeviceToggle = { device ->
+                handleDashboardDeviceToggle(device)
+            },
+            onTempChange = { device, newTemp ->
+                handleDashboardClimateChange(device, newTemp)
+            }
+        )
+
+        val gridLayout = GridLayoutManager(this, 2)
+        gridLayout.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int {
+                return if (dashboardAdapter.getItemViewType(position) == DeviceAdapter.TYPE_HEADER) 2 else 1
+            }
+        }
+        rvDashboardDevices.layoutManager = gridLayout
+        rvDashboardDevices.itemAnimator = null
+        rvDashboardDevices.preserveFocusAfterLayout = true
+        rvDashboardDevices.clipChildren = false
+        rvDashboardDevices.clipToPadding = false
+        rvDashboardDevices.adapter = dashboardAdapter
+
         ivQrCode = findViewById(R.id.ivQrCode)
         pbQrLoading = findViewById(R.id.pbQrLoading)
         tvPairingCode = findViewById(R.id.tvPairingCode)
@@ -171,7 +222,11 @@ class MainActivity : AppCompatActivity() {
             btnModeDouble,
             btnTestOverlay,
             btnOpenAccessibility,
-            btnResetPairing
+            btnResetPairing,
+            btnBackToDashboard,
+            btnDashboardRefresh,
+            btnDashboardOverlay,
+            btnDashboardSettings
         ).forEach { it.backgroundTintList = null }
 
         // Apply Gradient Shader to Brand Logo Typography (Matching Platform Hero 1:1)
@@ -211,7 +266,11 @@ class MainActivity : AppCompatActivity() {
             btnModeDouble,
             btnTestOverlay,
             btnOpenAccessibility,
-            btnResetPairing
+            btnResetPairing,
+            btnBackToDashboard,
+            btnDashboardRefresh,
+            btnDashboardOverlay,
+            btnDashboardSettings
         )
     }
 
@@ -238,6 +297,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
+        btnBackToDashboard.setOnClickListener {
+            showDashboardState()
+        }
+
+        btnDashboardRefresh.setOnClickListener {
+            loadDashboardData()
+            Toast.makeText(this, "🔄 جاري تحديث حالة الأجهزة...", Toast.LENGTH_SHORT).show()
+        }
+
+        btnDashboardOverlay.setOnClickListener {
+            checkOverlayPermissionAndShow()
+        }
+
+        btnDashboardSettings.setOnClickListener {
+            showPairingSetupState()
+        }
+
         btnTestOverlay.setOnClickListener {
             checkOverlayPermissionAndShow()
         }
@@ -395,6 +471,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // 3. If in Setup/Settings screen and TV is already paired, pressing Back returns to Dashboard!
+        if (event.keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_DOWN) {
+            if (containerPairingSetup.visibility == View.VISIBLE && QuazHomeApp.instance.isPaired) {
+                showDashboardState()
+                return true
+            }
+        }
+
         // 3. Test configured trigger key directly inside MainActivity ONLY if Accessibility Service is NOT active
         if (!isAccessibilityServiceEnabled()) {
             val configuredKey = QuazHomeApp.instance.triggerKeyCode
@@ -518,8 +602,8 @@ class MainActivity : AppCompatActivity() {
                         if (!res.haUrl.isNullOrEmpty()) {
                             QuazHomeApp.instance.haDomain = res.haUrl
                         }
-                        showPairedState()
-                        Toast.makeText(this@MainActivity, "✨ تم ربط التلفزيون بـ Home Assistant بنجاح!", Toast.LENGTH_LONG).show()
+                        showDashboardState()
+                        Toast.makeText(this@MainActivity, "✨ تم تسجيل الدخول وربط أجهزة المنزل بنجاح!", Toast.LENGTH_LONG).show()
                         return@launch
                     } else if (res.status == "expired") {
                         tvPairingStatus.text = "انتهت صلاحية الرمز. اضغط إعادة توليد."
@@ -529,6 +613,115 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showDashboardState() {
+        containerPairingSetup.visibility = View.GONE
+        containerDashboard.visibility = View.VISIBLE
+        btnBackToDashboard.visibility = View.VISIBLE
+
+        val domain = QuazHomeApp.instance.haDomain.ifEmpty { "Home Assistant" }
+        tvDashboardStatus.text = "🟢 متصل بـ $domain بنجاح ✨"
+        tvDashboardStatus.setTextColor(Color.parseColor("#34D399"))
+
+        loadDashboardData()
+    }
+
+    private fun showPairingSetupState() {
+        containerDashboard.visibility = View.GONE
+        containerPairingSetup.visibility = View.VISIBLE
+
+        if (QuazHomeApp.instance.isPaired) {
+            btnBackToDashboard.visibility = View.VISIBLE
+            showPairedState()
+        } else {
+            btnBackToDashboard.visibility = View.GONE
+            startPairingSession()
+        }
+    }
+
+    private fun loadDashboardData() {
+        lifecycleScope.launch {
+            val result = repository.getQuickMenu()
+            result.onSuccess { response ->
+                val menuItems = mutableListOf<MenuItem>()
+                for (group in response.groups) {
+                    val filtered = group.entities.filter { it.entityId != "tv.pairing_status" }
+                    if (filtered.isNotEmpty()) {
+                        menuItems.add(MenuItem.Header(group.name))
+                        for (entity in filtered) {
+                            menuItems.add(MenuItem.Device(entity))
+                        }
+                    }
+                }
+                if (menuItems.isNotEmpty()) {
+                    val focusedView = currentFocus
+                    val containingView = focusedView?.let { rvDashboardDevices.findContainingItemView(it) }
+                    val currentPos = containingView?.let { rvDashboardDevices.getChildAdapterPosition(it) } ?: -1
+
+                    dashboardAdapter.submitData(menuItems)
+
+                    if (currentPos >= 0 && currentPos < menuItems.size) {
+                        rvDashboardDevices.post {
+                            val holder = rvDashboardDevices.findViewHolderForAdapterPosition(currentPos)
+                            val target = holder?.itemView?.findViewById<View>(R.id.cardContainer) ?: holder?.itemView
+                            target?.requestFocus()
+                        }
+                    }
+                } else if (dashboardAdapter.itemCount == 0) {
+                    dashboardAdapter.submitData(getDemoMenuItems())
+                }
+            }.onFailure {
+                if (dashboardAdapter.itemCount == 0) {
+                    dashboardAdapter.submitData(getDemoMenuItems())
+                }
+            }
+        }
+    }
+
+    private fun handleDashboardDeviceToggle(device: DeviceItem) {
+        if (device.type == "scene") {
+            lifecycleScope.launch {
+                Toast.makeText(this@MainActivity, "تم تشغيل ${device.name} ✨", Toast.LENGTH_SHORT).show()
+                if (QuazHomeApp.instance.isPaired) {
+                    repository.triggerScene(device.entityId)
+                }
+            }
+            return
+        }
+
+        if (QuazHomeApp.instance.isPaired) {
+            lifecycleScope.launch {
+                val result = repository.toggle(device.entityId)
+                if (result.isFailure) {
+                    dashboardAdapter.revertDeviceState(device.entityId, rvDashboardDevices)
+                    Toast.makeText(this@MainActivity, "تعذر تحديث حالة الجهاز", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private fun handleDashboardClimateChange(device: DeviceItem, newTemp: Double) {
+        if (QuazHomeApp.instance.isPaired) {
+            lifecycleScope.launch {
+                repository.setClimateTemp(device.entityId, newTemp)
+            }
+        }
+    }
+
+    private fun getDemoMenuItems(): List<MenuItem> {
+        return listOf(
+            MenuItem.Header("الإضاءة والإنارة"),
+            MenuItem.Device(DeviceItem("light.living_room", "إضاءة الصالة الرئيسية", "light", "lamp", "on", true, null, null, null, null, null, null)),
+            MenuItem.Device(DeviceItem("light.kitchen_strip", "شريط ليد المطبخ", "light", "led", "off", false, null, null, null, null, null, null)),
+            MenuItem.Header("التكييف والمناخ"),
+            MenuItem.Device(DeviceItem("climate.living_room", "تكييف غرفة المعيشة", "climate", "air-conditioner", "22°C", true, null, 24.0, 22.0, 16.0, 30.0, null)),
+            MenuItem.Header("الأجهزة والمفاتيح"),
+            MenuItem.Device(DeviceItem("switch.water_heater", "سخان المياه الذكي", "switch", "power", "off", false, null, null, null, null, null, null)),
+            MenuItem.Header("السيناريوهات والوضعيات"),
+            MenuItem.Device(DeviceItem("scene.movie_night", "وضع السينما والمشاهدة", "scene", "movie", "active", false, null, null, null, null, null, null)),
+            MenuItem.Device(DeviceItem("scene.goodnight", "وضع النوم والهدوء", "scene", "sleep", "active", false, null, null, null, null, null, null))
+        )
     }
 
     private fun showPairedState() {
