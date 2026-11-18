@@ -1,10 +1,12 @@
 package com.quazcode.quazhome.tv.overlay
 
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.quazcode.quazhome.tv.R
@@ -96,12 +98,12 @@ class DeviceAdapter(
     }
 
     inner class DeviceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        private val container: View = view.findViewById(R.id.cardContainer)
+        val container: View = view.findViewById(R.id.cardContainer)
         private val tvIcon: TextView = view.findViewById(R.id.tvDeviceIcon)
         private val tvName: TextView = view.findViewById(R.id.tvDeviceName)
         private val tvStatus: TextView = view.findViewById(R.id.tvDeviceStatus)
         private val tvBadge: TextView = view.findViewById(R.id.tvStateBadge)
-        private val tvPowerIcon: TextView = view.findViewById(R.id.tvPowerIcon)
+        private val ivPowerIcon: ImageView = view.findViewById(R.id.ivPowerIcon)
 
         fun bind(device: DeviceItem) {
             container.isFocusable = true
@@ -113,17 +115,18 @@ class DeviceAdapter(
                 "light" -> {
                     tvIcon.text = if (device.isOn) "💡" else "🌑"
                     tvBadge.text = if (device.isOn) "ON" else "OFF"
+                    ivPowerIcon.visibility = View.VISIBLE
                     if (device.isOn) {
                         tvBadge.setTextColor(Color.parseColor("#34D399"))
                         tvBadge.setBackgroundResource(R.drawable.bg_pill_emerald_active)
-                        tvPowerIcon.setTextColor(Color.parseColor("#22D3EE"))
-                        tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                        ivPowerIcon.imageTintList = ColorStateList.valueOf(Color.parseColor("#22D3EE"))
+                        ivPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                         tvIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                     } else {
                         tvBadge.setTextColor(Color.parseColor("#64748B"))
                         tvBadge.setBackgroundResource(R.drawable.bg_platform_pill)
-                        tvPowerIcon.setTextColor(Color.parseColor("#64748B"))
-                        tvPowerIcon.setBackgroundResource(R.drawable.bg_platform_pill)
+                        ivPowerIcon.imageTintList = ColorStateList.valueOf(Color.parseColor("#64748B"))
+                        ivPowerIcon.setBackgroundResource(R.drawable.bg_platform_pill)
                         tvIcon.setBackgroundResource(R.drawable.bg_platform_pill)
                     }
                     tvStatus.text = device.entityId.ifEmpty { "light.living_room" }
@@ -136,8 +139,7 @@ class DeviceAdapter(
                     tvBadge.text = "${target}°C"
                     tvBadge.setTextColor(Color.parseColor("#38BDF8"))
                     tvBadge.setBackgroundResource(R.drawable.bg_pill_cyan_active)
-                    tvPowerIcon.setTextColor(Color.parseColor("#38BDF8"))
-                    tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                    ivPowerIcon.visibility = View.GONE
                     tvIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                 }
                 "scene" -> {
@@ -145,25 +147,25 @@ class DeviceAdapter(
                     tvBadge.text = "تشغيل"
                     tvBadge.setTextColor(Color.parseColor("#A78BFA"))
                     tvBadge.setBackgroundResource(R.drawable.bg_pill_purple_active)
-                    tvPowerIcon.setTextColor(Color.parseColor("#A78BFA"))
-                    tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_purple_active)
+                    ivPowerIcon.visibility = View.GONE
                     tvIcon.setBackgroundResource(R.drawable.bg_pill_purple_active)
                     tvStatus.text = device.entityId.ifEmpty { "scene.living_room" }
                 }
                 else -> {
                     tvIcon.text = if (device.isOn) "⚡" else "🔌"
                     tvBadge.text = if (device.isOn) "ON" else "OFF"
+                    ivPowerIcon.visibility = View.VISIBLE
                     if (device.isOn) {
                         tvBadge.setTextColor(Color.parseColor("#34D399"))
                         tvBadge.setBackgroundResource(R.drawable.bg_pill_emerald_active)
-                        tvPowerIcon.setTextColor(Color.parseColor("#22D3EE"))
-                        tvPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
+                        ivPowerIcon.imageTintList = ColorStateList.valueOf(Color.parseColor("#22D3EE"))
+                        ivPowerIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                         tvIcon.setBackgroundResource(R.drawable.bg_pill_cyan_active)
                     } else {
                         tvBadge.setTextColor(Color.parseColor("#64748B"))
                         tvBadge.setBackgroundResource(R.drawable.bg_platform_pill)
-                        tvPowerIcon.setTextColor(Color.parseColor("#64748B"))
-                        tvPowerIcon.setBackgroundResource(R.drawable.bg_platform_pill)
+                        ivPowerIcon.imageTintList = ColorStateList.valueOf(Color.parseColor("#64748B"))
+                        ivPowerIcon.setBackgroundResource(R.drawable.bg_platform_pill)
                         tvIcon.setBackgroundResource(R.drawable.bg_platform_pill)
                     }
                     tvStatus.text = device.entityId.ifEmpty { "switch.device" }
@@ -173,7 +175,7 @@ class DeviceAdapter(
             // Click action with micro-bounce feedback & 100% focus retention
             container.setOnClickListener {
                 container.animate().scaleX(0.97f).scaleY(0.97f).setDuration(60).withEndAction {
-                    container.animate().scaleX(1.03f).scaleY(1.03f).setDuration(80).start()
+                    container.animate().scaleX(1.025f).scaleY(1.025f).setDuration(80).start()
                 }.start()
 
                 if (device.type == "scene") {
@@ -194,8 +196,8 @@ class DeviceAdapter(
             container.setOnFocusChangeListener { _, hasFocus ->
                 if (hasFocus) {
                     container.animate()
-                        .scaleX(1.03f)
-                        .scaleY(1.03f)
+                        .scaleX(1.025f)
+                        .scaleY(1.025f)
                         .translationZ(8f)
                         .setDuration(120)
                         .start()

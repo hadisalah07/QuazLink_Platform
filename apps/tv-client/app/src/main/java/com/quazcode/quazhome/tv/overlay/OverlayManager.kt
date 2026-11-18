@@ -150,11 +150,15 @@ object OverlayManager {
             dismiss()
         }
 
-        // Setup RecyclerView
+        // Setup RecyclerView with zero clipping
         val rvDevices = view.findViewById<RecyclerView>(R.id.rvDevices)
         rvDevices.layoutManager = LinearLayoutManager(context)
         rvDevices.itemAnimator = null
         rvDevices.preserveFocusAfterLayout = true
+        rvDevices.clipChildren = false
+        rvDevices.clipToPadding = false
+        (view as? ViewGroup)?.clipChildren = false
+        (view as? ViewGroup)?.clipToPadding = false
 
         adapter = DeviceAdapter(
             onDeviceToggle = { device ->
